@@ -7,6 +7,8 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 **this project trys to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream task.
 
+### Model  
+<img src=".\imgs\structure.png" style="zoom:50%;"></img>
 
 ### ToDo
 - [ ] evaluation  
