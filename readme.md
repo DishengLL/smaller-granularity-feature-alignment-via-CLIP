@@ -1,8 +1,8 @@
 # Smaller granularity feature alignment via CLIP
 
 ### ToDo
-[] evaluation  
+[ ] evaluation  
   overall -- MSE 
   each disease -- confusion matrix
 
-[] biomedCLIP
+[ ] biomedCLIP
