@@ -10,7 +10,7 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 ### ToDo
 - [ ] evaluation  
-  overall -- MSE 
+  overall -- MSE     
   each disease -- confusion matrix
 
 - [ ] biomedCLIP
