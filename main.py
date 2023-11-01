@@ -88,7 +88,7 @@ if __name__ == "__main__":
     _evaluator_ = Evaluator(
         FG_model_cls = model,
         eval_dataloader = eval_dataloader,
-        mode='multilabel')
+        mode='multiclass')
 
     # loss_model.cuda()
     train_objectives = [
