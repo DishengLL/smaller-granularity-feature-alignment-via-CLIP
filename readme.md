@@ -16,3 +16,5 @@ currently using Classification task as an ultility task, aiming to build a gener
   each disease -- confusion matrix
 
 - [ ] biomedCLIP
+
+- [ ] modality gap shift exploration
