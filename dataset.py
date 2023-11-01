@@ -47,18 +47,18 @@ class Process_raw_csv():
     def generate_label(self, row):
         label_dic = {}
         for disease in constants.CHEXPERT_LABELS:
-            label_dic[disease] = constants.UNCERTAIN
+            label_dic[disease] = constants.UNCERTAIN_CLASS
         for column_name, value in row.items():
             if column_name == "study_id": continue
             if column_name == "No Finding" and value == constants.POSITIVE:
                 for i in label_dic:
-                    label_dic[i] = constants.NEGATIVE
-                label_dic[column_name] = constants.POSITIVE
+                    label_dic[i] = constants.NEGATIVE_CLASS
+                label_dic[column_name] = constants.POSITIVE_CLASS
                 return label_dic
             if value == constants.POSITIVE:
-                label_dic[column_name] = constants.POSITIVE
+                label_dic[column_name] = constants.POSITIVE_CLASS
             elif value == 0:
-                label_dic[column_name] = constants.NEGATIVE
+                label_dic[column_name] = constants.NEGATIVE_CLASS
         return label_dic
 
     def image_label_preprocess(self, df):
@@ -87,13 +87,13 @@ class Process_raw_csv():
             # file_names = os.listdir(img_dir_path)
             # img_paths = [os.path.join(img_dir_path, file_name) for file_name in file_names if file_name.split(".")[-1] != "DS"]
 
-    def raw_data_process(self, save_path="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"):
+    def raw_data_process(self, save_path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess.csv"):
         '''
         process raw data sheet.
         the generated one has col [subject_id, study_id, label, img_path, train_label]
         the 
         '''
-        df = pd.read_csv('/Users/liu/Downloads/mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
+        df = pd.read_csv('D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
         df = self.image_label_preprocess(df)
         print(df.head())
         df.reset_index(inplace=True)
@@ -129,8 +129,8 @@ class get_sub_set_data():
 
 # a = Process_raw_csv()
 # a.raw_data_process()
-# b = get_sub_set_data(source='/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv')
-# b.get_sub_set(save=True, dist="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/first7sample.csv")
+# b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess.csv")
+# b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\first7sample.csv")
 
 class ImageTextContrastiveDataset(Dataset):
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
@@ -265,8 +265,8 @@ class make_data_set():
     --- train_only.csv: subset of final.csv, contains all of training data
     --- test_only.csv: subset of final.csv, contains all of testing data
     '''
-    def __init__(self, source1 = "/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/data/MIMIC_CXR/physionet.org/files/mimic-cxr-jpg/2.0.0/mimic-cxr-2.0.0-split.csv", 
-                 source2 = "/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/first7sample.csv"):
+    def __init__(self, source1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\data\\MIMIC_CXR\\physionet.org\\files\\mimic-cxr-jpg\\2.0.0\\mimic-cxr-2.0.0-split.csv", 
+                 source2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\first7sample.csv"):
         if source1 is None or source2 is None:
             raise ValueError("source1 and source2 should be defined")
         self.df1 = pd.read_csv(source1)
@@ -369,7 +369,7 @@ class make_data_set():
 #     c = make_data_set()
 #     # print(c.df1.head())
 #     # print(c.df2.head())
-#     x = c.combine(save=True, path="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/final.csv")
+#     x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\final.csv")
 #     print(x)
 #     print(x[x["split"] == "test"].sum())
 
