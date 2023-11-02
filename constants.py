@@ -51,7 +51,8 @@ BASIC_PROMPT = [
 ## initial version
 CHEXPERT_PROMPTS = CHEXPERT_LABELS
 
-DATA_DIR="D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/"
+# DATA_DIR="D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/"
+DATA_DIR = "D:/project_x_ray_CLIP/data/physionet.org/files/mimic-cxr-jpg/2.0.0/files"
 
 CHEXPERT_TASKS = [
     "No Finding",

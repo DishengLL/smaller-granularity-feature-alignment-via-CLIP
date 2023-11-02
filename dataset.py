@@ -39,98 +39,6 @@ import constants
 #输出: 多输出多label
 
 
-class Process_raw_csv():
-    def __init__(self):
-        print("run this class to preprocess raw csv file")
-        
-
-    def generate_label(self, row):
-        label_dic = {}
-        for disease in constants.CHEXPERT_LABELS:
-            label_dic[disease] = constants.UNCERTAIN_CLASS
-        for column_name, value in row.items():
-            if column_name == "study_id": continue
-            if column_name == "No Finding" and value == constants.POSITIVE:
-                for i in label_dic:
-                    label_dic[i] = constants.NEGATIVE_CLASS
-                label_dic[column_name] = constants.POSITIVE_CLASS
-                return label_dic
-            if value == constants.POSITIVE:
-                label_dic[column_name] = constants.POSITIVE_CLASS
-            elif value == 0:
-                label_dic[column_name] = constants.NEGATIVE_CLASS
-        return label_dic
-
-    def image_label_preprocess(self, df):
-    ### 按照病人进行排列, 返回的df包含两列： study_id, label
-        df = df[["study_id"] + constants.CHEXPERT_LABELS]
-        df['label'] = df.apply(self.generate_label, axis=1)
-        return df[["study_id", "label"]]
-
-    def mapping(self, _map_):
-        labels = []
-        if isinstance(_map_, str):
-            _map_ = _map_.replace("'", '"')
-        if not isinstance(_map_, dict):
-            _map_ = json.loads(_map_)
-        for _, value in _map_.items():
-            labels.append(value)
-        return labels
-
-    def path_concat(self, _df_):
-        img_path = "/"+"p"
-        sub_path = img_path + _df_["subject_id"].map(str)+'/' + "s" + _df_["study_id"].map(str) + "/"
-        img_path = constants.DATA_DIR + "images/" + sub_path
-        # if os.path.exists(img_path) and not os.path.isdir(img_path) and img_path.split(".")[-1] != ".DS":
-        _df_["img_path"] = img_path
-            # 目录存在，进行操作
-            # file_names = os.listdir(img_dir_path)
-            # img_paths = [os.path.join(img_dir_path, file_name) for file_name in file_names if file_name.split(".")[-1] != "DS"]
-
-    def raw_data_process(self, save_path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess.csv"):
-        '''
-        process raw data sheet.
-        the generated one has col [subject_id, study_id, label, img_path, train_label]
-        the 
-        '''
-        df = pd.read_csv('D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
-        df = self.image_label_preprocess(df)
-        print(df.head())
-        df.reset_index(inplace=True)
-        print(df.head())
-        self.path_concat(df)
-        print(df.head())
-        df["train_label"] = df["label"].apply(self.mapping)
-        df.to_csv(save_path) 
-        # test = df.head(11)
-        # print(test)
-        # print(test.iloc[-1].label)
-
-class get_sub_set_data():
-    def __init__(self, n = 7, source=None):
-        self.num = n
-        if source is None:
-            raise ValueError("Source is the original dataset, which should be specified!!")
-        self.source = source
-    
-    def get_sub_set(self, save = False, cols:list = None, row = None, dist = None):
-        if row is None:
-            row = self.num
-        source = pd.read_csv(self.source)
-        if cols is None:
-            target = source.iloc[:row, :]
-        else:
-            target = source.iloc[:row, cols]
-        if save is True:
-            target.to_csv(dist, index=False)
-
-        return target   
-
-
-# a = Process_raw_csv()
-# a.raw_data_process()
-# b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess.csv")
-# b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\first7sample.csv")
 
 class ImageTextContrastiveDataset(Dataset):
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
@@ -258,6 +166,110 @@ class data_exploration():
     def get_df (self):
         return self.df
 
+class Process_raw_csv():
+    def __init__(self):
+        print("run this class to preprocess raw csv file")
+        
+
+    def generate_label(self, row):
+        label_dic = {}
+        for disease in constants.CHEXPERT_LABELS:
+            label_dic[disease] = constants.UNCERTAIN_CLASS
+        for column_name, value in row.items():
+            if column_name == "study_id": continue
+            if column_name == "No Finding" and value == constants.POSITIVE:
+                for i in label_dic:
+                    label_dic[i] = constants.NEGATIVE_CLASS
+                label_dic[column_name] = constants.POSITIVE_CLASS
+                return label_dic
+            if value == constants.POSITIVE:
+                label_dic[column_name] = constants.POSITIVE_CLASS
+            elif value == 0:
+                label_dic[column_name] = constants.NEGATIVE_CLASS
+        return label_dic
+
+    def image_label_preprocess(self, df):
+    ### 按照病人进行排列, 返回的df包含两列： study_id, label
+        df = df[["study_id"] + constants.CHEXPERT_LABELS]
+        df['label'] = df.apply(self.generate_label, axis=1)
+        return df[["study_id", "label"]]
+
+    def mapping(self, _map_):
+        labels = []
+        if isinstance(_map_, str):
+            _map_ = _map_.replace("'", '"')
+        if not isinstance(_map_, dict):
+            _map_ = json.loads(_map_)
+        for _, value in _map_.items():
+            labels.append(value)
+        return labels
+
+    def path_concat(self, _df_):
+        img_path = "/"+"p"
+        dir_path = _df_["subject_id"].map(str)
+        _df_['dir'] = dir_path.apply(lambda x: x[:2])
+        sub_path = "/p" + _df_['dir'] + "/" + img_path + _df_["subject_id"].map(str)+'/' + "s" + _df_["study_id"].map(str) + "/"
+        img_path = constants.DATA_DIR + sub_path
+        _df_["img_path"] = img_path
+
+    def raw_data_process(self, save_path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv"):
+        '''
+        the main method in this class
+        process raw data sheet.
+        the generated one has col [subject_id, study_id, label, img_path, train_label]
+        the 
+        '''
+        df = pd.read_csv('D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
+        df = self.image_label_preprocess(df)
+        df.reset_index(inplace=True)
+        self.path_concat(df)
+        df["train_label"] = df["label"].apply(self.mapping)
+        df.to_csv(save_path) 
+
+class get_sub_set_data():
+    def __init__(self, n = 7, source=None, condition = None, col_name = None):
+        self.num = n
+        if source is None:
+            raise ValueError("Source is the original dataset, which should be specified!!")
+        self.source = source
+        self.condition = condition
+        self.col_name = col_name
+
+    def extract_by_condition(self, dest=None):
+        if self.col_name is None:
+            raise ValueError("you should specify one column")
+        df = pd.read_csv(self.source)
+        if self.condition is None:
+            raise ValueError("condition error!")
+        filtered_data = df[df[self.col_name].apply(self.condition)]
+
+        # 将筛选后的数据保存到新的CSV文件
+        filtered_data.to_csv(dest, index=False)
+    
+    def get_sub_set(self, save = False, cols:list = None, row = None, dist = None):
+        if self.condition is not None:
+            self.extract_by_condition(dist)
+            return
+        
+        if row is None:
+            row = self.num
+        source = pd.read_csv(self.source)
+        if cols is None:
+            target = source.iloc[:row, :]
+        else:
+            target = source.iloc[:row, cols]
+        if save is True:
+            target.to_csv(dist, index=False)
+
+        return target   
+
+
+def condition(row):   
+    """
+    just using data of p10-p12
+    """
+    return row in [10, 11, 12]
+
 class make_data_set():
     '''
     construct this final dataset which can be used in concrete training and testing
@@ -266,7 +278,7 @@ class make_data_set():
     --- test_only.csv: subset of final.csv, contains all of testing data
     '''
     def __init__(self, source1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\data\\MIMIC_CXR\\physionet.org\\files\\mimic-cxr-jpg\\2.0.0\\mimic-cxr-2.0.0-split.csv", 
-                 source2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\first7sample.csv"):
+                 source2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\p10_12.csv"):
         if source1 is None or source2 is None:
             raise ValueError("source1 and source2 should be defined")
         self.df1 = pd.read_csv(source1)
@@ -275,18 +287,17 @@ class make_data_set():
         self.basic_dataset = self.df2
     
     def check_ext(self, string: str, split = ".", target = "jpg"):
-        # print(string.split(split)[-1])
         return string.split(split)[-1] == target
 
     def get_images(self, df) -> list:
-        # print(df)
         img_dir = df["img_path"]
         try:
             file_and_dir = os.listdir(img_dir)
         except:
             files = ["Void"]
+            print(img_dir)
             return files
-        # print(img_dir)
+            raise ValueError("wrong path!!!!!")
         files = [img_dir + "/" + image for image in file_and_dir if self.check_ext(img_dir + "/" + image)]
         return files
     
@@ -296,11 +307,9 @@ class make_data_set():
             return ["Void"]
         for i in L_str:
             tmp = i.split("/")
-            # print(tmp)
             subj = tmp[-4][1:]
             stud = tmp[-3][1:]
             id = tmp[-1].split(".")[0]
-            # print(self.split_dataset)
             condition_1 = self.split_dataset["dicom_id"] == id
             condition_2 = self.split_dataset["study_id"] == int(stud)
             condition_3 = self.split_dataset["subject_id"] == int(subj)
@@ -312,22 +321,16 @@ class make_data_set():
     
     def combine(self, save = False, path=None):
         new_df = pd.DataFrame(columns=["subject_id","study_id", "label", "img_path", "train_label", "file_path", "split"])
-        # print(self.df2)
         for _, row in self.df2.iterrows():
-            # print("row: ", row)
             files = self.get_images(row)
             trains_p = self.does_train(files)
             if files[0] == "Void":
-                # print(pd.DataFrame({'subject_id': row['subject_id'], 'study_id': row['study_id'], "label": row["label"], 
-                #                         "img_path": row["img_path"], "train_label": row["train_label"], }))
-                new_df = pd.concat([new_df, pd.DataFrame({'subject_id': row['subject_id'], 'study_id': row['study_id'], "label": row["label"], 
-                                        "img_path": row["img_path"], "train_label": row["train_label"], 'file_path': files,  'split': trains_p},)], ignore_index=True)
+                continue
 
             else:
                 for i, j in enumerate(files):
                     new_df = pd.concat([new_df, pd.DataFrame({'subject_id': row['subject_id'], 'study_id': row['study_id'], "label": row["label"], 
                                         "img_path": row["img_path"], "train_label": row["train_label"], 'file_path': j,  'split': trains_p[i]})], ignore_index=True)
-                # print(trains_p[i])
         if save == True and path is not None:
             new_df.to_csv(path)
         return new_df
@@ -351,25 +354,22 @@ class make_data_set():
 
 
 
-# if __name__ == "__main__":
-#     # a = data_exploration("/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/data/MIMIC_CXR/physionet.org/files/mimic-cxr-jpg/2.0.0/mimic-cxr-2.0.0-split.csv")
-#     # a.info()
-#     # a.browse()
-#     # # a.browse_condition(target = "test", column_name = "split")
+if __name__ == "__main__":
+    
+    # a = Process_raw_csv()
+    # a.raw_data_process()
+    # b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv", condition=condition, col_name="dir")
+    # b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\p10_12.csv")
 
-#     # print("-" * 10)
-#     # b = data_exploration("/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/first7sample.csv")
-#     # b.info()
-#     # b.browse()
-#     # df = b.get_df()
-#     # print(df)
-
-#     print("---------\n")
-#     # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
-#     c = make_data_set()
-#     # print(c.df1.head())
-#     # print(c.df2.head())
-#     x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\final.csv")
-#     print(x)
-#     print(x[x["split"] == "test"].sum())
+    print("----making train/test dataset-----\n")
+    # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
+    c = make_data_set()
+    x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv")
+    print(x)
+    print(x[x["split"] == "test"].sum())
+    print("--------get training and testing dataset csv file---------\n")
+    c = make_data_set()
+    c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv",
+                            traget_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv")
+  
 
