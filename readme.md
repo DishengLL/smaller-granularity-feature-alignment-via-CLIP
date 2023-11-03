@@ -11,6 +11,8 @@ currently using Classification task as an ultility task, aiming to build a gener
 <img src=".\imgs\structure.png" style="zoom:50%;"></img>
 
 ### ToDo
+- [ ] GPU(CUDA) version code 
+
 - [ ] evaluation  
   overall -- MSE     
   each disease -- confusion matrix
