@@ -285,6 +285,8 @@ class make_data_set():
         self.df2 = pd.read_csv(source2)
         self.split_dataset = self.df1
         self.basic_dataset = self.df2
+        self.count = 0
+        self.interval = 1000
     
     def check_ext(self, string: str, split = ".", target = "jpg"):
         return string.split(split)[-1] == target
@@ -321,6 +323,8 @@ class make_data_set():
     
     def combine(self, save = False, path=None):
         new_df = pd.DataFrame(columns=["subject_id","study_id", "label", "img_path", "train_label", "file_path", "split"])
+        if save == True and path is not None:
+            new_df.to_csv(path, mode='w', header=True, index=False)
         for _, row in self.df2.iterrows():
             files = self.get_images(row)
             trains_p = self.does_train(files)
@@ -329,23 +333,28 @@ class make_data_set():
 
             else:
                 for i, j in enumerate(files):
+                    self.count += 1
                     new_df = pd.concat([new_df, pd.DataFrame({'subject_id': row['subject_id'], 'study_id': row['study_id'], "label": row["label"], 
                                         "img_path": row["img_path"], "train_label": row["train_label"], 'file_path': j,  'split': trains_p[i]})], ignore_index=True)
-        if save == True and path is not None:
-            new_df.to_csv(path)
+                    if (self.count % self.interval == 0) and save == True and path is not None:
+                        new_df.to_csv(path, mode='a', header=False, index=False)
+                        new_df = pd.DataFrame(columns=["subject_id","study_id", "label", "img_path", "train_label", "file_path", "split"])
+                        print(f"the current image number: {self.count}")
         return new_df
     
-    def save_training_testing(self, source = None, target_1 = None, target_2 = None):
-        if source & target_1 & target_2:
-            pass
-        else:
-            raise ValueError("source, target1/2 are required!")
+    def save_training_testing(self, source = None, target_1 = None, target_2 = None, target_val = None):
+        if source is None or target_1 is None or target_2 is None or target_val is None:
+            raise ValueError("input parameter(s) is(are) problematic!")
         df_source = pd.read_csv(source)
         condition = df_source["split"] == "train"
         df = df_source[condition]
         df.to_csv(target_1)
-        df = df_source[~condition]
+        condition = df_source["split"] == "test"
+        df = df_source[condition]
         df.to_csv(target_2)
+        condition = df_source["split"] == "validate"
+        df = df_source[condition]
+        df.to_csv(target_val)
         del(df)
         
         
@@ -361,15 +370,14 @@ if __name__ == "__main__":
     # b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv", condition=condition, col_name="dir")
     # b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\p10_12.csv")
 
-    print("----making train/test dataset-----\n")
-    # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
-    c = make_data_set()
-    x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv")
-    print(x)
-    print(x[x["split"] == "test"].sum())
+    # print("----making train/test dataset-----\n")
+    # # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
+    # c = make_data_set()
+    # x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv")
+    # # print(x)
+    # print(x[x["split"] == "test"].sum())
     print("--------get training and testing dataset csv file---------\n")
     c = make_data_set()
-    c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv",
-                            traget_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv")
+    c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv", target_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv", target_val = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_validate.csv")
   
 
