@@ -29,18 +29,18 @@ if __name__ == "__main__":
     # set cuda devices
     os.environ['CUDA_VISIBLE_DEVICES']='0'
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+    # device = "cpu"
 
     # set training configurations
     train_config = {
-        'batch_size': 5,
+        'batch_size': 100,
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
-        'eval_batch_size': 10,
-        'eval_steps': 2,
-        'save_steps': 2,
+        'eval_batch_size': 256,
+        'eval_steps': 1000,
+        'save_steps': 1000,
         "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\]checkpoint"
     }
 
