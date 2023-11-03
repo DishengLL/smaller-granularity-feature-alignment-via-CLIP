@@ -91,7 +91,7 @@ class Trainer:
             schedulers.append(scheduler_obj)
 
         # map models to devices
-        # model = model.cuda()
+        model = model.cuda()
 
         # execute training on multiple GPUs
         global_step = 0

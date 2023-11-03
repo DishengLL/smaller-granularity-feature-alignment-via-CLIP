@@ -98,17 +98,17 @@ class Evaluator:
         if self.mode == 'multiclass':
             # if len(pred.shape) == 2:
             #     pred = pred.view()
-            print(labels)
-            print(f"the shape of labels: {labels.shape}")
+            # print(labels)
+            # print(f"the shape of labels: {labels.shape}")
             num_batch = pred.shape[0]
             pred = pred.reshape(num_batch, 13, 3)
 
             pred_label = pred.argmax(-1)
-            print(pred_label)
+            # print(pred_label)
             acc = (pred_label == labels).mean()
             outputs['acc'] = acc
             res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True)
-            print(res)
+            # print(res)
             res = res['macro avg']
             res.pop('support')
             outputs.update(res)

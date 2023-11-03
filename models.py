@@ -256,7 +256,7 @@ class TextBranch(nn.Module):
         # print(f'\033[31mthe type of text_inputs : {type(text_inputs)}\033[0m')
         with torch.no_grad():
             for text_input in text_inputs:
-              text_features.append(self.clip_model.encode_text(clip.tokenize(text_input)).float())
+              text_features.append(self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float())
         # text-features shape - [batch, num of text, dim]
         text_features = torch.stack(text_features, dim = 0)
         output = self.transformer(text_features)
@@ -268,7 +268,7 @@ class ImgBranch(nn.Module):
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        device = "cpu"
+        # device = "cpu"
         self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
         # 冻结 CLIP 部分的参数
         for param in self.clip_model.parameters():
@@ -417,8 +417,8 @@ class LGCLIP(nn.Module):
             ):
             # input_text = input_text.cuda()/
 
-            img_embeds = self.encode_image(img_path)
-            text_embeds = self.encode_text(input_text)
+            img_embeds = self.encode_image(img_path).cuda()
+            text_embeds = self.encode_text(input_text).cuda()
 
             logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1]
             logits_per_text = logits_per_image.t() #similarity matrix text2img
@@ -492,7 +492,7 @@ class PN_classifier(nn.Module):
             # img_label = img_label.cuda().float()
             # print(f"the shape of logit: {logits.shape}")
             nested_list = [json.loads(s) for s in img_label]
-            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long)
+            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).cuda()
             # print(f"the shape of image_label: {img_label.shape}")
             logits = logits.view(-1, self.num_cat)
             
