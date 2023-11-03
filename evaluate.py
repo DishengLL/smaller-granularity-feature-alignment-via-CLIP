@@ -45,7 +45,7 @@ class Evaluator:
         # return a, b, c
                 branch_out, classifier_out, _ = self.clf(**data)
                 pred = classifier_out['logits']
-                print(f"the shape of pred: {pred.shape}")
+                # print(f"the shape of pred: {pred.shape}")
             pred_list.append(pred)
             # print("\n t: ",data['img_labels'],"\n")
             tmp = [json.loads(i) for i in data["img_labels"]]

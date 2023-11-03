@@ -24,12 +24,6 @@ from sklearn.preprocessing import OrdinalEncoder
 import os
 import json
 
-# import os,sys
-# os.chdir(sys.path[0]) #使用文件所在目录
-# sys.path.append(os.getcwd()) #添加工作目录到模块搜索目录列表
-
-# from prompts import process_class_prompts, process_class_prompts_for_tuning
-# from prompts import generate_chexpert_class_prompts
 import constants
 # import clip
 
@@ -42,7 +36,7 @@ import constants
 
 class ImageTextContrastiveDataset(Dataset):
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
-    def __init__(self, source_data='final.csv', imgtransform=None, prompt_type=None) -> None:
+    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type=None) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
         filename :  the csv file contains all of training data
         '''
@@ -52,8 +46,9 @@ class ImageTextContrastiveDataset(Dataset):
             raise ValueError("source_data should be specified, which indicates the path of original data")
         
         # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
-        filename = os.path.join(constants.DATA_DIR, source_data)
-        print('load data from', filename)
+        # filename = os.path.join(constants.DATA_DIR, source_data)
+        filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/p10_12_train.csv"
+        print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if prompt_type is None:
             self.prompts = constants.BASIC_PROMPT
@@ -81,8 +76,6 @@ class ImageTextContrastiveCollator:
             inputs['img'].append(data[0])
             report_list.append(data[1])
             inputs['img_labels'].append(data[2])
-        # inputs['img_labels'] = torch.tensor(np.stack(inputs['img_labels']).astype(float))
-        # print("the size of input label in datacollator: ", inputs["img_labels"])
         inputs['prompts'] =  report_list
         return inputs
 
@@ -105,10 +98,10 @@ class TestingDataset(Dataset):
         # imgpath, subject_id, report, labels...(14 labels)
         df_list = []
         for data in datalist:
-            filename = f'./local_data/{data}.csv'
-            filename = "/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/final.csv"
-            filename = os.path.join(constants.DATA_DIR, "final.csv")
-            print('Testing load data from', filename)
+            # filename = f'./local_data/{data}.csv'
+            # filename = os.path.join(constants.DATA_DIR, "final.csv")
+            filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/p10_12_test.csv"
+            print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
@@ -137,6 +130,8 @@ class TestingCollator:
         inputs['prompts'] =  report_list
         return inputs
 
+
+### the classes below focus on data exploration and raw usable dataset maker
 class data_exploration():
     def __init__(self, 
                  file_path:str = None):
@@ -379,5 +374,5 @@ class make_data_set():
     # print("--------get training and testing dataset csv file---------\n")
     # c = make_data_set()
     # c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv", target_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv", target_val = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_validate.csv")
-  
+
 
