@@ -379,5 +379,5 @@ class make_data_set():
     # print("--------get training and testing dataset csv file---------\n")
     # c = make_data_set()
     # c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv", target_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv", target_val = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_validate.csv")
-  
+
 
