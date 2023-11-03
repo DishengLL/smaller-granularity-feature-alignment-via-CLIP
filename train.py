@@ -66,6 +66,7 @@ class Trainer:
         dataloaders = [dataloader for dataloader,_,_ in train_objectives]
         if steps_per_epoch is None or steps_per_epoch == 0:
             steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
+        # print("steps_per_epoch:", steps_per_epoch)
         num_train_steps = int((steps_per_epoch) * epochs)
         warmup_steps = math.ceil(num_train_steps * warmup_ratio) #10% of train data for warm-up
 
@@ -104,7 +105,8 @@ class Trainer:
         train_loss_dict = defaultdict(list)
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
-            for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= show_progress_bar):
+            # print("steps_per_epoch>>", steps_per_epoch)
+            for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar):
 
                 # check if model parameters keep same
                 for train_idx in range(num_train_objectives):

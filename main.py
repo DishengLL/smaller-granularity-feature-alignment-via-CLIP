@@ -41,7 +41,7 @@ if __name__ == "__main__":
         'eval_batch_size': 256,
         'eval_steps': 1000,
         'save_steps': 1000,
-        "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\]checkpoint"
+        "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\checkpoint"
     }
 
     transform = transforms.Compose([
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         evaluation_steps=train_config['eval_steps'],
         weight_decay=train_config['weight_decay'],
         save_steps=train_config['save_steps'],
-        steps_per_epoch = 1,
+        # steps_per_epoch = 1,
         evaluator = _evaluator_,
         eval_dataloader=eval_dataloader,
         # use_amp=True,

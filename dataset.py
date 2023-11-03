@@ -72,6 +72,7 @@ class ImageTextContrastiveCollator:
     def __call__(self, batch):
         inputs = defaultdict(list)
         report_list = []
+        # print(">>>>>>>>",len(batch))
         for data in batch:
             inputs['img'].append(data[0])
             report_list.append(data[1])
