@@ -10,7 +10,8 @@ import skimage
 import os
 from collections import defaultdict
 import json
-
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class Orthogonal(nn.Module):
     '''
