@@ -23,7 +23,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(seed)
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
-    num_of_thread = 1
+    num_of_thread = 4
     save_model_path = "./code/diagnosisP/x_ray_constrastive/output/checkopint/"
 
     # set cuda devices
@@ -109,6 +109,6 @@ if __name__ == "__main__":
         # steps_per_epoch = 1,
         evaluator = _evaluator_,
         eval_dataloader=eval_dataloader,
-        # use_amp=True,
+        use_amp=True,
         )
     print('done')

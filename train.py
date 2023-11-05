@@ -6,6 +6,7 @@ from collections import defaultdict
 import math
 
 import numpy as np
+from scipy import constants
 import torch
 from torch import nn
 from torch import device, Tensor
@@ -14,6 +15,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from torch import distributed as dist
 import transformers
+import constants as _constants_
 
 WEIGHTS_NAME = "pytorch_model.bin"
 
@@ -133,7 +135,7 @@ class Trainer:
                     if use_amp:
                         with autocast():
                             loss_model_return = loss_model(**data)
-                        loss_value = loss_weight * loss_model_return['loss_value']
+                        loss_value = loss_weight * loss_model_return#['loss_value']
                         loss_value = loss_value
                         scale_before_step = scaler.get_scale()
                         scaler.scale(loss_value).backward()
@@ -203,7 +205,11 @@ class Trainer:
             if not os.path.exists(best_save_path): os.makedirs(best_save_path)
             best_origin_path = os.path.join(output_path, f'./{best_iter}')
             print(f'save best checkpoint at iter {best_iter} to', best_save_path)
-            # copy_tree(best_origin_path, best_save_path)
+            try:
+              copy_tree(best_origin_path, best_save_path)
+            except:
+                print(_constants_.RED + "copy_tree error in main.py" + _constants_.RESET)
+                
 
         if eval_dataloader is None and output_path is not None:   #No evaluator, but output path: save final model version
             state_dict = model.state_dict()
