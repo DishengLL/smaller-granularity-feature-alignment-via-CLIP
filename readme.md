@@ -24,3 +24,8 @@ currently using Classification task as an ultility task, aiming to build a gener
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
 
 - [ ] think : contrastive learn in image branch feature extractor part 
+
+## Samentic branch
+this branch tries to seperate the embedding space of one modality
+- common samentic space  -- containing general knowledge
+- modal specific space  -- containing domain specific information (image/text/audio)
