@@ -1,4 +1,6 @@
+from cgitb import text
 from math import tan, tanh
+# from platformdirs import user_config_dir
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -234,9 +236,15 @@ class TextBranch(nn.Module):
         super().__init__()
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        device = "cpu"
-        self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cpu"
+        self.using_biomedCLIP = True
+        if self.using_biomedCLIP:
+            import open_clip
+            self.clip_model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+            self.tokenizer = open_clip.get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+        else:
+            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=self.device)
         # 冻结 CLIP 部分的参数
         for param in self.clip_model.parameters():
             param.requires_grad = False
@@ -250,15 +258,23 @@ class TextBranch(nn.Module):
         mid: b x n x 512
         输出: b x [n vectors corresponding with prompts]
         '''
-        # print(">>>>>>>>>>>>>>>>>>>>>>\n",text_inputs)
         # 输入经过 CLIP 预训练模型
         # text_inputs = torch.cat([clip.tokenize(f"image of {c}") for c in text_inputs]).to(device)
         text_features = []
+        context_length = 256
         # print(f'\033[31mthe type of text_inputs : {type(text_inputs)}\033[0m')
         with torch.no_grad():
             for text_input in text_inputs:
-              text_features.append(self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float())
+              if self.using_biomedCLIP:
+                  self.clip_model.to(self.device)
+                  self.clip_model.eval()
+                  # print(self.tokenizer(text_input, context_length=context_length).cuda())
+                  _, text_feature, _= self.clip_model(None, self.tokenizer(text_input, context_length=context_length).cuda())
+                  text_features.append(text_feature)                  
+              else:
+                  text_features.append(self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float())
         # text-features shape - [batch, num of text, dim]
+        # print(len(text_features), torch.tensor(text_features[0]).shape)
         text_features = torch.stack(text_features, dim = 0)
         output = self.transformer(text_features)
         return output
@@ -269,8 +285,13 @@ class ImgBranch(nn.Module):
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.using_biomedCLIP = True
+        if self.using_biomedCLIP:
+            import open_clip
+            self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
         # device = "cpu"
-        self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
+        else:
+            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
         # 冻结 CLIP 部分的参数
         for param in self.clip_model.parameters():
             param.requires_grad = False
@@ -289,7 +310,10 @@ class ImgBranch(nn.Module):
 
             if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
                 image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
-            images.append(self.clip_processor(Image.open(image).convert("RGB")))
+            if self.using_biomedCLIP:
+                images.append(self.clip_processor(Image.open(image)))
+            else:
+                images.append(self.clip_processor(Image.open(image).convert("RGB")))
 
         # plt.subplot(2, 4, (image) + 1)
             # plt.imshow(image)
@@ -303,11 +327,11 @@ class ImgBranch(nn.Module):
         # image = Image.open(os.path.join(skimage.data_dir, image_path)).convert("RGB")
 
         # image_input = self.clip_processor(image)
-        image_input = torch.tensor(np.stack(images))
+        image_input = torch.tensor(np.stack(images)).cuda()
         # print("the shape of CLIP iamge output: ", image_input.shape)
         # 输入经过 CLIP 预训练模型
         with torch.no_grad():
-            image_features = self.clip_model.encode_image(image_input).float()
+            image_features = self.clip_model.encode_image(image_input).float().cuda()
 
         output = self.VisEncoder(image_features.cuda())
         # if project:

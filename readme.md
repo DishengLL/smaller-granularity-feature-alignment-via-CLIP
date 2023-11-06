@@ -17,13 +17,14 @@ currently using Classification task as an ultility task, aiming to build a gener
   overall -- MSE     
   each disease -- confusion matrix
 
-- [ ] biomedCLIP
+- [x] biomedCLIP -- this branch works on biomedCLIP pretrained model (baseline version using original CLIP)
 
 - [ ] modality gap shift exploration
   
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
 
 - [ ] think : contrastive learn in image branch feature extractor part
+
 
 ## phase conclusion 
 1. the current accruacy is **58.13%**,   
