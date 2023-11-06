@@ -27,3 +27,9 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 ## phase conclusion 
 1. the current accruacy is **58.13%**, and the performance of model **stops improving** in the early training stage. 
+
+
+## modules
+1. CLIP image/text encoder
+2. transformer based models in orthogonal/feature sperated modules
+3. MLP based models for classification task 
