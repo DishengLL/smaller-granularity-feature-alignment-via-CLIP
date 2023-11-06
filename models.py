@@ -227,7 +227,7 @@ class SplitVisEncoder(nn.Module):
         # 取每个时间步的输出
         # x = x.permute(1, 0, 2)
 
-        return x
+        return x.cuda()
 
 class TextBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False):
@@ -309,7 +309,7 @@ class ImgBranch(nn.Module):
         with torch.no_grad():
             image_features = self.clip_model.encode_image(image_input).float()
 
-        output = self.VisEncoder(image_features)
+        output = self.VisEncoder(image_features.cuda())
         # if project:
         #     output = self.projection_head(output)
         
@@ -386,7 +386,7 @@ class LGCLIP(nn.Module):
 
     def encode_image(self, img_path=None):
         # image encoder
-        vision_output = self.vision_model(img_path)
+        vision_output = self.vision_model(img_path).cuda()
         img_embeds = vision_output / vision_output.norm(dim=-1, keepdim=True)
         return img_embeds
 
@@ -482,7 +482,7 @@ class PN_classifier(nn.Module):
         logits = self.cls(logits)
         outputs['logits'] = logits
 
-        
+        nested_list = img_label
         assert img_label is not None
 
         if multi_CLS:
@@ -492,7 +492,9 @@ class PN_classifier(nn.Module):
         if img_label is not None and return_loss:
             # img_label = img_label.cuda().float()
             # print(f"the shape of logit: {logits.shape}")
-            nested_list = [json.loads(s) for s in img_label]
+            if type(img_label[0]) is str:
+                nested_list = [json.loads(s) for s in img_label]
+            # print(nested_list)
             img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).cuda()
             # print(f"the shape of image_label: {img_label.shape}")
             logits = logits.view(-1, self.num_cat)
