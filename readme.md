@@ -26,7 +26,8 @@ currently using Classification task as an ultility task, aiming to build a gener
 - [ ] think : contrastive learn in image branch feature extractor part
 
 ## phase conclusion 
-1. the current accruacy is **58.13%**, and the performance of model **stops improving** in the early training stage. 
+1. the current accruacy is **58.13%**,   
+   and the performance of model **stops improving** in the early training stage. 
 
 
 ## modules
