@@ -23,4 +23,7 @@ currently using Classification task as an ultility task, aiming to build a gener
   
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
 
-- [ ] think : contrastive learn in image branch feature extractor part 
+- [ ] think : contrastive learn in image branch feature extractor part
+
+## phase conclusion 
+1. the current accruacy is **58.13%**, and the performance of model **stops improving** in the early training stage. 
