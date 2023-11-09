@@ -10,11 +10,12 @@ from dataset import ImageTextContrastiveDataset, ImageTextContrastiveCollator, T
 from models import MultiTaskModel
 from train import Trainer
 from evaluate import  Evaluator
-
+from _email_ import send_email
 
 
 if __name__ == "__main__":
     print(f"run Fine-Grain Feature Alignment CLIP(FG_FA_C)")
+    email = send_email.send_email()
     # set random seed
     seed = 42
     random.seed(seed)
@@ -23,7 +24,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(seed)
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
-    num_of_thread = 4
+    num_of_thread = 12
     save_model_path = "./code/diagnosisP/x_ray_constrastive/output/checkopint/"
 
     # set cuda devices
@@ -60,7 +61,7 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        #pin_memory=True,
+        pin_memory=True,
         num_workers = num_of_thread,
         )
 
@@ -82,8 +83,8 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        # pin_memory=True,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,
@@ -96,19 +97,25 @@ if __name__ == "__main__":
     ]
     model_save_path = save_model_path
     trainer = Trainer()
-    trainer.train(
-        model,
-        train_objectives= train_objectives,
-        warmup_ratio=train_config['warmup'],
-        epochs=train_config['num_epochs'],
-        optimizer_params={'lr':train_config['lr']},
-        output_path=train_config["save_path"],
-        evaluation_steps=train_config['eval_steps'],
-        weight_decay=train_config['weight_decay'],
-        save_steps=train_config['save_steps'],
-        # steps_per_epoch = 1,
-        evaluator = _evaluator_,
-        eval_dataloader=eval_dataloader,
-        use_amp=True,
-        )
-    print('done')
+
+    try:
+      trainer.train(
+          model,
+          train_objectives= train_objectives,
+          warmup_ratio=train_config['warmup'],
+          epochs=train_config['num_epochs'],
+          optimizer_params={'lr':train_config['lr']},
+          output_path=train_config["save_path"],
+          evaluation_steps=train_config['eval_steps'],
+          weight_decay=train_config['weight_decay'],
+          save_steps=train_config['save_steps'],
+          # steps_per_epoch = 1,
+          evaluator = _evaluator_,
+          eval_dataloader=eval_dataloader,
+          use_amp=True,
+          )
+      print('done')
+      email.send_email("1554200903@qq.com", "convert pth to ONNX", "", "Success")
+    except:
+      email.send_email("1554200903@qq.com", "convert pth to ONNX", "", "error")
+      
