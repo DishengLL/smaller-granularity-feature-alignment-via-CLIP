@@ -23,7 +23,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(seed)
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
-    num_of_thread = 4
+    num_of_thread = 12
     save_model_path = "./code/diagnosisP/x_ray_constrastive/output/checkopint/"
 
     # set cuda devices
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        #pin_memory=True,
+        pin_memory=True,
         num_workers = num_of_thread,
         )
 
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        # pin_memory=True,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,
