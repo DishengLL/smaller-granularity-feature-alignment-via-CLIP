@@ -33,5 +33,7 @@ currently using Classification task as an ultility task, aiming to build a gener
   - [ ] CLIP visual/text encoder, transformer1/2, classifier
   - [ ] CLIP text encoder, **custom visual encoder**, transformer1/2, classifier
 - [ ] semantic + domain level alignment
-  
+
+### SOTA solution
+##### model and methodology
 
