@@ -17,7 +17,7 @@ currently using Classification task as an ultility task, aiming to build a gener
   overall -- MSE     
   each disease -- confusion matrix
 
-- [ x ] biomedCLIP
+- [x] biomedCLIP
 
 - [ ] modality gap shift exploration
   
