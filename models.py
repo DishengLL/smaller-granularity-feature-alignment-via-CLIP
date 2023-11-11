@@ -617,7 +617,7 @@ class MultiTaskModel(nn.Module):
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
         if  (nntype not in ["clip", "biomedclip", "custom"]):
-            raise ValueError("currently, only support clip, biomed and custom NN")
+            raise ValueError("currently, only support clip, biomedclip and custom NN")
 
         self.Contrastive_Model = LGCLIP(nntype = nntype)
         # img_embedding classifier
