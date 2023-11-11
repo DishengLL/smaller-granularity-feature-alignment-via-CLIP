@@ -39,20 +39,21 @@ def plot(get_text_embedding, prompt, title = None):
   plt.title(title + f" : avg_sim: {avg_sim}", size=20)
   # plot.show()
 
-model = MultiTaskModel()
+model = MultiTaskModel(nntype="biomedclip")
 
 # the model class: 你所定义的模型的class
-model.load_state_dict(torch.load(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_11_4_base\10000\pytorch_model.bin"))
-# print(model.eval())
+model.load_state_dict(torch.load(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_11_11_bio\best\pytorch_model.bin"))
+(model.eval())
 
 prompt = _constants_.BASIC_PROMPT
 image_path = ["D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\imgs\\structure.png"]
 label = torch.tensor([1,1,2,1,2,1,1,2,1,0,0,2,1])
 model.cuda()
 contrastive_mode, classifier, orthogonal = model(prompt, image_path, label)
-print(contrastive_mode.keys())
-print(classifier.keys())
-print(orthogonal.keys())
+print(contrastive_mode.keys(), _constants_.RED + "constrastive_loss: "+str(contrastive_mode["loss_value"])+_constants_.RESET)
+print(classifier.keys() ,_constants_.RED + "classifier_loss:"+str(classifier["loss_value"])+_constants_.RESET)
+print(orthogonal.keys() , _constants_.RED + "orthogonal_loss: "+str(orthogonal["loss_value"])+ _constants_.RESET)
+
 text_embedding = orthogonal['text_embeds']
 print(text_embedding.shape)
 text_embedding = text_embedding.squeeze()

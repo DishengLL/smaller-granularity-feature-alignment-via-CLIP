@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # model.cuda()
     # build loss models and start training
 
-    model = MultiTaskModel()
+    model = MultiTaskModel(nntype="biomedclip")
     # print(type(model))
     # print(help(model))
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model)
