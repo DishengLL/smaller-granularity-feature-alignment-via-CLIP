@@ -1,5 +1,6 @@
 import pdb, os
 import random
+import trace
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -11,6 +12,7 @@ from models import MultiTaskModel
 from train import Trainer
 from evaluate import  Evaluator
 from _email_ import send_email
+import traceback
 
 
 if __name__ == "__main__":
@@ -70,7 +72,8 @@ if __name__ == "__main__":
     # model.cuda()
     # build loss models and start training
 
-    model = MultiTaskModel(nntype="biomedclip")
+    model = MultiTaskModel(nntype="biomedclip", visual_branch_only=True)
+    model.cuda()
     # print(type(model))
     # print(help(model))
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model)
@@ -115,7 +118,9 @@ if __name__ == "__main__":
           use_amp=True,
           )
       print('done')
-      email.send_email("1554200903@qq.com", "convert pth to ONNX", "", "Success")
-    except:
-      email.send_email("1554200903@qq.com", "convert pth to ONNX", "", "error")
+      email.send_email("1554200903@qq.com", "train FG-CLIP", "done", "Success")
+    except Exception as e:
+      Traceback = traceback.format_exc()
+      T = f"{Traceback}"
+      email.send_email("1554200903@qq.com", "train FG-CLIP", T, "error")
       

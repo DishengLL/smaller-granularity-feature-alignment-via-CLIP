@@ -363,14 +363,16 @@ class LGCLIP(nn.Module):
         checkpoint=None,
         vision_checkpoint=None,
         logit_scale_init_value=0.07,
-        nntype = None
+        nntype = None,
+        visual_branch_only = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
         assert vision_branch in [ImgBranch, CustomVisEncoder], 'vision_branch should be one of [ImgBranch]'
 
         self.vision_model = ImgBranch(nntype = nntype)
-        self.text_model = TextBranch(nntype = nntype)
+        if not visual_branch_only:
+          self.text_model = TextBranch(nntype = nntype)
 
         # learnable temperature for contrastive loss
         self.logit_scale = nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
@@ -380,6 +382,7 @@ class LGCLIP(nn.Module):
             self.load_state_dict(state_dict)
             print('load model weight from:', checkpoint)
         self.nntype = nntype
+        self.visual_branch_only = visual_branch_only
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -471,17 +474,19 @@ class LGCLIP(nn.Module):
             **kwargs,
             ):
             # input_text = input_text.cuda()/
-
+            text_embeds = "no applicable in visual branch case"
+            logits_per_image = "no applicable in visual branch case"
+            loss = 0 # "no applicable in visual branch case"
             img_embeds = self.encode_image(img_path)[1].cuda()
-            text_embeds = self.encode_text(input_text)[1].cuda()
+            if not self.visual_branch_only:
+              text_embeds = self.encode_text(input_text)[1].cuda()
+              logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
-            logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
-
-            if return_loss:
-                loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-                # print("loss: ", loss)
-            else:
-                loss = None
+              if return_loss:
+                  loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                  # print("loss: ", loss)
+              else:
+                  loss = None
 
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
@@ -612,18 +617,21 @@ class Orthogonal_dif(nn.Module):
 
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip"):
+    def __init__(self, nntype = "clip", visual_branch_only = False):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
         if  (nntype not in ["clip", "biomedclip", "custom"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
+        if visual_branch_only:
+            print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
 
-        self.Contrastive_Model = LGCLIP(nntype = nntype)
-        # img_embedding classifier
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only)
         self.PN_Classifier = PN_classifier()
-        # text_embeddings differentiator 
-        self.Orthogonal_dif = Orthogonal_dif()
+        # img_embedding classifier
+        if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
+          self.Orthogonal_dif = Orthogonal_dif()
+        self.visual_branch_only = visual_branch_only
 
     def forward(self,         
                 prompts:list,
@@ -634,6 +642,6 @@ class MultiTaskModel(nn.Module):
         
         a = self.Contrastive_Model(prompts, img)
         b = self.PN_Classifier(a['img_embeds'], img_labels)
-        c = self.Orthogonal_dif(a['text_embeds'])
+        c = self.Orthogonal_dif(a['text_embeds']) if not self.visual_branch_only else {"loss_value": 0}
         return a, b, c
     
