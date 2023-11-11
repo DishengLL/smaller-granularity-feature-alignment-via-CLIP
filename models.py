@@ -70,7 +70,7 @@ class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
         super().__init__()
         # Transformer编码器
-        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1)
+        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
     def forward(self, x):
@@ -216,7 +216,7 @@ class SplitVisEncoder(nn.Module):
             self.fc
         )
         # Transformer编码器
-        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1)
+        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
 
