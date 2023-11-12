@@ -41,7 +41,7 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 ### progress
 - 2023-11-8: 
-  - visualization(UMAP), from the 3d plot, the embedings of each disease in the plot does not provide straightforward insight --- there are not huge differences between original(clip, biomedclip) embeddings and the embeddings generated from my othogonal module.
+  - visualization([UMAP](https://zhuanlan.zhihu.com/p/352461768)), from the 3d plot, the embedings of each disease in the plot does not provide straightforward insight --- there are not huge differences between original(clip, biomedclip) embeddings and the embeddings generated from my othogonal module.
   - using heatmap with simarity matrix data, my embedding indeed push the diseases farther away from each other than the original(clip, biomedclip) ones.
 - 2023-11-10
   - debug -- normalization issue before CE loss part
