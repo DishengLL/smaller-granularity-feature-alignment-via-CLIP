@@ -1,4 +1,4 @@
-# Smaller granularity feature alignment via CLIP
+# fine-grained feature alignment via contrastive learning
 
 ### General 
 **a feature representation task.**
