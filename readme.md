@@ -1,4 +1,4 @@
-# fine-grained feature alignment via contrastive learning
+# Fine-grained feature alignment via contrastive learning
 
 ### General 
 **a feature representation task.**
