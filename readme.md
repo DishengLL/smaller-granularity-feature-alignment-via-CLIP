@@ -27,7 +27,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 
 
 ## phase conclusion 
-1. the current average accuracy among 13 diseases is **58.13%**,   
+1. the current average accuracy among 13 diseases is **63.13%**,   
    and the performance of the model **stops improving** in the early training stage. 
 
 
