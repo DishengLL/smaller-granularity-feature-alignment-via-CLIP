@@ -1,11 +1,11 @@
-# Smaller granularity feature alignment via CLIP
+# Fine-grained feature alignment via CLIP
 
 ### General 
 **a feature representation task.**
 
-currently using Classification task as an ultility task, aiming to build a general disease detecter via chest x-ray.
+currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.
 
-**this project trys to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream task.
+**This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream task.
 
 ### Model  
 <img src=".\imgs\structure.png" style="zoom:50%;"></img>
@@ -28,7 +28,7 @@ currently using Classification task as an ultility task, aiming to build a gener
 ### Ablation
 - [ ] visual branch only
   - [ ]  CLIP visual encoder, transformer1, classifier
-    - [ ]  using biomedCLIP visual encoder as backbone, 
+    - [ ]  using biomedCLIP visual encoder as the backbone, 
   - [ ]  custom visual encoder, transformer1, classifier
 - [ ] visual branch + text branch
   - [ ] CLIP visual/text encoder, transformer1/2, classifier
@@ -37,15 +37,17 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 ### SOTA solution
 ##### model and methodology
+[CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf) -- Average AUC = 84.9
+[Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)
 
 
 ### progress
 - 2023-11-8: 
-  - visualization([UMAP](https://zhuanlan.zhihu.com/p/352461768)), from the 3d plot, the embedings of each disease in the plot does not provide straightforward insight --- there are not huge differences between original(clip, biomedclip) embeddings and the embeddings generated from my othogonal module.
-  - using heatmap with simarity matrix data, my embedding indeed push the diseases farther away from each other than the original(clip, biomedclip) ones.
+  - visualization([UMAP](https://zhuanlan.zhihu.com/p/352461768)), from the 3d plot, the embedding of each disease in the plot does not provide straightforward insight --- there are not huge differences between the original(clip, biomedCLIP) embeddings and the embeddings generated from my orthogonal module.
+  - using heatmap with similarity matrix data, my embedding indeed pushes the diseases farther away from each other than the original(clip, biomedCLIP) ones.
 - 2023-11-10
   - debug -- normalization issue before CE loss part
 - 2023-11-11
   - train visual-branch-only version --- no contrastive loss between image and text in this version 
   - even though this version get similar performace(acc), the more unstable then the biomed version
-  - contrastive loss module improve the generalizability of model (the preliminary and immature insight)
+  - contrastive loss module improves the generalizability of the model (the preliminary and immature insight)
