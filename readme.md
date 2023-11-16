@@ -13,6 +13,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 ### ToDo
 - [x] GPU(CUDA) version code 
 - [ ] polish code -- improve efficiency of model inference
+  - [ ] image opening and preprocessing take tremendous of time  --- preprocess image, and store then into numpy or tensor
 
 - [ ] evaluation  
   overall -- MSE     
