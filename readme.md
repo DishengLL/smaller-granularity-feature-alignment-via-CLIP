@@ -1,11 +1,11 @@
-# Smaller granularity feature alignment via CLIP
+# Fine-grained feature alignment via contrastive learning
 
 ### General 
 **a feature representation task.**
 
-currently using Classification task as an ultility task, aiming to build a general disease detecter via chest x-ray.
+currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.
 
-**this project trys to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream task.
+**This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
 ### Model  
 <img src=".\imgs\structure.png" style="zoom:50%;"></img>
@@ -18,21 +18,21 @@ currently using Classification task as an ultility task, aiming to build a gener
   overall -- MSE     
   each disease -- confusion matrix
 
-- [x] biomedCLIP -- this branch works on biomedCLIP pretrained model (baseline version using original CLIP)
+- [x] biomedCLIP -- this branch works on biomedCLIP pre-trained model (baseline version using original CLIP)
 
 - [ ] modality gap shift exploration
   
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
 
-- [ ] think : contrastive learn in image branch feature extractor part
+- [ ] think: contrastive learn in image branch feature extractor part
 
 
 ## phase conclusion 
-1. the current accruacy is **58.13%**,   
-   and the performance of model **stops improving** in the early training stage. 
+1. the current average accuracy among 13 diseases is **63.13%**,   
+   and the performance of the model **stops improving** in the early training stage. 
 
 
 ## modules
 1. CLIP image/text encoder
-2. transformer based models in orthogonal/feature sperated modules
-3. MLP based models for classification task 
+2. transformer-based models in orthogonal/feature-separated modules
+3. MLP-based models for classification task 
