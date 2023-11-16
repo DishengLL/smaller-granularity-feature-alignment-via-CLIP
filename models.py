@@ -15,56 +15,9 @@ import os
 from collections import defaultdict
 import json
 from PIL import Image, ImageFile
+from zmq import device
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import constants as _constants_
-
-class Orthogonal(nn.Module):
-    '''
-    Orthogonal module -- input in predefined text list, pass text branch get n text embeddings. 
-    '''
-    def __init__(self,
-                 logit_scale_init_value = 0.07):
-        super().__init__(Orthogonal, self)
-        self.text_module = TextBranch()           
-        # learnable temperature for contrastive loss
-        self.logit_scale = nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
-
-
-    def encode_text(self, inputs_text:list):
-        inputs_text = inputs_text.cuda()
-        text_embeds = self.text_model(inputs_text)
-        text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
-        return text_embeds.to("cpu")
-    
-    def forward(self,
-        input_text:list,
-        return_loss=True,
-        **kwargs,
-        ):
-        input_text = input_text.cuda().to("cpu")
-        # print(f"\033{type(input_text)}, {len(input_text)}\033[0m")
-        text_embeds = self.encode_text(input_text)
-
-        logits_per_text = self.compute_logits(text_embeds, text_embeds) #similarity matrix text2text [0, 1]
-
-        if return_loss:
-            loss = self.contrastive_loss(logits_per_text)
-        else:
-            loss = None
-
-        return {'text_embeds':text_embeds,
-                'loss_value':loss, 
-                'logits_per_text':logits_per_text}
-
-    def compute_logits(self, img_emb, text_emb):
-        self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
-        logit_scale = self.logit_scale.exp()
-        logits_per_text = torch.matmul(text_emb, img_emb.t()) * logit_scale
-        return logits_per_text.t()
-
-
-    def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
 
 class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
@@ -91,7 +44,7 @@ class ImgClassifier(nn.Module):
     '''
     def __init__(self,
         img_branch,
-        num_class,
+        num_class:str,
         input_dim=512,
         mode='multiclass',
         **kwargs) -> None:
@@ -104,7 +57,8 @@ class ImgClassifier(nn.Module):
         num_class: corresponding with the number of disease --- the dim of output
         '''
         super(ImgClassifier, self).__init__()
-        self.model = img_branch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = img_branch.to(device)
         self.num_class = num_class
         assert mode.lower() in ['multiclass','multilabel','binary']
         self.mode = mode.lower()
@@ -219,7 +173,6 @@ class SplitVisEncoder(nn.Module):
         self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
-
     def forward(self, x, project=False):
         '''
         expect input shape x - [batch, dim]
@@ -303,6 +256,7 @@ class ImgBranch(nn.Module):
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
         if nntype == None:
             self.backbone = "clip"
         else:
@@ -320,11 +274,11 @@ class ImgBranch(nn.Module):
           for param in self.clip_model.parameters():
               param.requires_grad = False
         # Transformer 部分
-        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01)
+        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
         
     def forward(self, image_path):
         '''
-        input: img_path
+        input: img_path, str
         imd : b X 512
         output: b x n x 512
         '''
@@ -339,14 +293,16 @@ class ImgBranch(nn.Module):
             else:
                 images.append(self.clip_processor(Image.open(image).convert("RGB")))
 
-        image_input = torch.tensor(np.stack(images)).cuda()
+        image_input = torch.tensor(np.stack(images)).to(self.device)
         # 输入经过 CLIP 预训练模型
         if self.backbone != "custom":
           with torch.no_grad():
-              image_features = self.clip_model.encode_image(image_input).float().cuda()
+              image_features = self.clip_model.encode_image(image_input).float()
         else:
-            image_features = self.clip_model.encode_image(image_input).float().cuda()
-        output = self.VisEncoder(image_features.cuda())
+            raise NotImplemented("ToDo!!!!")
+            # with torch.no_grad():
+            image_features = self.clip_model.encode_image(image_input).float()
+        output = self.VisEncoder(image_features)
         return (image_features, output)
     
 
@@ -432,7 +388,6 @@ class LGCLIP(nn.Module):
         # image encoder
         img_feature, vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
         img_embeds = vision_output / vision_output.norm(dim=-1, keepdim=True)
-        torch.save(img_feature, f'img_feature_backbone_{self.nntype}.pth')
         return (img_feature, img_embeds)
 
     def compute_logits(self, img_emb, text_emb):
@@ -617,7 +572,7 @@ class Orthogonal_dif(nn.Module):
 
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False):
+    def __init__(self, nntype = "clip", visual_branch_only = False,):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
@@ -625,7 +580,6 @@ class MultiTaskModel(nn.Module):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
-
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only)
         self.PN_Classifier = PN_classifier()
         # img_embedding classifier
