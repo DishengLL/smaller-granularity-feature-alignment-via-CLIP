@@ -156,7 +156,6 @@ class LG_CLIP_LOSS(nn.Module):
         # print("\n", img, "\n")
         # print(help(self.model))
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
-        
         all_loss = self.alpha*_clip_["loss_value"] + self.beta*Cls["loss_value"] + self.game * Orth["loss_value"]
         return all_loss
         

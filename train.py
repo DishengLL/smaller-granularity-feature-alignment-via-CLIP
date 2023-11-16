@@ -1,6 +1,5 @@
+from calendar import c
 import os
-import json
-import pdb
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 from collections import defaultdict
 import math
@@ -57,6 +56,7 @@ class Trainer:
         '''
         self.best_score = -9999999
         self.accumulation_steps = accumulation_steps
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
@@ -64,7 +64,6 @@ class Trainer:
         self.score_logs = defaultdict(list)
         self.evaluator = evaluator
         self.eval_dataloader = eval_dataloader
-
         dataloaders = [dataloader for dataloader,_,_ in train_objectives]
         if steps_per_epoch is None or steps_per_epoch == 0:
             steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
@@ -94,7 +93,7 @@ class Trainer:
             schedulers.append(scheduler_obj)
 
         # map models to devices
-        model = model.cuda()
+        model = model.to(self.device)
 
         # execute training on multiple GPUs
         global_step = 0
@@ -111,7 +110,7 @@ class Trainer:
             for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar):
 
                 # check if model parameters keep same
-                for train_idx in range(num_train_objectives):
+                for train_idx in range(num_train_objectives): # calculate for each train objective 
                     loss_model = loss_models[train_idx]
                     loss_model.zero_grad()
                     loss_model.train()
@@ -218,15 +217,6 @@ class Trainer:
             torch.save(state_dict, os.path.join(output_path, WEIGHTS_NAME))
             print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
             torch.save(model,  os.path.join(output_path, "whole_model.pth"))
-
-# 使用 summary 来可视化模型结构
-            # summary(model, (input_size,))
-            # self._export_onnx_(model = model,onnx_file_path = (output_path + "/FGCLIP.onnx"))
-
-        # if eval_dataloader is not None and load_best_model_at_last and save_best_model and evaluator is not None:
-        #     state_dict = torch.load(os.path.join(best_save_path, WEIGHTS_NAME))
-        #     model.load_state_dict(state_dict)
-        #     print(f'load best checkpoint at last from {best_save_path}')
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
