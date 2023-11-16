@@ -12,6 +12,7 @@ currently using Classification task as an ultility task, aiming to build a gener
 
 ### ToDo
 - [x] GPU(CUDA) version code 
+- [ ] polish code -- improve efficiency of model inference
 
 - [ ] evaluation  
   overall -- MSE     
