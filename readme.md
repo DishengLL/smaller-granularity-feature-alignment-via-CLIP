@@ -13,7 +13,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 
 ### ToDo
 - [x] GPU(CUDA) version code 
-- [ ] polish code -- improve efficiency of model inference
+- [ ] polish code -- improve the efficiency of model inference
   - [ ] image opening and preprocessing take tremendous of time  --- preprocess image, and store then into numpy or tensor
 
 - [ ] evaluation  
@@ -57,3 +57,7 @@ currently using the Classification task as a utility task, aiming to build a gen
   - train visual-branch-only version --- no contrastive loss between image and text in this version 
   - even though this version get similar performace(acc), the more unstable then the biomed version
   - contrastive loss module improves the generalizability of the model (the preliminary and immature insight)
+- 2023-11-18
+  - complete the training of 4 models
+     - biomed, biomed_vision_only, CLIP, CLIP_version_only
+     - get a phased conclusion
