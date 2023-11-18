@@ -1,4 +1,8 @@
+from cgitb import text
 from math import tan, tanh
+from re import L
+from scipy import constants
+# from platformdirs import user_config_dir
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,61 +15,15 @@ import os
 from collections import defaultdict
 import json
 from PIL import Image, ImageFile
+from zmq import device
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-class Orthogonal(nn.Module):
-    '''
-    Orthogonal module -- input in predefined text list, pass text branch get n text embeddings. 
-    '''
-    def __init__(self,
-                 logit_scale_init_value = 0.07):
-        super().__init__(Orthogonal, self)
-        self.text_module = TextBranch()           
-        # learnable temperature for contrastive loss
-        self.logit_scale = nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
-
-
-    def encode_text(self, inputs_text:list):
-        inputs_text = inputs_text.cuda()
-        text_embeds = self.text_model(inputs_text)
-        text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
-        return text_embeds.to("cpu")
-    
-    def forward(self,
-        input_text:list,
-        return_loss=True,
-        **kwargs,
-        ):
-        input_text = input_text.cuda().to("cpu")
-        # print(f"\033{type(input_text)}, {len(input_text)}\033[0m")
-        text_embeds = self.encode_text(input_text)
-
-        logits_per_text = self.compute_logits(text_embeds, text_embeds) #similarity matrix text2text [0, 1]
-
-        if return_loss:
-            loss = self.contrastive_loss(logits_per_text)
-        else:
-            loss = None
-
-        return {'text_embeds':text_embeds,
-                'loss_value':loss, 
-                'logits_per_text':logits_per_text}
-
-    def compute_logits(self, img_emb, text_emb):
-        self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
-        logit_scale = self.logit_scale.exp()
-        logits_per_text = torch.matmul(text_emb, img_emb.t()) * logit_scale
-        return logits_per_text.t()
-
-
-    def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
+import constants as _constants_
 
 class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
         super().__init__()
         # Transformer编码器
-        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1)
+        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
     def forward(self, x):
@@ -75,6 +33,8 @@ class OrthogonalTextEncoder(nn.Module):
         '''
         # 通过Transformer编码器
         x = self.encoder(x)
+        # print(">>>>", x)
+        # x /= x.norm(dim=-1, keepdim=True)
         # # 取每个时间步的输出
         # x = x.permute(1, 0, 2)
         return x
@@ -84,7 +44,7 @@ class ImgClassifier(nn.Module):
     '''
     def __init__(self,
         img_branch,
-        num_class,
+        num_class:str,
         input_dim=512,
         mode='multiclass',
         **kwargs) -> None:
@@ -97,7 +57,8 @@ class ImgClassifier(nn.Module):
         num_class: corresponding with the number of disease --- the dim of output
         '''
         super(ImgClassifier, self).__init__()
-        self.model = img_branch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = img_branch.to(device)
         self.num_class = num_class
         assert mode.lower() in ['multiclass','multilabel','binary']
         self.mode = mode.lower()
@@ -209,9 +170,8 @@ class SplitVisEncoder(nn.Module):
             self.fc
         )
         # Transformer编码器
-        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1)
+        self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
-
 
     def forward(self, x, project=False):
         '''
@@ -227,19 +187,33 @@ class SplitVisEncoder(nn.Module):
         # 取每个时间步的输出
         # x = x.permute(1, 0, 2)
 
-        return x
+        return x.cuda()
 
 class TextBranch(nn.Module):
-    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False):
+    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False, nntype = None):
         super().__init__()
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        device = "cpu"
-        self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if nntype == None:
+            self.backbone = "clip"
+        else:
+          self.backbone = nntype
+        print(_constants_.BOLD + _constants_.BLUE + "in current Text branch, the text backbone for text embedding is: " + _constants_.RESET + self.backbone)            
+       
+        if self.backbone in ["biomed", "BiomedCLIP", "biomedclip"]:
+            import open_clip
+            self.clip_model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+            self.tokenizer = open_clip.get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+        elif self.backbone == "custom":
+            raise NotImplemented("has not implemented the custom backbone in text branch")
+        else:
+            ## the default backbone is CLIP -- text encoder
+            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=self.device)
         # 冻结 CLIP 部分的参数
-        for param in self.clip_model.parameters():
-            param.requires_grad = False
+        if self.backbone != "custom":
+          for param in self.clip_model.parameters():
+              param.requires_grad = False
         # text orthogonal 部分
         self.transformer = OrthogonalTextEncoder()
         
@@ -250,71 +224,91 @@ class TextBranch(nn.Module):
         mid: b x n x 512
         输出: b x [n vectors corresponding with prompts]
         '''
-        # print(">>>>>>>>>>>>>>>>>>>>>>\n",text_inputs)
         # 输入经过 CLIP 预训练模型
         # text_inputs = torch.cat([clip.tokenize(f"image of {c}") for c in text_inputs]).to(device)
         text_features = []
+        context_length = 256
         # print(f'\033[31mthe type of text_inputs : {type(text_inputs)}\033[0m')
-        with torch.no_grad():
-            for text_input in text_inputs:
-              text_features.append(self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float())
+        if self.backbone != "custom":
+          with torch.no_grad():
+              for text_input in text_inputs:
+                if self.backbone in ["biomed", "BiomedCLIP", "biomedclip"]:
+                    self.clip_model.to(self.device)
+                    self.clip_model.eval()
+                    # print(self.tokenizer(text_input, context_length=context_length).cuda())
+                    _, text_feature, _= self.clip_model(None, self.tokenizer(text_input, context_length=context_length).cuda())
+                    text_feature = torch.tensor(text_feature)
+                    text_feature /= text_feature.norm(dim=-1, keepdim=True)
+                    text_features.append(text_feature)                  
+                else:
+                    text_feature = self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float()
+                    text_feature /= text_feature.norm(dim=-1, keepdim=True)
+                    text_features.append(text_feature)
         # text-features shape - [batch, num of text, dim]
-        text_features = torch.stack(text_features, dim = 0)
-        output = self.transformer(text_features)
-        return output
+        # print(len(text_features), torch.tensor(text_features[0]).shape)
+        text_features = torch.stack(text_features, dim = 0).squeeze()
+        output = self.transformer(text_features)  ## ToDo 正则化处理
+        return (text_features, output)
 
 class ImgBranch(nn.Module):
-    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False):
+    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, nntype = None):
         super().__init__()
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        # device = "cpu"
-        self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
+        self.device = device
+        if nntype == None:
+            self.backbone = "clip"
+        else:
+            self.backbone = nntype
+        print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + self.backbone)            
+        if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
+            import open_clip
+            self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+        elif self.backbone == "custom":
+            raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
+        else:
+            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
         # 冻结 CLIP 部分的参数
-        for param in self.clip_model.parameters():
-            param.requires_grad = False
+        if self.backbone != "custom":
+          for param in self.clip_model.parameters():
+              param.requires_grad = False
         # Transformer 部分
-        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01)
+        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
         
     def forward(self, image_path):
         '''
-        input: img_path
+        input: img_path, str
         imd : b X 512
         output: b x n x 512
         '''
-        # print(f">>>>>>>>>>>>>>>>>{image_path}")
         images = []
         for image in image_path:
-
             if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
                 image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
-            images.append(self.clip_processor(Image.open(image).convert("RGB")))
+            if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
+                images.append(self.clip_processor(Image.open(image)))
+            elif self.backbone == "custom":
+                raise NotImplemented("image preprocess: using custom vis backbone which has not be defined!!!!!")
+            else:
+                images.append(self.clip_processor(Image.open(image).convert("RGB")))
 
-        # plt.subplot(2, 4, (image) + 1)
-            # plt.imshow(image)
-            # plt.xticks([])
-            # plt.yticks([])
-
-        # original_images.append(image)
-        # images.append(preprocess(image))
-        # texts.append(descriptions[name])
-
-        # image = Image.open(os.path.join(skimage.data_dir, image_path)).convert("RGB")
-
-        # image_input = self.clip_processor(image)
-        image_input = torch.tensor(np.stack(images))
-        # print("the shape of CLIP iamge output: ", image_input.shape)
+        image_input = torch.tensor(np.stack(images)).to(self.device)
         # 输入经过 CLIP 预训练模型
-        with torch.no_grad():
+        if self.backbone != "custom":
+          with torch.no_grad():
+              image_features = self.clip_model.encode_image(image_input).float()
+        else:
+            raise NotImplemented("ToDo!!!!")
+            # with torch.no_grad():
             image_features = self.clip_model.encode_image(image_input).float()
-
         output = self.VisEncoder(image_features)
-        # if project:
-        #     output = self.projection_head(output)
-        
-        return output
+        return (image_features, output)
     
+
+class CustomVisEncoder(nn.Module):
+    def __init__(self):
+        return 
 
 class LGCLIP(nn.Module):
     '''
@@ -325,13 +319,16 @@ class LGCLIP(nn.Module):
         checkpoint=None,
         vision_checkpoint=None,
         logit_scale_init_value=0.07,
+        nntype = None,
+        visual_branch_only = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
-        assert vision_branch in [ImgBranch], 'vision_branch should be one of [ImgBranch]'
+        assert vision_branch in [ImgBranch, CustomVisEncoder], 'vision_branch should be one of [ImgBranch]'
 
-        self.vision_model = ImgBranch()
-        self.text_model = TextBranch()
+        self.vision_model = ImgBranch(nntype = nntype)
+        if not visual_branch_only:
+          self.text_model = TextBranch(nntype = nntype)
 
         # learnable temperature for contrastive loss
         self.logit_scale = nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
@@ -340,6 +337,8 @@ class LGCLIP(nn.Module):
             state_dict = torch.load(os.path.join(checkpoint, constants.WEIGHTS_NAME))
             self.load_state_dict(state_dict)
             print('load model weight from:', checkpoint)
+        self.nntype = nntype
+        self.visual_branch_only = visual_branch_only
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -380,34 +379,47 @@ class LGCLIP(nn.Module):
 
     def encode_text(self, inputs_text:list):
         # inputs_text = inputs_text.cuda()
-        text_embeds = self.text_model(inputs_text)
+        text_feature, text_embeds = self.text_model(inputs_text)    # text_feature: backbone generated; text_embedding: processed embeddings
         text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
-        return text_embeds
+        torch.save(text_feature, f'text_feature_backbone_{self.nntype}.pth')
+        return (text_feature, text_embeds)
 
     def encode_image(self, img_path=None):
         # image encoder
-        vision_output = self.vision_model(img_path)
+        img_feature, vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
         img_embeds = vision_output / vision_output.norm(dim=-1, keepdim=True)
-        return img_embeds
+        return (img_feature, img_embeds)
 
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
         logit_scale = self.logit_scale.exp()
         batch = img_emb.shape[0]
-        # print (f"\033[31m the number of batches : f{batch}\033[0m")
-        # print(img_emb.shape)
-        # print(text_emb.shape)
-        reshaped_image_embedding = img_emb.view(batch, -1)
-        reshaped_text_embedding =text_emb.view(batch, -1)
-        logits_per_text = torch.matmul(reshaped_text_embedding, reshaped_image_embedding.t()) * logit_scale
-        return logits_per_text.t()
+        # reshaped_image_embedding = img_emb.view(batch, -1)
+        # reshaped_text_embedding =text_emb.view(batch, -1)
+        reshaped_text_embedding = text_emb.squeeze()
+        reshaped_image_embedding = text_emb
+        if  (len(reshaped_image_embedding.shape) == len(reshaped_text_embedding.shape) == 2):
+            reshaped_text_embedding = reshaped_text_embedding.unsqueeze(0)
+            reshaped_image_embedding = reshaped_image_embedding.unsqueeze(0)
+        sim_matrixes = []
+        for i, j in zip(reshaped_text_embedding, reshaped_image_embedding):
+            sim_matrixes.append(torch.matmul(i, j.t()) * logit_scale)
+        return torch.stack(sim_matrixes, dim = 0)   ## each matrix means text-image sim
 
-    def clip_loss(self, similarity: torch.Tensor) -> torch.Tensor:
-        caption_loss = self.contrastive_loss(similarity)
-        image_loss = self.contrastive_loss(similarity.T)
+    def clip_loss(self, similarities: torch.Tensor) -> torch.Tensor:
+        batch = 1
+        caption_loss = 0
+        image_loss = 0
+        if len(similarities.shape) == 3 and similarities.shape[0] != 1:
+            batch = similarities.shape[0]
+        for i in range(batch):
+            similarity = similarities[i]
+            caption_loss += self.contrastive_loss(similarity)
+            image_loss += self.contrastive_loss(similarity.T)
         return (caption_loss + image_loss) / 2.0
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        logits /=  logits.norm(dim=-1, keepdim=True)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -417,21 +429,22 @@ class LGCLIP(nn.Module):
             **kwargs,
             ):
             # input_text = input_text.cuda()/
+            text_embeds = "no applicable in visual branch case"
+            logits_per_image = "no applicable in visual branch case"
+            loss = 0 # "no applicable in visual branch case"
+            img_embeds = self.encode_image(img_path)[1].cuda()
+            if not self.visual_branch_only:
+              text_embeds = self.encode_text(input_text)[1].cuda()
+              logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
-            img_embeds = self.encode_image(img_path).cuda()
-            text_embeds = self.encode_text(input_text).cuda()
-
-            logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1]
-            logits_per_text = logits_per_image.t() #similarity matrix text2img
-
-
-            if return_loss:
-                loss = self.clip_loss(logits_per_text)
-            else:
-                loss = None
+              if return_loss:
+                  loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                  # print("loss: ", loss)
+              else:
+                  loss = None
 
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
-                'logits_per_image':logits_per_image, 'loss_value':loss, 'logits_per_text':logits_per_text}
+                'logits_per_image':logits_per_image, 'loss_value':loss}
 
 class PN_classifier(nn.Module):
     def __init__(self,
@@ -482,7 +495,7 @@ class PN_classifier(nn.Module):
         logits = self.cls(logits)
         outputs['logits'] = logits
 
-        
+        nested_list = img_label
         assert img_label is not None
 
         if multi_CLS:
@@ -490,22 +503,13 @@ class PN_classifier(nn.Module):
             raise NotImplemented("have not implemented")
 
         if img_label is not None and return_loss:
-            # img_label = img_label.cuda().float()
-            # print(f"the shape of logit: {logits.shape}")
-            nested_list = [json.loads(s) for s in img_label]
+            if type(img_label[0]) is str:
+                nested_list = [json.loads(s) for s in img_label]
+            # print(nested_list)
             img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).cuda()
-            # print(f"the shape of image_label: {img_label.shape}")
             logits = logits.view(-1, self.num_cat)
             
-            # print(f"output.shape: {output.shape}")
-            # print(f"img_label.shape: {img_label.flatten().shape}")
-            # print(f"\033[31m {img_embeddings.shape}\033[0m")
-            # print(f"\033[31m {img_label.shape}\033[0m")
-            
-            # if len(img_label.shape) == 1: img_label = img_label.view(-1,1)
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
-            # print(logits.shape)
-            # print(img_label)
             loss = self.loss_fn(logits, img_label)
             outputs['loss_value'] = loss
         return outputs
@@ -529,25 +533,36 @@ class Orthogonal_dif(nn.Module):
         ):
         # print("the shape if text_embedding: ",text_embeds.shape)
         loss = 0
-        
-        batch, num_cls, _ = text_embeds.shape
+        # batch, num_cls, _ = text_embeds.shape
+        _len_ = len(text_embeds.shape)
         multi_logits_per_text = []
         # logits_per_text = self.compute_logits(text_embeds, text_embeds) #similarity matrix text2text [0, 1]
 
-        if return_loss:
-            for sample in text_embeds:
-              logits_each_sample = self.compute_logits(sample)
-              multi_logits_per_text.append(logits_each_sample)
-              loss += self.contrastive_loss(logits_each_sample)
-            multi_logits = torch.stack(multi_logits_per_text, dim = 0)
-        return {'text_embeds':text_embeds,
-                'loss_value':loss, 
-                'multi_logits_per_text':multi_logits}
+        if _len_ == 2:  ## just one sample
+          if return_loss:
+              logits_per_text =  self.compute_logits(text_embeds)
+              loss = self.contrastive_loss(logits_per_text)
+              loss += self.contrastive_loss(logits_per_text.T)
+          return {'text_embeds':text_embeds,
+                  'loss_value':loss, 
+                  'multi_logits_per_text':logits_per_text}
+        else:   ## multiple samples
+          if return_loss:
+              for sample in text_embeds:
+                logits_each_sample = self.compute_logits(sample)
+                multi_logits_per_text.append(logits_each_sample)
+                loss += self.contrastive_loss(logits_each_sample)
+                loss += self.contrastive_loss(logits_each_sample.T)
+              multi_logits = torch.stack(multi_logits_per_text, dim = 0)
+          return {'text_embeds':text_embeds,
+                  'loss_value':loss, 
+                  'multi_logits_per_text':multi_logits}
 
     def compute_logits(self, emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
         logit_scale = self.logit_scale.exp()
         logits_per_text = torch.matmul(emb, emb.t()) * logit_scale
+        # logits_per_text /= logits_per_text.norm(dim=-1, keepdim=True)
         return logits_per_text.t()
 
 
@@ -557,16 +572,20 @@ class Orthogonal_dif(nn.Module):
 
 
 class MultiTaskModel(nn.Module):
-    def __init__(self):
+    def __init__(self, nntype = "clip", visual_branch_only = False,):
         super().__init__()
-
+        # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
-
-        self.Contrastive_Model = LGCLIP()
-        # img_embedding classifier
+        if  (nntype not in ["clip", "biomedclip", "custom"]):
+            raise ValueError("currently, only support clip, biomedclip and custom NN")
+        if visual_branch_only:
+            print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only)
         self.PN_Classifier = PN_classifier()
-        # text_embeddings differentiator 
-        self.Orthogonal_dif = Orthogonal_dif()
+        # img_embedding classifier
+        if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
+          self.Orthogonal_dif = Orthogonal_dif()
+        self.visual_branch_only = visual_branch_only
 
     def forward(self,         
                 prompts:list,
@@ -577,6 +596,6 @@ class MultiTaskModel(nn.Module):
         
         a = self.Contrastive_Model(prompts, img)
         b = self.PN_Classifier(a['img_embeds'], img_labels)
-        c = self.Orthogonal_dif(a['text_embeds'])
+        c = self.Orthogonal_dif(a['text_embeds']) if not self.visual_branch_only else {"loss_value": 0}
         return a, b, c
     

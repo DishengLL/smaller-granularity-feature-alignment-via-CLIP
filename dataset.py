@@ -32,8 +32,6 @@ import constants
 #输入2: text -- predefined prompt
 #输出: 多输出多label
 
-
-
 class ImageTextContrastiveDataset(Dataset):
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
     def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type=None) -> None:
