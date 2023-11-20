@@ -1,4 +1,12 @@
 nltk
 numpy
 scikit-learn
+clip
 openai-clip
+scikit-image
+zmq
+transformers
+scipy
+matplotlib
+pandas
+jinja2
