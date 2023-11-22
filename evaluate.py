@@ -38,11 +38,6 @@ class Evaluator:
         label_list = []
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
-                
-        #                 a = self.Contrastive_Model(input_text, img_path)
-        # b = self.PN_Classifier(a['img_embeds'], img_labels)
-        # c = self.Orthogonal_dif(a['text_embeds'])
-        # return a, b, c
                 branch_out, classifier_out, _ = self.clf(**data)
                 pred = classifier_out['logits']
                 # print(f"the shape of pred: {pred.shape}")
@@ -90,7 +85,7 @@ class Evaluator:
                 # res = self.process_confusion_matrix(cnf_matrix)
                 # outputs.update(res)
 
-            res = classification_report(labels, pred_label, output_dict=True)
+            res = classification_report(labels, pred_label, output_dict=True, zero_division=np.nan_to_num)
             res = res['macro avg']
             res.pop('support')
             outputs.update(res)
@@ -104,10 +99,10 @@ class Evaluator:
             pred = pred.reshape(num_batch, 13, 3)
 
             pred_label = pred.argmax(-1)
-            # print(pred_label)
+            outputs["pred_label"] = pred_label
             acc = (pred_label == labels).mean()
             outputs['acc'] = acc
-            res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True)
+            res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
             # print(res)
             res = res['macro avg']
             res.pop('support')
@@ -132,6 +127,118 @@ class Evaluator:
             outputs['auprc'] = -99 #np.mean(auprc_list)
         return outputs
     
+    def evaluate_testing(self, eval_dataloader=None):
+        self.clf.eval()
+        if self.eval_dataloader is None and eval_dataloader is not None: self.eval_dataloader = eval_dataloader
+        else: eval_dataloader = self.eval_dataloader
+        overall_logits_list = []
+        overall_label_list = []
+        overall_prediction_list = []
+        results = []
+        for data in tqdm(eval_dataloader, desc='Evaluation'):
+            pred_list = []
+            label_list = []
+            with torch.no_grad():
+                _, classifier_out, _ = self.clf(**data)
+                pred = classifier_out['logits']
+            pred_list.append(pred)
+            
+            tmp = [json.loads(i) for i in data["img_labels"]]
+            label_list.append(torch.tensor(tmp))
+            pred_list_t = torch.cat(pred_list, 0)
+            labels = torch.cat(label_list, 0).cpu().detach().numpy()
+            overall_label_list.append(labels)
+
+            pred = pred_list_t.cpu().detach().numpy()        
+            outputs = {'pred':pred, 'labels':labels}
+
+            if self.mode is None:
+                if len(labels.shape) == 1:
+                    if len(np.unique(labels)) == 2:
+                        self.mode = 'binary'
+                    else:
+                        self.mode = 'multiclass'
+                else:
+                    self.mode = 'multilabel'
+                print(f'no mode specified, will pick mode `{self.mode}` by data.')
+
+            if self.mode == 'binary':
+                if pred.shape[1] == 1:
+                    pred_score = torch.tensor(pred).sigmoid().numpy().flatten()
+                    auc = roc_auc_score(labels, pred_score)
+                    outputs['auc'] = auc
+                    pred_label = np.ones(len(pred))
+                    pred_label[pred_score<0.5] = 0
+                    acc = (pred_label == labels).mean()
+                    outputs['acc'] = acc
+                    
+
+                else: # have 2 outputs
+                    pred_score = torch.tensor(pred).sigmoid().numpy()
+                    pred_label = np.argmax(pred_score, 1)
+                    acc = (pred_label == labels).mean()
+                    outputs['acc'] = acc
+
+                    # cnf_matrix = confusion_matrix(labels, pred_label)
+                    # res = self.process_confusion_matrix(cnf_matrix)
+                    # outputs.update(res)
+
+                res = classification_report(labels, pred_label, output_dict=True, zero_division=np.nan)
+                res = res['macro avg']
+                res.pop('support')
+                outputs.update(res)
+
+            if self.mode == 'multiclass':
+                # if len(pred.shape) == 2:
+                #     pred = pred.view()
+                # print(labels)
+                # print(f"the shape of labels: {labels.shape}")
+                num_batch = pred.shape[0]
+                pred = pred.reshape(num_batch, 13, 3)
+                overall_logits_list.append(pred)
+                pred_label = pred.argmax(-1)
+                overall_prediction_list.append(pred_label)
+                outputs["pred_label"] = pred_label
+                acc = (pred_label == labels).mean()
+                outputs['acc'] = acc
+                res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
+                np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\label.npy", labels.flatten())
+                np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\predict_label.npy", pred_label.flatten())
+                # print(res)
+                res = res['macro avg']
+                res.pop('support')
+                outputs.update(res)
+            
+            if self.mode == 'multilabel':    ## focus on multi-labels
+                pred_score = torch.tensor(pred).sigmoid().numpy()
+                auroc_list, auprc_list,mse = [], [],[]
+                for i in range(pred_score.shape[1]):
+                    y_cls = labels[:, i]
+                    pred_cls = pred_score[:, i]
+                    # print("Y_CLS: ",y_cls, "\n")
+                    # print("pred_cls: ",pred_cls, "\n")
+                    # auprc_list.append(average_precision_score(y_cls, pred_cls, pos_label=1))
+                    mse.append(mean_squared_error(y_cls, pred_cls))
+                    # auroc_list.append(roc_auc_score(y_cls, pred_cls))
+                outputs['auc/mse'] = np.mean(mse)
+                outputs['auprc'] = -99 #np.mean(auprc_list)
+            results.append(outputs)
+
+        # overall_label_list = np.hstack(overall_label_list)
+        overall_label_list = np.concatenate(overall_label_list, axis=0)
+        overall_logits_list = np.concatenate(overall_logits_list, axis=0)
+        overall_prediction_list = np.concatenate(overall_prediction_list, axis=0)
+        # overall_logits_list = np.hstack(overall_logits_list)
+        # overall_prediction_list = np.hstack(overall_prediction_list)
+        return {"result": results, "overall_logit":overall_logits_list, "overall_label":overall_label_list, "overall_prediction": overall_prediction_list}
+    
+
+    def cnf_matrix(self, labels, pred_label):
+        cnf_matrix = confusion_matrix(labels, pred_label)
+        res = self.process_confusion_matrix(cnf_matrix)
+        return res
+
+
     def process_confusion_matrix(self, cnf_matrix):
         FP = cnf_matrix.sum(axis=0) - np.diag(cnf_matrix) 
         FN = cnf_matrix.sum(axis=1) - np.diag(cnf_matrix)

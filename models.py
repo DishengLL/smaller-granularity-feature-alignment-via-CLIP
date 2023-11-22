@@ -1,4 +1,5 @@
 from cgitb import text
+from email.mime import image
 from math import tan, tanh
 from re import L
 from scipy import constants
@@ -237,7 +238,8 @@ class TextBranch(nn.Module):
                     self.clip_model.eval()
                     # print(self.tokenizer(text_input, context_length=context_length).cuda())
                     _, text_feature, _= self.clip_model(None, self.tokenizer(text_input, context_length=context_length).cuda())
-                    text_feature = torch.tensor(text_feature)
+                    # text_feature = torch.tensor(text_feature)
+                    text_feature = text_feature.clone().detach()
                     text_feature /= text_feature.norm(dim=-1, keepdim=True)
                     text_features.append(text_feature)                  
                 else:
@@ -287,11 +289,13 @@ class ImgBranch(nn.Module):
             if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
                 image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
             if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
-                images.append(self.clip_processor(Image.open(image)))
+                # images.append(self.clip_processor(Image.open(image)))
+                images.append(torch.load(image))
             elif self.backbone == "custom":
                 raise NotImplemented("image preprocess: using custom vis backbone which has not be defined!!!!!")
             else:
-                images.append(self.clip_processor(Image.open(image).convert("RGB")))
+                # images.append(self.clip_processor(Image.open(image).convert("RGB")))
+                images.append(torch.load(image))
 
         image_input = torch.tensor(np.stack(images)).to(self.device)
         # 输入经过 CLIP 预训练模型
@@ -511,6 +515,11 @@ class PN_classifier(nn.Module):
             
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
             loss = self.loss_fn(logits, img_label)
+            # print(">>logits.shape>>>",logits.shape)
+            # print(">>img_label.shape>>>",img_label.shape)
+            # print(logits)
+            # print(img_label)
+            # print("---")
             outputs['loss_value'] = loss
         return outputs
     

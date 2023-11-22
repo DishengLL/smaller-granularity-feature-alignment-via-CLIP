@@ -7,7 +7,7 @@ from networkx import katz_centrality_numpy
 
 import numpy as np
 from scipy import constants
-from sympy import false
+from sympy import EX, false
 import torch
 from torch import nn
 from torch import device, Tensor
@@ -26,85 +26,56 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from sklearn.metrics import confusion_matrix
 WEIGHTS_NAME = "pytorch_model.bin"
-
+import pickle
 
 from sklearn.metrics import roc_auc_score
 import numpy as np
 from scipy.special import softmax
 
-def get_multiclass_auc(labels, predictions):
-  # Example: replace these arrays with your actual predictions and true labels
-  # y_true = np.array([0, 1, 2, 2, 0, 1, 2, 2])  # true labels (ground truth)
-  # y_scores = np.array([
-  #     [0.5, 0.2, 0.3],  # predicted probabilities for class 0
-  #     [0.3, 0.4, 0.2],  # predicted probabilities for class 1
-  #     [0.2, 0.3, 0.5],  # predicted probabilities for class 2
-  #     [0.7, 0.2, 0.1],
-  #     [0.2, 0.5, 0.3],
-  #     [0.1, 0.4, 0.5],
-  #     [0.3, 0.1, 0.6],
-  #     [0.2, 0.3, 0.5]
-  # ])
-  # print(y_true)
-  # print(y_scores)
-
-  # # Compute ROC AUC for each class
-  # n_classes = len(np.unique(y_true))
-  # auc_scores = []
-
-  # for i in range(n_classes):
-  #     y_true_i = (y_true == i).astype(int)  # binary labels for class i
-  #     y_scores_i = y_scores[:, i]  # predicted probabilities for class i
-  #     auc_i = roc_auc_score(y_true_i, y_scores_i)
-  #     auc_scores.append(auc_i)
-
-  # # Compute the average or weighted average of AUC scores
-  # average_auc = np.mean(auc_scores)
-  # weighted_auc = np.average(auc_scores, weights=np.bincount(y_true))
-
-  # print("Average AUC:", average_auc)
-  # print("Weighted AUC:", weighted_auc)
-  # return 
-  classes = ["POSITIVE_CLASS", "NEGATIVE_CLASS", "UNCERTAIN_CLASS"]
+def get_multiclass_auc(labels, predictions, key):
+  classes = _constants_.class_name
+  diseases = _constants_.CHEXPERT_LABELS
+  # print(_constants_.RED, labels.shape, _constants_.RESET)
+  # print(_constants_.RED, predictions.shape, _constants_.RESET)
 
   auc_dict = {}
+  auc_disease = {}
 
-  # 针对每个类别计算 AUC
-  for class_index in range(predictions.shape[2]):
+  #AUC for each class -- positive, negative, uncertain
+  for class_index in range(predictions.shape[1]):
       # 提取当前类别的真实标签和logits
       true_labels = labels[:, class_index]
       logits = predictions[:, class_index, :]
-
-      
-
-      # 对logits进行softmax转换
       softmax_probs = softmax(logits, axis=1)
-      print(softmax_probs)
-      print(">>>>>>>>>>>>>>>>>>>>\n",true_labels.shape) #(1175,)
-      print(softmax_probs.shape) #(1175, 3)
-
-      # 计算 AUC
-      true_labels = true_labels.ravel()
-      # 假设你的 true_labels 是形状为 (1175,) 的一维数组
-      # true_labels = np.array([1, 1, 1, 1, 0, 2, 1, 0])
-
-      # 使用 np.eye 创建单位矩阵
-      true_labels = np.eye(3)[true_labels]
-      print(true_labels)
-      print(softmax_probs)
-      print()
-      print(true_labels[:,class_index], "\n", (softmax_probs[:, class_index]))
-      auc_score = roc_auc_score(true_labels[:,class_index], softmax_probs[:, class_index], multi_class='ovr', zero_division='warn')
-
+      # true_labels = np.eye(3)[true_labels]
+      # print(true_labels.shape)
+      try:
+        auc_score = roc_auc_score(true_labels, softmax_probs, multi_class='ovr',)
+      except Exception as e:
+          # print(diseases[class_index], "does not have 3 classes")
+          continue
+          logits = logits[:, (0,1)]
+          softmax_probs = softmax(logits, axis=1)
+          # print(softmax_probs.shape)
+          true_labels[true_labels == 2] = 1
+          auc_score = roc_auc_score(true_labels, softmax_probs[:,1],)
+          auc_disease[f'{diseases[class_index]}'] = auc_score
+          continue
       # 存储 AUC 值到字典
-      auc_dict[f'Class_{classes[class_index]}'] = auc_score
+      auc_disease[f'{diseases[class_index]}'] = auc_score
 
   # 计算平均 AUC
-  average_auc = np.mean(list(auc_dict.values()))
+  average_auc = np.mean(list(auc_disease.values()))
+  auc_disease["average"] = average_auc
+  auc_dict["class"] = auc_disease
 
   # 打印每个类别的 AUC 和平均 AUC
-  for class_key, class_auc in auc_dict.items():
+  for class_key, class_auc in auc_disease.items():
       print(f'AUC for {class_key}: {class_auc:.4f}')
+
+  store = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\temp_var"
+  with open(f"{store}\{key}_without_no_finding", 'wb') as f:
+    pickle.dump(auc_disease, f)
 
 
 def process_confusion_matrix(cnf_matrix):
@@ -143,7 +114,7 @@ def process_confusion_matrix(cnf_matrix):
     return outputs
 
 
-def get_confusion(results):
+def get_confusion(results, key):
     overall_logits  = results['overall_logit']  # z x batch x 13 x class number
     overall_predic_label = results["overall_prediction"] # z x batch_size x 13
     overall_labels = results["overall_label"] # z x batch_size x 13
@@ -162,7 +133,7 @@ def get_confusion(results):
         # print(cnf_matrix)c
         # res =process_confusion_matrix(cnf_matrix)
         # print(res)
-    aucs = get_multiclass_auc(overall_predic_label, overall_logits)
+    aucs = get_multiclass_auc(overall_labels, overall_logits, key)
     return
 
 def get_testing_results(batch_size = 5, vision_only = None, nntype = None):
@@ -251,5 +222,4 @@ if __name__ == "__main__":
             for vision_only in [True, False]:
               results, key = get_testing_results(vision_only = vision_only, nntype = nntype)
               # plot_test_acc_distribution(results['result'], key)
-              get_confusion(results)
-              break
+              get_confusion(results, key)
