@@ -15,6 +15,38 @@ from _email_ import send_email
 import traceback
 
 
+# def performance():
+#     import cProfile
+#     # Your code here
+#       def run_trainer():
+#         trainer.train(
+#             model,
+#             train_objectives=train_objectives,
+#             warmup_ratio=train_config['warmup'],
+#             epochs=train_config['num_epochs'],
+#             optimizer_params={'lr': train_config['lr']},
+#             output_path=train_config["save_path"],
+#             evaluation_steps=train_config['eval_steps'],
+#             weight_decay=train_config['weight_decay'],
+#             save_steps=train_config['save_steps'],
+#             evaluator=_evaluator_,
+#             eval_dataloader=eval_dataloader,
+#             use_amp=True,
+#         )
+
+#       cProfile.run('run_trainer()', r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\profiler_stats")
+#     except KeyboardInterrupt:
+#         import sys
+#         import pstats
+#         print("Program terminated by user.")
+#         stats = pstats.Stats(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\profiler_stats")
+
+# # 按照执行时间降序排列并打印
+#         stats.sort_stats('cumulative').print_stats()
+#         # Additional cleanup or logging if needed
+#         sys.exit(0)
+
+
 if __name__ == "__main__":
     print(f"run Fine-Grain Feature Alignment CLIP(FG_FA_C)")
     email = send_email.send_email()
@@ -36,7 +68,7 @@ if __name__ == "__main__":
 
     # set training configurations
     train_config = {
-        'batch_size': 100,
+        'batch_size': 1000,
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
@@ -93,36 +125,6 @@ if __name__ == "__main__":
     trainer = Trainer()
 
     try:
-
-#       import cProfile
-#     # Your code here
-#       def run_trainer():
-#         trainer.train(
-#             model,
-#             train_objectives=train_objectives,
-#             warmup_ratio=train_config['warmup'],
-#             epochs=train_config['num_epochs'],
-#             optimizer_params={'lr': train_config['lr']},
-#             output_path=train_config["save_path"],
-#             evaluation_steps=train_config['eval_steps'],
-#             weight_decay=train_config['weight_decay'],
-#             save_steps=train_config['save_steps'],
-#             evaluator=_evaluator_,
-#             eval_dataloader=eval_dataloader,
-#             use_amp=True,
-#         )
-
-#       cProfile.run('run_trainer()', r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\profiler_stats")
-#     except KeyboardInterrupt:
-#         import sys
-#         import pstats
-#         print("Program terminated by user.")
-#         stats = pstats.Stats(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\profiler_stats")
-
-# # 按照执行时间降序排列并打印
-#         stats.sort_stats('cumulative').print_stats()
-#         # Additional cleanup or logging if needed
-#         sys.exit(0)
       trainer.train(
           model,
           train_objectives= train_objectives,
