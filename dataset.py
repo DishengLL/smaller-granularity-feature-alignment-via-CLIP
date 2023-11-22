@@ -45,7 +45,7 @@ class ImageTextContrastiveDataset(Dataset):
         
         # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
         # filename = os.path.join(constants.DATA_DIR, source_data)
-        filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/p10_12_train.csv"
+        filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/P10_12_train_11_19.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if prompt_type is None:
@@ -55,7 +55,7 @@ class ImageTextContrastiveDataset(Dataset):
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
-        img_path =  row.file_path
+        img_path =  row.tensor_path
         return img_path, self.prompts, row.train_label
 
     def __len__(self):
@@ -99,7 +99,7 @@ class TestingDataset(Dataset):
         for data in datalist:
             # filename = f'./local_data/{data}.csv'
             # filename = os.path.join(constants.DATA_DIR, "final.csv")
-            filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/p10_12_test.csv"
+            filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/P10_12_test_11_19.csv"
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
@@ -107,7 +107,7 @@ class TestingDataset(Dataset):
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
-        img_path =  row.file_path
+        img_path =  row.tensor_path
         return img_path, self.prompts, row.train_label
 
     def __len__(self):
@@ -178,7 +178,7 @@ class Process_raw_csv():
                 return label_dic
             if value == constants.POSITIVE:
                 label_dic[column_name] = constants.POSITIVE_CLASS
-            elif value == 0:
+            elif value == constants.NEGATIVE:
                 label_dic[column_name] = constants.NEGATIVE_CLASS
         return label_dic
 
