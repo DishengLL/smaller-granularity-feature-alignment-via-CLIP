@@ -19,6 +19,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 - [ ] evaluation  
   overall -- MSE     
   each disease -- confusion matrix
+- [ ] get and store prompt embeddings for reusing 
 
 
 - [x] biomedCLIP -- this branch works on biomedCLIP pre-trained model (baseline version using original CLIP)
@@ -57,3 +58,26 @@ currently using the Classification task as a utility task, aiming to build a gen
   - train visual-branch-only version --- no contrastive loss between image and text in this version 
   - even though this version get similar performace(acc), the more unstable then the biomed version
   - contrastive loss module improves the generalizability of the model (the preliminary and immature insight)
+
+- 2023-11-11-18:
+  - tune code, retrain 4 models(biomed + with(out) vision, clip + with(out) vision)
+
+
+Memo:
+```
+Each label column contains one of four values: 1.0, -1.0, 0.0, or missing. These labels have the following interpretation:
+
+1.0 - The label was positively mentioned in the associated study, and is present in one or more of the corresponding images
+e.g. "A large pleural effusion"
+0.0 - The label was negatively mentioned in the associated study, and therefore should not be present in any of the corresponding images
+e.g. "No pneumothorax."
+-1.0 - The label was either: (1) mentioned with uncertainty in the report, and therefore may or may not be present to some degree in the corresponding image, or (2) mentioned with ambiguous language in the report and it is unclear if the pathology exists or not
+Explicit uncertainty: "The cardiac size cannot be evaluated."
+Ambiguous language: "The cardiac contours are stable."
+Missing (empty element) - No mention of the label was made in the report
+
+
+for `no finding`, this column gets 3 kind of values(1, missing)
+
+for `Support Devices`, this column get 4 kind of values(1, 0, -1, missing), most of them are missing and 1, missing>1>0>>-1
+```

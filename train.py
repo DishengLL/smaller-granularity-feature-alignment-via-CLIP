@@ -100,7 +100,6 @@ class Trainer:
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
 
         num_train_objectives = len(train_objectives)
-        # print(num_train_objectives)
 
         skip_scheduler = False
         train_loss_dict = defaultdict(list)
@@ -130,7 +129,6 @@ class Trainer:
                         data_iterator = iter(dataloaders[train_idx])
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
-
                     if use_amp:
                         with autocast():
                             loss_model_return = loss_model(**data)
