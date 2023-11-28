@@ -68,15 +68,16 @@ if __name__ == "__main__":
 
     # set training configurations
     train_config = {
-        'batch_size': 1000,
-        'num_epochs': 10,
+        'batch_size': 100,
+        'num_epochs': 20,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
         'eval_steps': 1000,
         'save_steps': 1000,
-        "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\checkpoint"
+        "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\checkpoint",
+        "model_zoo": ""
     }
 
     transform = transforms.Compose([
@@ -88,8 +89,10 @@ if __name__ == "__main__":
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
                 )
-
-    train_data = ImageTextContrastiveDataset()
+    
+    backbone = "biomedclip"
+    
+    train_data = ImageTextContrastiveDataset(backbone_type=backbone)
     train_collate_fn = ImageTextContrastiveCollator()
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
@@ -99,7 +102,7 @@ if __name__ == "__main__":
         num_workers = num_of_thread,
         )
 
-    model = MultiTaskModel(nntype="clip", visual_branch_only=True)#.to(device)
+    model = MultiTaskModel(nntype=backbone, visual_branch_only=False)#.to(device)
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model).to(device)
 
     # build evaluator
