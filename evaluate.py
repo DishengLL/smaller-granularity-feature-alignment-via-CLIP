@@ -134,10 +134,13 @@ class Evaluator:
         overall_logits_list = []
         overall_label_list = []
         overall_prediction_list = []
+        accumu_acc = []
         results = []
+        pred_list = []
+        label_list = []
         for data in tqdm(eval_dataloader, desc='Evaluation'):
-            pred_list = []
-            label_list = []
+            # pred_list = []
+            # label_list = []
             with torch.no_grad():
                 _, classifier_out, _ = self.clf(**data)
                 pred = classifier_out['logits']
@@ -149,7 +152,7 @@ class Evaluator:
             labels = torch.cat(label_list, 0).cpu().detach().numpy()
             overall_label_list.append(labels)
 
-            pred = pred_list_t.cpu().detach().numpy()        
+            pred = pred_list_t.cpu().detach().numpy()     
             outputs = {'pred':pred, 'labels':labels}
 
             if self.mode is None:
@@ -201,6 +204,7 @@ class Evaluator:
                 outputs["pred_label"] = pred_label
                 acc = (pred_label == labels).mean()
                 outputs['acc'] = acc
+                accumu_acc.append(acc)
                 res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
                 np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\label.npy", labels.flatten())
                 np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\predict_label.npy", pred_label.flatten())
@@ -230,7 +234,7 @@ class Evaluator:
         overall_prediction_list = np.concatenate(overall_prediction_list, axis=0)
         # overall_logits_list = np.hstack(overall_logits_list)
         # overall_prediction_list = np.hstack(overall_prediction_list)
-        return {"result": results, "overall_logit":overall_logits_list, "overall_label":overall_label_list, "overall_prediction": overall_prediction_list}
+        return {"result": results, "overall_logit":overall_logits_list, "overall_label":overall_label_list, "overall_prediction": overall_prediction_list, "accumul_acc": accumu_acc}
     
 
     def cnf_matrix(self, labels, pred_label):
