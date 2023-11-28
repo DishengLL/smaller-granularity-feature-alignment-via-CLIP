@@ -42,31 +42,37 @@ def get_multiclass_auc(labels, predictions, key):
   auc_disease = {}
 
   #AUC for each class -- positive, negative, uncertain
+  row = predictions.shape[0]
+  step = row//100
   for class_index in range(predictions.shape[1]):
-      # 提取当前类别的真实标签和logits
-      true_labels = labels[:, class_index]
-      logits = predictions[:, class_index, :]
-      softmax_probs = softmax(logits, axis=1)
-      # true_labels = np.eye(3)[true_labels]
-      # print(true_labels.shape)
-      try:
-        auc_score = roc_auc_score(true_labels, softmax_probs, multi_class='ovr',)
-      except Exception as e:
-          # print(diseases[class_index], "does not have 3 classes")
-          continue
-          logits = logits[:, (0,1)]
-          softmax_probs = softmax(logits, axis=1)
-          # print(softmax_probs.shape)
-          true_labels[true_labels == 2] = 1
-          auc_score = roc_auc_score(true_labels, softmax_probs[:,1],)
-          auc_disease[f'{diseases[class_index]}'] = auc_score
-          continue
-      # 存储 AUC 值到字典
-      auc_disease[f'{diseases[class_index]}'] = auc_score
+      avg = []
+      for num in range(step):
+        temp = []
+        # 提取当前类别的真实标签和logits
+        true_labels = labels[:(num*step), class_index]
+        logits = predictions[:(num*step), class_index, :]
+        softmax_probs = softmax(logits, axis=1)
+        # true_labels = np.eye(3)[true_labels]
+        # print(true_labels.shape)
+        try:
+          auc_score = roc_auc_score(true_labels, softmax_probs, multi_class='ovr',)
+          temp.append(auc_score)
+        except Exception as e:
+            # print(diseases[class_index], "does not have 3 classes")
+            continue
+            logits = logits[:, (0,1)]
+            softmax_probs = softmax(logits, axis=1)
+            # print(softmax_probs.shape)
+            true_labels[true_labels == 2] = 1
+            auc_score = roc_auc_score(true_labels, softmax_probs[:,1],)
+            auc_disease[f'{diseases[class_index]}'] = auc_score
+            continue
+        # 存储 AUC 值到字典
+        auc_disease[f'{diseases[class_index]}_{num}'] = auc_score
 
   # 计算平均 AUC
-  average_auc = np.mean(list(auc_disease.values()))
-  auc_disease["average"] = average_auc
+  # average_auc = np.mean(list(auc_disease.values()))
+  # auc_disease["average"] = average_auc
   auc_dict["class"] = auc_disease
 
   # 打印每个类别的 AUC 和平均 AUC
@@ -158,7 +164,7 @@ def get_testing_results(batch_size = 5, vision_only = None, nntype = None):
     val_data = TestingDataset()
     val_collate_fn = TestingCollator()
     eval_dataloader = DataLoader(val_data,
-    batch_size=batch_size,
+    batch_size=5,
     collate_fn=val_collate_fn,
     shuffle=False,
     pin_memory=True,
@@ -223,3 +229,5 @@ if __name__ == "__main__":
               results, key = get_testing_results(vision_only = vision_only, nntype = nntype)
               # plot_test_acc_distribution(results['result'], key)
               get_confusion(results, key)
+              # print(results.keys(), key)
+              # break
