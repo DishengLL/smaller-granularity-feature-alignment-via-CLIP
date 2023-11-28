@@ -1,25 +1,26 @@
 from cgitb import text
-from email.mime import image
 from math import tan, tanh
 from re import L
 from scipy import constants
-# from platformdirs import user_config_dir
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import clip
 import matplotlib.pyplot as plt
-from PIL import Image
 import numpy as np
-import skimage
-import os
 from collections import defaultdict
 import json
 from PIL import Image, ImageFile
 from zmq import device
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import constants as _constants_
+from torch import Tensor
+from transformers import AutoModel, AutoTokenizer
+import os
+os.environ['CURL_CA_BUNDLE'] = ''
 
+import requests.packages.urllib3
+requests.packages.urllib3.disable_warnings()
 class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
         super().__init__()
@@ -27,17 +28,12 @@ class OrthogonalTextEncoder(nn.Module):
         self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
-    def forward(self, x):
+    def forward(self, x:Tensor) -> Tensor:
         '''
         expect x - [batch, sequence, dim]
         output y - [batch, sequence, dim]
         '''
-        # 通过Transformer编码器
         x = self.encoder(x)
-        # print(">>>>", x)
-        # x /= x.norm(dim=-1, keepdim=True)
-        # # 取每个时间步的输出
-        # x = x.permute(1, 0, 2)
         return x
 
 class ImgClassifier(nn.Module):
@@ -100,64 +96,6 @@ class ImgClassifier(nn.Module):
             outputs['loss_value'] = loss
         return outputs
 
-# class OverallClassifier(nn.model):
-#     '''
-#     in ablation section, 
-#     '''
-#     def __init__(self,
-#         img_branch,
-#         num_class,
-#         input_dim=512,
-#         mode='multilabel',
-#         **kwargs) -> None:
-#         '''args:
-#         Visual_Classifer_module: receive one embedding, generate "multi-hot" vector indicate multi-labels
-#         input_dim: the embedding dim before the linear output layer
-#         mode: multilabel
-#         input number:  the number of input embeddings
-#         num_class: corresponding with the number of disease --- the dim of output
-#         '''
-#         super(OverallClassifier, self).__init__()
-#         self.model = img_branch
-#         self.num_class = num_class
-#         assert mode.lower() is 'multilabel'
-#         self.mode = mode.lower()
-#         tanh = nn.Tanh()
-#         if num_class > 2:
-#             self.loss_fn = nn.BCEWithLogitsLoss()
-
-#             self.fc = nn.Linear(input_dim, input_dim)
-#             self.cls = nn.Linear(input_dim, num_class)
-
-#         else:
-#             raise ValueError("the number of class is less than 2, cannot be used in multi-labels problem!")
-#             self.loss_fn = nn.BCEWithLogitsLoss()
-#             self.fc = nn.Linear(input_dim, 1)
-
-#     def forward(self,
-#         img_path,  ## original image
-#         labels=None,
-#         return_loss=True,
-#         **kwargs,
-#         ):
-
-#         assert labels is not None
-        
-#         outputs = defaultdict()
-#         image_embeddings = image_embeddings.cuda()#.to("cpu")
-#         # take embeddings before the projection head
-#         img_embeds = self.model(img_path)
-#         logits = self.fc(img_embeds)
-#         logits = self.cls(logits)
-#         logits = self.tanh(logits)
-#         outputs['embedding'] = img_embeds
-#         outputs['logits'] = logits
-#         if labels is not None and return_loss:
-#             labels = labels.cuda().float()
-#             loss = self.loss_fn(logits, labels)
-#             outputs['loss_value'] = loss
-#         return outputs
-
 class SplitVisEncoder(nn.Module):
     def __init__(self, n, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01):
         super(SplitVisEncoder, self).__init__()
@@ -174,7 +112,7 @@ class SplitVisEncoder(nn.Module):
         self.encoder_ly = nn.TransformerEncoderLayer(d_model, nhead=8, dim_feedforward=2048, dropout=0.1, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_ly, num_layers = 8)
 
-    def forward(self, x, project=False):
+    def forward(self, x:Tensor, project=False):
         '''
         expect input shape x - [batch, dim]
         output shape y - [batch, n, dim]
@@ -228,26 +166,12 @@ class TextBranch(nn.Module):
         # 输入经过 CLIP 预训练模型
         # text_inputs = torch.cat([clip.tokenize(f"image of {c}") for c in text_inputs]).to(device)
         text_features = []
-        context_length = 256
         # print(f'\033[31mthe type of text_inputs : {type(text_inputs)}\033[0m')
         if self.backbone != "custom":
           with torch.no_grad():
               for text_input in text_inputs:
-                if self.backbone in ["biomed", "BiomedCLIP", "biomedclip"]:
-                    self.clip_model.to(self.device)
-                    self.clip_model.eval()
-                    # print(self.tokenizer(text_input, context_length=context_length).cuda())
-                    _, text_feature, _= self.clip_model(None, self.tokenizer(text_input, context_length=context_length).cuda())
-                    # text_feature = torch.tensor(text_feature)
-                    text_feature = text_feature.clone().detach()
-                    text_feature /= text_feature.norm(dim=-1, keepdim=True)
-                    text_features.append(text_feature)                  
-                else:
-                    text_feature = self.clip_model.encode_text(clip.tokenize(text_input).cuda()).cuda().float()
-                    text_feature /= text_feature.norm(dim=-1, keepdim=True)
-                    text_features.append(text_feature)
-        # text-features shape - [batch, num of text, dim]
-        # print(len(text_features), torch.tensor(text_features[0]).shape)
+                text_feature = torch.load(text_input).to(self.device)
+                text_features.append(text_feature)                  
         text_features = torch.stack(text_features, dim = 0).squeeze()
         output = self.transformer(text_features)  ## ToDo 正则化处理
         return (text_features, output)
@@ -290,7 +214,7 @@ class ImgBranch(nn.Module):
                 image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
             if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
                 # images.append(self.clip_processor(Image.open(image)))
-                images.append(torch.load(image))
+                images.append(torch.load(image).to(self.device))
             elif self.backbone == "custom":
                 raise NotImplemented("image preprocess: using custom vis backbone which has not be defined!!!!!")
             else:
@@ -515,11 +439,6 @@ class PN_classifier(nn.Module):
             
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
             loss = self.loss_fn(logits, img_label)
-            # print(">>logits.shape>>>",logits.shape)
-            # print(">>img_label.shape>>>",img_label.shape)
-            # print(logits)
-            # print(img_label)
-            # print("---")
             outputs['loss_value'] = loss
         return outputs
     
@@ -581,7 +500,7 @@ class Orthogonal_dif(nn.Module):
 
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False,):
+    def __init__(self, nntype = "clip", visual_branch_only = False, ):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment

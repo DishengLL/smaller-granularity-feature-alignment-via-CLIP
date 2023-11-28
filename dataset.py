@@ -34,6 +34,60 @@ import constants
 
 class ImageTextContrastiveDataset(Dataset):
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
+    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", backbone_type = None) -> None:
+        '''support data list in mimic-cxr-train, chexpert-train
+        filename :  the csv file contains all of training data
+        '''
+        super().__init__()
+        # imgpath, subject_id, report, labels...(14 labels)
+        if source_data is None:
+            raise ValueError("source_data should be specified, which indicates the path of original data")
+        
+        # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
+        # filename = os.path.join(constants.DATA_DIR, source_data)
+        filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/P10_12_train_11_19.csv"
+        print(constants.RED + 'load training data from' + constants.RESET, filename)
+        self.df = pd.read_csv(filename, index_col=0)
+        if backbone_type not in ["clip", "biomedclip", "custom"]:
+            raise ValueError("backbone type error")
+        if prompt_type == "basic":
+            self.prompts = constants.BASIC_PROMPT
+            print(constants.RED + f"currently using {backbone_type} to process {prompt_type} prompt" + constants.RESET)
+            self.prompts_tensor_path = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\data\prompts_tensors\basic\clip_basic.pt"
+        elif prompt_type == "biomedclip":
+            self.prompts = constants.BASIC_PROMPT
+            print(constants.RED + f"currently using {backbone_type} to process {prompt_type} prompt" + constants.RESET)
+            self.prompts_tensor_path = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\data\prompts_tensors\basic\biomedclip_basic.pt"
+        else:
+            raise ValueError("Custom your prompts!! Attention!!!!!!")
+
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        img_path =  row.tensor_path
+        return img_path, self.prompts_tensor_path, row.train_label
+
+    def __len__(self):
+        return len(self.df)
+
+
+class ImageTextContrastiveCollator:
+    def __init__(self, use_eda=True):
+        '''Args:
+        use_EDA: easy data augmentation from textaugment
+        '''
+    def __call__(self, batch):
+        inputs = defaultdict(list)
+        report_list = []
+        # print(">>>>>>>>",len(batch))
+        for data in batch:
+            inputs['img'].append(data[0])
+            report_list.append(data[1])
+            inputs['img_labels'].append(data[2])
+        inputs['prompts'] =  report_list
+        return inputs
+
+class ImageTextContrastiveDataset1(Dataset):
+    _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
     def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type=None) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
         filename :  the csv file contains all of training data
@@ -62,7 +116,7 @@ class ImageTextContrastiveDataset(Dataset):
         return len(self.df)
 
 
-class ImageTextContrastiveCollator:
+class ImageTextContrastiveCollator1:
     def __init__(self, use_eda=True):
         '''Args:
         use_EDA: easy data augmentation from textaugment
@@ -77,7 +131,6 @@ class ImageTextContrastiveCollator:
             inputs['img_labels'].append(data[2])
         inputs['prompts'] =  report_list
         return inputs
-
 
 
 class TestingDataset(Dataset):
