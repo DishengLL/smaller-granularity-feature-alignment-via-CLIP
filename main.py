@@ -58,7 +58,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(seed)
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
-    num_of_thread = 8
+    num_of_thread = 4
     save_model_path = "./code/diagnosisP/x_ray_constrastive/output/checkopint/"
 
     # set cuda devices
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # set training configurations
     train_config = {
-        'batch_size': 1000,
+        'batch_size': 100,
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
@@ -141,10 +141,10 @@ if __name__ == "__main__":
           use_amp=True,
           )
       print('done')
-      email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
+      # email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
     except Exception as e:
       Traceback = traceback.format_exc()
       T = f"{Traceback}"
-      email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", T, "error")
+      # email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", T, "error")
       print(T)
       

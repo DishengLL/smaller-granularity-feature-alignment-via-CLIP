@@ -73,7 +73,7 @@ def get_multiclass_auc(labels, predictions, key):
   for class_key, class_auc in auc_disease.items():
       print(f'AUC for {class_key}: {class_auc:.4f}')
 
-  store = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\temp_var"
+  store = r"/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/output/temp_var"
   with open(f"{store}\{key}_without_no_finding", 'wb') as f:
     pickle.dump(auc_disease, f)
 
@@ -138,10 +138,10 @@ def get_confusion(results, key):
 
 def get_testing_results(batch_size = 5, vision_only = None, nntype = None):
     model_dict = {
-                  "biomedclip - vision-only":r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_visual_branch_only_11_12\best\pytorch_model.bin",
-                  "biomedclip": r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_11_11_bio\best\pytorch_model.bin",
-                  "clip - vision-only": r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_11_18_clip_vis\best\pytorch_model.bin",
-                  "clip": r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\checkpoint_11_15_clip_FG_CLIP\best\pytorch_model.bin"      
+                  "biomedclip - vision-only":"/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/models/Biomed_Vision/best/pytorch_model.bin",
+                  "biomedclip": "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/models/Biomed/best/pytorch_model.bin",
+                  "clip - vision-only": "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/models/CLIP_Vision/best/pytorch_model.bin",
+                  "clip": "coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/models/CLIP/pytorch_model.bin"
       }
     
     if vision_only:
@@ -204,7 +204,7 @@ def plot_test_acc_distribution(accs, key):
     plt.ylabel('Density')
     plt.title(f'Data Distribution Plot in {key}')
     plt.grid()
-    plt.savefig(rf'D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\{key}.png')
+    plt.savefig(f'/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/output/out/{key}.png')
     
 
 def get_confusion_matrxi():

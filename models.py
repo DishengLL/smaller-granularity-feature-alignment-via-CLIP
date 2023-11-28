@@ -210,7 +210,7 @@ class TextBranch(nn.Module):
             raise NotImplemented("has not implemented the custom backbone in text branch")
         else:
             ## the default backbone is CLIP -- text encoder
-            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=self.device)
+            self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B/32", device=self.device)
         # 冻结 CLIP 部分的参数
         if self.backbone != "custom":
           for param in self.clip_model.parameters():
@@ -270,7 +270,7 @@ class ImgBranch(nn.Module):
         elif self.backbone == "custom":
             raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
         else:
-            self.clip_model, self.clip_processor  = clip.load("ViT-B/32", device=device)
+            self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B-32.pt", device=device)
         # 冻结 CLIP 部分的参数
         if self.backbone != "custom":
           for param in self.clip_model.parameters():
