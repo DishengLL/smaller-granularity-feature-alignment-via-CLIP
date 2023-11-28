@@ -64,7 +64,8 @@ if __name__ == "__main__":
     # set cuda devices
     os.environ['CUDA_VISIBLE_DEVICES']='0'
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch.cuda.set_device(device)
+    if device == "cuda:0":
+      torch.cuda.set_device(device)
 
     # set training configurations
     train_config = {

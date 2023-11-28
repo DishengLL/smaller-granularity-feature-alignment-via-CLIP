@@ -99,6 +99,7 @@ class ImageTextContrastiveDataset1(Dataset):
         
         # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
         # filename = os.path.join(constants.DATA_DIR, source_data)
+
         filename = "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/data/mimic-cxr-train/P10_12_test_11_24.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
@@ -109,7 +110,7 @@ class ImageTextContrastiveDataset1(Dataset):
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
-        img_path =  row.tensor_path
+        img_path =  row.ws_file_path
         return img_path, self.prompts, row.train_label
 
     def __len__(self):
@@ -124,7 +125,6 @@ class ImageTextContrastiveCollator1:
     def __call__(self, batch):
         inputs = defaultdict(list)
         report_list = []
-        # print(">>>>>>>>",len(batch))
         for data in batch:
             inputs['img'].append(data[0])
             report_list.append(data[1])
@@ -153,6 +153,7 @@ class TestingDataset(Dataset):
             # filename = f'./local_data/{data}.csv'
             # filename = os.path.join(constants.DATA_DIR, "final.csv")
             filename = "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/data/mimic-cxr-train/P10_12_test_11_24.csv"
+
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
@@ -160,7 +161,7 @@ class TestingDataset(Dataset):
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
-        img_path =  row.tensor_path
+        img_path =  row.ws_file_path   # the column name for work station context
         return img_path, self.prompts, row.train_label
 
     def __len__(self):
