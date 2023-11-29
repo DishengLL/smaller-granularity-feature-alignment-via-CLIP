@@ -17,10 +17,14 @@ import constants as _constants_
 from torch import Tensor
 from transformers import AutoModel, AutoTokenizer
 import os
+from torchvision import models
 os.environ['CURL_CA_BUNDLE'] = ''
 
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
+
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
         super().__init__()
@@ -155,6 +159,7 @@ class TextBranch(nn.Module):
               param.requires_grad = False
         # text orthogonal 部分
         self.transformer = OrthogonalTextEncoder()
+        self.backbone = nntype
         
     def forward(self, text_inputs:list):
         '''
@@ -172,36 +177,52 @@ class TextBranch(nn.Module):
               for text_input in text_inputs:
                 text_feature = torch.load(text_input).to(self.device)
                 text_features.append(text_feature)                  
-        text_features = torch.stack(text_features, dim = 0).squeeze()
+        text_features = torch.stack(text_features, dim = 0).squeeze().to(self.device)
         output = self.transformer(text_features)  ## ToDo 正则化处理
-        return (text_features, output)
+        return  output
 
+      
 class ImgBranch(nn.Module):
-    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, nntype = None):
+    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, nntype = None, backbone_v:str = None):
         super().__init__()
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
+        
         self.device = device
+        if backbone_v == "densenet":
+          self.backbone_v = self.densenet().to(device)
+          self.backbone = "custom"
+          self.backbone_n = backbone_v
+          print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + self.backbone_n)    
+          return
+        
         if nntype == None:
             self.backbone = "clip"
         else:
             self.backbone = nntype
         print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + self.backbone)            
-        if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
+        
+        if self.backbone in ["biomedCLIP", "biomed", "biomedclip",]:
             import open_clip
             self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
         elif self.backbone == "custom":
             raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
         else:
             self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B-32.pt", device=device)
-        # 冻结 CLIP 部分的参数
-        if self.backbone != "custom":
-          for param in self.clip_model.parameters():
-              param.requires_grad = False
-        # Transformer 部分
-        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
-        
+        #  in this case, Biomed and CLIP model are been frozen 
+        for param in self.clip_model.parameters():
+            param.requires_grad = False
+
+
+    
+    def densenet(self, n_dim = 512):
+        model = models.densenet121(pretrained=True)
+        num_ftrs = model.classifier.in_features
+        model.classifier = nn.Sequential(nn.Linear(num_ftrs, n_dim))  
+        return model
     def forward(self, image_path):
         '''
         input: img_path, str
@@ -212,14 +233,7 @@ class ImgBranch(nn.Module):
         for image in image_path:
             if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
                 image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
-            if self.backbone in ["biomedCLIP", "biomed", "biomedclip"]:
-                # images.append(self.clip_processor(Image.open(image)))
-                images.append(torch.load(image).to(self.device))
-            elif self.backbone == "custom":
-                raise NotImplemented("image preprocess: using custom vis backbone which has not be defined!!!!!")
-            else:
-                # images.append(self.clip_processor(Image.open(image).convert("RGB")))
-                images.append(torch.load(image))
+            images.append(torch.load(image))
 
         image_input = torch.tensor(np.stack(images)).to(self.device)
         # 输入经过 CLIP 预训练模型
@@ -227,11 +241,10 @@ class ImgBranch(nn.Module):
           with torch.no_grad():
               image_features = self.clip_model.encode_image(image_input).float()
         else:
-            raise NotImplemented("ToDo!!!!")
-            # with torch.no_grad():
-            image_features = self.clip_model.encode_image(image_input).float()
+            # print("Using " + _constants_.RED + f"{self.backbone_n} as vision encoder" + _constants_.RESET + " in image branch" )
+            image_features = self.backbone_v(image_input).float()
         output = self.VisEncoder(image_features)
-        return (image_features, output)
+        return output
     
 
 class CustomVisEncoder(nn.Module):
@@ -248,13 +261,14 @@ class LGCLIP(nn.Module):
         vision_checkpoint=None,
         logit_scale_init_value=0.07,
         nntype = None,
-        visual_branch_only = False
+        visual_branch_only = False,
+        backbone_v = None
         ) -> None:
         super().__init__()
         text_proj_bias = False
         assert vision_branch in [ImgBranch, CustomVisEncoder], 'vision_branch should be one of [ImgBranch]'
 
-        self.vision_model = ImgBranch(nntype = nntype)
+        self.vision_model = ImgBranch(nntype = nntype, backbone_v = backbone_v)
         if not visual_branch_only:
           self.text_model = TextBranch(nntype = nntype)
 
@@ -307,16 +321,16 @@ class LGCLIP(nn.Module):
 
     def encode_text(self, inputs_text:list):
         # inputs_text = inputs_text.cuda()
-        text_feature, text_embeds = self.text_model(inputs_text)    # text_feature: backbone generated; text_embedding: processed embeddings
+        text_embeds = self.text_model(inputs_text)    # text_feature: backbone generated; text_embedding: processed embeddings
         text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
-        torch.save(text_feature, f'text_feature_backbone_{self.nntype}.pth')
-        return (text_feature, text_embeds)
+        # torch.save(text_feature, f'text_feature_backbone_{self.nntype}.pth')
+        return text_embeds
 
     def encode_image(self, img_path=None):
         # image encoder
-        img_feature, vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
+        vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
         img_embeds = vision_output / vision_output.norm(dim=-1, keepdim=True)
-        return (img_feature, img_embeds)
+        return img_embeds
 
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
@@ -357,17 +371,15 @@ class LGCLIP(nn.Module):
             **kwargs,
             ):
             # input_text = input_text.cuda()/
-            text_embeds = "no applicable in visual branch case"
-            logits_per_image = "no applicable in visual branch case"
             loss = 0 # "no applicable in visual branch case"
-            img_embeds = self.encode_image(img_path)[1].cuda()
+            text_embeds = 0
+            img_embeds = self.encode_image(img_path).cuda()
             if not self.visual_branch_only:
-              text_embeds = self.encode_text(input_text)[1].cuda()
+              text_embeds = self.encode_text(input_text).cuda()
               logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
               if return_loss:
                   loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-                  # print("loss: ", loss)
               else:
                   loss = None
 
@@ -434,7 +446,7 @@ class PN_classifier(nn.Module):
             if type(img_label[0]) is str:
                 nested_list = [json.loads(s) for s in img_label]
             # print(nested_list)
-            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).cuda()
+            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
             logits = logits.view(-1, self.num_cat)
             
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
@@ -498,9 +510,8 @@ class Orthogonal_dif(nn.Module):
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
 
-
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False, ):
+    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
@@ -508,11 +519,11 @@ class MultiTaskModel(nn.Module):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
-        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only)
-        self.PN_Classifier = PN_classifier()
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v).to(device)
+        self.PN_Classifier = PN_classifier().to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
-          self.Orthogonal_dif = Orthogonal_dif()
+          self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
 
     def forward(self,         
