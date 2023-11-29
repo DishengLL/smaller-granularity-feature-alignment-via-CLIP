@@ -3,12 +3,9 @@ import os
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 from collections import defaultdict
 import math
-
 import numpy as np
-from scipy import constants
 import torch
 from torch import nn
-from torch import device, Tensor
 from tqdm.autonotebook import trange
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
@@ -17,6 +14,8 @@ import transformers
 import constants as _constants_
 
 WEIGHTS_NAME = "pytorch_model.bin"
+pwd = os.getcwd()
+
 
 class Trainer:
     '''trainer for single-gpu training.
@@ -67,7 +66,6 @@ class Trainer:
         dataloaders = [dataloader for dataloader,_,_ in train_objectives]
         if steps_per_epoch is None or steps_per_epoch == 0:
             steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
-        # print("steps_per_epoch:", steps_per_epoch)
         num_train_steps = int((steps_per_epoch) * epochs)
         warmup_steps = math.ceil(num_train_steps * warmup_ratio) #10% of train data for warm-up
 
@@ -106,7 +104,7 @@ class Trainer:
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
             # print("steps_per_epoch>>", steps_per_epoch)
-            for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar):
+            for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar): # the number of batches
 
                 # check if model parameters keep same
                 for train_idx in range(num_train_objectives): # calculate for each train objective 
@@ -151,7 +149,6 @@ class Trainer:
 
                     train_loss_dict[train_idx].append(loss_value.item())
                     optimizer.zero_grad()
-
                 if not skip_scheduler:
                     scheduler.step()
 
@@ -189,12 +186,15 @@ class Trainer:
                     save_dir =  os.path.join(output_path, f'{global_step}/')
                     self._save_ckpt(model, save_dir)
                     print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
+                    
+                if torch.cuda.is_available():
+                  torch.cuda.empty_cache()
 
         if save_best_model:
             import pandas as pd
             from distutils.dir_util import copy_tree
             res = pd.DataFrame(self.score_logs)
-            res.to_csv("D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\res.csv")
+            res.to_csv(pwd + r"\\output\\res.csv")
             res = res.set_index('global_step')
             # take the average column best
             best_iter = res.mean(1).idxmax()

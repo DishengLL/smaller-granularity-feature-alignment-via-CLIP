@@ -13,7 +13,7 @@ from train import Trainer
 from evaluate import  Evaluator
 from _email_ import send_email
 import traceback
-
+import argparse
 
 # def performance():
 #     import cProfile
@@ -46,10 +46,10 @@ import traceback
 #         # Additional cleanup or logging if needed
 #         sys.exit(0)
 
-
 if __name__ == "__main__":
-    print(f"run Fine-Grain Feature Alignment CLIP(FG_FA_C)")
+    # print(constants.BLUE + f"run Fine-Grain Feature Alignment CLIP(FG_FA_C)" + constants.RESET)
     email = send_email.send_email()
+    pwd = os.getcwd()
     # set random seed
     seed = 42
     random.seed(seed)
@@ -58,8 +58,9 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(seed)
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
+
     num_of_thread = 4
-    save_model_path = "./code/diagnosisP/x_ray_constrastive/output/checkopint/"
+    save_model_path = pwd + "/output/checkopint/"
 
     # set cuda devices
     os.environ['CUDA_VISIBLE_DEVICES']='0'
@@ -69,16 +70,16 @@ if __name__ == "__main__":
 
     # set training configurations
     train_config = {
-        'batch_size': 100,
-        'num_epochs': 20,
+        'batch_size': 50,
+        'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
         'eval_steps': 1000,
         'save_steps': 1000,
-        "save_path": "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\output\\checkpoint",
-        "model_zoo": ""
+        "save_path": save_model_path,
+        "model_zoo": ""   # the path of offline models
     }
 
     transform = transforms.Compose([
@@ -91,9 +92,19 @@ if __name__ == "__main__":
                     transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
                 )
     
-    backbone = "biomedclip"
+    parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
+    parser.add_argument('--backbone', type=str, help='the backbone module in the model')
+    parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
+    parser.add_argument('--vision_only', type=bool, default = False, help='does the model contain vision branch')
+    parser.add_argument('--backbone_v', type=str, help="vision encoder in image branch")
+    args = parser.parse_args()    
+    backbone = "biomedclip" if args.backbone == None else args.backbone
+    backbone_v = None if args.backbone_v == None else args.backbone_v
+    prompt = "basic" if args.prompt == None else args.prompt
+    visual_branch_only = args.vision_only
     
-    train_data = ImageTextContrastiveDataset(backbone_type=backbone)
+        
+    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,) 
     train_collate_fn = ImageTextContrastiveCollator()
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
@@ -103,7 +114,7 @@ if __name__ == "__main__":
         num_workers = num_of_thread,
         )
 
-    model = MultiTaskModel(nntype=backbone, visual_branch_only=False)#.to(device)
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v)
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model).to(device)
 
     # build evaluator
@@ -145,7 +156,7 @@ if __name__ == "__main__":
           use_amp=True,
           )
       print('done')
-      # email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
+      email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
     except Exception as e:
       Traceback = traceback.format_exc()
       T = f"{Traceback}"
