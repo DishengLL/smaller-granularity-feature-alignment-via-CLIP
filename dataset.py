@@ -1,38 +1,30 @@
-import re
-import random
 from collections import defaultdict
-import pdb
 from typing import Union, List, Optional
-
 import numpy as np
 import pandas as pd
-import torch
 from torch.utils.data import DataLoader, Dataset
-from torch import nn
 from torchvision import transforms
-
 from transformers import AutoTokenizer
 from transformers import CLIPFeatureExtractor, CLIPProcessor
 from transformers.utils import TensorType
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.image_utils import is_torch_tensor
-
 # from nltk.tokenize import RegexpTokenizer
-import nltk
 from PIL import Image
 from sklearn.preprocessing import OrdinalEncoder
 import os
 import json
-
 import constants
-# import clip
+from torch import tensor
 
-#构造数据集
-#输入1: image -- 不做预处理
-#输入2: text -- predefined prompt
-#输出: 多输出多label
 
+# dataset.py provide all the tensor model needs
+pwd = os.getcwd()
 class ImageTextContrastiveDataset(Dataset):
+    '''
+    using nntype to determine which backbone process text
+    custom vision encoder using clip_preprocess images
+    '''
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
     def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", backbone_type = None) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
@@ -42,29 +34,44 @@ class ImageTextContrastiveDataset(Dataset):
         # imgpath, subject_id, report, labels...(14 labels)
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        
-        # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
-        # filename = os.path.join(constants.DATA_DIR, source_data)
-        filename = "D:/exchange/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/P10_12_train_11_19.csv"
+        filename = pwd+"/data/mimic-cxr-train/P10_12_train_11_19.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if backbone_type not in ["clip", "biomedclip", "custom"]:
             raise ValueError("backbone type error")
-        if prompt_type == "basic":
+        if backbone_type == "clip" and prompt_type == "basic":
             self.prompts = constants.BASIC_PROMPT
-            print(constants.RED + f"currently using {backbone_type} to process {prompt_type} prompt" + constants.RESET)
-            self.prompts_tensor_path = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\data\prompts_tensors\basic\clip_basic.pt"
-        elif prompt_type == "biomedclip":
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\clip_basic.pt"
+        elif backbone_type == "biomedclip" and prompt_type == "basic":
             self.prompts = constants.BASIC_PROMPT
-            print(constants.RED + f"currently using {backbone_type} to process {prompt_type} prompt" + constants.RESET)
-            self.prompts_tensor_path = r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\data\prompts_tensors\basic\biomedclip_basic.pt"
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\biomedclip_basic.pt"
         else:
-            raise ValueError("Custom your prompts!! Attention!!!!!!")
+            print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
+            raise ValueError()
+        self.backbone = backbone_type
+        
+    def convert_labels_2_tensor(self, string_representation:str):
+      numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
+      tensor_representation = tensor(numbers_list)
+      return tensor_representation
 
     def __getitem__(self, index):
-        row = self.df.iloc[index]
-        img_path =  row.tensor_path
-        return img_path, self.prompts_tensor_path, row.train_label
+      '''
+      return 
+      image path: contain image tensor
+      prompt_path: contain prompt tensor
+      labels: tensor
+      '''
+      row = self.df.iloc[index]
+      if self.backbone == "biomedclip":
+        img_tensor_path =  row.BiomedClip_tensor_path
+      elif self.backbone == "clip":
+        img_tensor_path =  row.tensor_path
+      else: 
+        img_tensor_path =  row.tensor_path
+      return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_label)
 
     def __len__(self):
         return len(self.df)
@@ -78,12 +85,10 @@ class ImageTextContrastiveCollator:
     def __call__(self, batch):
         inputs = defaultdict(list)
         report_list = []
-        # print(">>>>>>>>",len(batch))
         for data in batch:
             inputs['img'].append(data[0])
-            report_list.append(data[1])
+            inputs["prompts"].append(data[1])
             inputs['img_labels'].append(data[2])
-        inputs['prompts'] =  report_list
         return inputs
 
 class ImageTextContrastiveDataset1(Dataset):
@@ -93,14 +98,10 @@ class ImageTextContrastiveDataset1(Dataset):
         filename :  the csv file contains all of training data
         '''
         super().__init__()
-        # imgpath, subject_id, report, labels...(14 labels)
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        
-        # filename = constants.DATA_DIR + source_data #'cxr_postprocess.csv'/
-        # filename = os.path.join(constants.DATA_DIR, source_data)
+        filename = pwd + "/data/mimic-cxr-train/P10_12_train_11_19.csv"
 
-        filename = "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/data/mimic-cxr-train/P10_12_test_11_24.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if prompt_type is None:
@@ -136,33 +137,55 @@ class ImageTextContrastiveCollator1:
 class TestingDataset(Dataset):
     def __init__(self,
         datalist=['testing'],  # specify the df which used in testing 
-        prompt_type = None
+        prompt_type="basic",
+        backbone_type = None,
+
         ) -> None:
         '''
         using data in the datalist to be testing data
         '''
         super().__init__()
-        if prompt_type is None:
-            self.prompts = constants.BASIC_PROMPT
-        else:
-            raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        # if prompt_type is None:
+        #     self.prompts = constants.BASIC_PROMPT
+        # else:
+        #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        self.backbone = backbone_type
 
         # imgpath, subject_id, report, labels...(14 labels)
         df_list = []
         for data in datalist:
             # filename = f'./local_data/{data}.csv'
             # filename = os.path.join(constants.DATA_DIR, "final.csv")
-            filename = "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/data/mimic-cxr-train/P10_12_test_11_24.csv"
+            filename = pwd + r"/data/mimic-cxr-train/P10_12_test_11_19.csv"
 
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
+        if backbone_type not in ["clip", "biomedclip", "custom"]:
+            raise ValueError("backbone type error")
+        if backbone_type == "clip" and prompt_type == "basic":
+            self.prompts = constants.BASIC_PROMPT
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\clip_basic.pt"
+        elif backbone_type == "biomedclip" and prompt_type == "basic":
+            self.prompts = constants.BASIC_PROMPT
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\biomedclip_basic.pt"
+        else:
+            print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
+            raise ValueError()
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
-        img_path =  row.ws_file_path   # the column name for work station context
-        return img_path, self.prompts, row.train_label
+        if self.backbone == "biomedclip":
+          img_tensor_path =  row.BiomedClip_tensor_path
+        elif self.backbone == "clip":
+          img_tensor_path =  row.tensor_path
+        else: 
+          img_tensor_path =  row.tensor_path
+        # img_path =  row.ws_file_path   # the column name for work station context
+        return img_tensor_path, self.prompts_tensor_path, row.train_label
 
     def __len__(self):
         return len(self.df)
