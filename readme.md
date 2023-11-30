@@ -64,7 +64,7 @@ currently using the Classification task as a utility task, aiming to build a gen
    
 
 
-### enviroment
+### environment
 ```
 conda create -n torch_gpu python=3.8
 ```
