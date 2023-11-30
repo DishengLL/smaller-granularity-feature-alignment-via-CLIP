@@ -61,3 +61,10 @@ currently using the Classification task as a utility task, aiming to build a gen
   - complete the training of 4 models
      - biomed, biomed_vision_only, CLIP, CLIP_version_only
      - get a phased conclusion
+   
+
+
+### enviroment
+```
+conda create -n torch_gpu python=3.8
+```
