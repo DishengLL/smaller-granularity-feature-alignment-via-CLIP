@@ -40,12 +40,10 @@ class ImageTextContrastiveDataset(Dataset):
         if backbone_type not in ["clip", "biomedclip", "custom"]:
             raise ValueError("backbone type error")
         if backbone_type == "clip" and prompt_type == "basic":
-            self.prompts = constants.BASIC_PROMPT
-            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\clip_basic.pt"
         elif backbone_type == "biomedclip" and prompt_type == "basic":
-            self.prompts = constants.BASIC_PROMPT
-            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\biomedclip_basic.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
@@ -153,28 +151,30 @@ class TestingDataset(Dataset):
 
         # imgpath, subject_id, report, labels...(14 labels)
         df_list = []
-        for data in datalist:
+        for _ in datalist:
             # filename = f'./local_data/{data}.csv'
             # filename = os.path.join(constants.DATA_DIR, "final.csv")
             filename = pwd + r"/data/mimic-cxr-train/P10_12_test_11_19.csv"
-
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
-        if backbone_type not in ["clip", "biomedclip", "custom"]:
+        if backbone_type not in ["clip", "biomedclip", "custom", "densenet"]:
             raise ValueError("backbone type error")
-        if backbone_type == "clip" and prompt_type == "basic":
-            self.prompts = constants.BASIC_PROMPT
-            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\clip_basic.pt"
-        elif backbone_type == "biomedclip" and prompt_type == "basic":
-            self.prompts = constants.BASIC_PROMPT
+        if backbone_type == "biomedclip" and prompt_type == "basic":
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\biomedclip_basic.pt"
+        elif prompt_type == "basic":  # CLIP and custom (densenet) using CLIP images preprocess
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"\data\prompts_tensors\basic\clip_basic.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
+    
+    def convert_labels_2_tensor(self, string_representation:str):
+      numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
+      tensor_representation = tensor(numbers_list)
+      return tensor_representation
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
@@ -185,7 +185,7 @@ class TestingDataset(Dataset):
         else: 
           img_tensor_path =  row.tensor_path
         # img_path =  row.ws_file_path   # the column name for work station context
-        return img_tensor_path, self.prompts_tensor_path, row.train_label
+        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_label)
 
     def __len__(self):
         return len(self.df)

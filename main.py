@@ -60,7 +60,7 @@ if __name__ == "__main__":
     os.environ['TOKENIZERS_PARALLELISM']='false'
 
     num_of_thread = 4
-    save_model_path = pwd + "/output/checkopint/"
+    save_model_path = pwd + "/output/checkpoint/"
 
     # set cuda devices
     os.environ['CUDA_VISIBLE_DEVICES']='0'
@@ -71,8 +71,7 @@ if __name__ == "__main__":
     # set training configurations
     train_config = {
 
-        'batch_size': 55,
-
+        'batch_size': 57,
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,

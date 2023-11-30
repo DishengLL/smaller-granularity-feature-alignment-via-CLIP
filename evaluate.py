@@ -38,15 +38,14 @@ class Evaluator:
         label_list = []
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
-                branch_out, classifier_out, _ = self.clf(**data)
+                _, classifier_out, _ = self.clf(**data, eval=True)
                 pred = classifier_out['logits']
             pred_list.append(pred)
-            tmp = [json.loads(i) for i in data["img_labels"]]
-            label_list.append(torch.tensor(tmp))
+            tmp = data["img_labels"]
+            label_list.append(tmp)
         pred_list = torch.cat(pred_list, 0)
-        labels = torch.cat(label_list, 0).cpu().detach().numpy()
-
-        pred = pred_list.cpu().detach().numpy()        
+        labels = torch.cat(label_list, 0)#.cpu().detach().numpy()
+        pred = pred_list#.cpu().detach().numpy()        
         outputs = {'pred':pred, 'labels':labels}
 
         if self.mode is None:
@@ -95,17 +94,20 @@ class Evaluator:
 
             pred_label = pred.argmax(-1)
             outputs["pred_label"] = pred_label
-            acc = (pred_label == labels).mean()
+            acc = (pred_label == labels).sum()/pred_label.shape[-1]
             outputs['acc'] = acc
-            res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
-            # print(res)
-            res = res['macro avg']
-            res.pop('support')
-            outputs.update(res)
+            
+            ### during training phase, this operation work in CPU which slow the calculation.
+            # res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
+            # # print(res)
+            # res = res['macro avg']
+            # res.pop('support')
+            # outputs.update(res)
 
             # cnf_matrix = confusion_matrix(labels, pred_label)
             # res = self.process_confusion_matrix(cnf_matrix)
             # outputs.update(res)
+            ###
         
         if self.mode == 'multilabel':    ## focus on multi-labels
             pred_score = torch.tensor(pred).sigmoid().numpy()

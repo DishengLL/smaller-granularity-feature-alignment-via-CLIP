@@ -368,21 +368,23 @@ class LGCLIP(nn.Module):
             input_text:list,
             img_path=None,
             return_loss=True,
+            eval = False,
             **kwargs,
             ):
             # input_text = input_text.cuda()/
             loss = 0 # "no applicable in visual branch case"
             text_embeds = 0
+            logits_per_image = 0
             img_embeds = self.encode_image(img_path).cuda()
+            if eval:
+              return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
+                'logits_per_image':logits_per_image, 'loss_value':loss}
             if not self.visual_branch_only:
               text_embeds = self.encode_text(input_text).cuda()
               logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
               if return_loss:
                   loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-              else:
-                  loss = None
-
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
 
@@ -529,12 +531,15 @@ class MultiTaskModel(nn.Module):
     def forward(self,         
                 prompts:list,
                 img = None,
-                img_labels = None):
+                img_labels = None,
+                eval = False):
         assert img is not None
         assert img_labels is not None
         
-        a = self.Contrastive_Model(prompts, img)
+        a = self.Contrastive_Model(prompts, img, eval=eval)
         b = self.PN_Classifier(a['img_embeds'], img_labels)
-        c = self.Orthogonal_dif(a['text_embeds']) if not self.visual_branch_only else {"loss_value": 0}
+        c = 0
+        if not eval:
+          c = self.Orthogonal_dif(a['text_embeds']) if ((not self.visual_branch_only)) else {"loss_value": 0}
         return a, b, c
     
