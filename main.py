@@ -70,7 +70,9 @@ if __name__ == "__main__":
 
     # set training configurations
     train_config = {
+
         'batch_size': 55,
+
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
