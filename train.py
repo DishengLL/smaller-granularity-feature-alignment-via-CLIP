@@ -238,7 +238,7 @@ class Trainer:
     def _save_ckpt(self, model, save_dir):
         if not os.path.exists(save_dir): os.makedirs(save_dir)
         state_dict = model.state_dict()
-        print(save_dir)
+        print("save_dir: ", save_dir)
         torch.save(state_dict, os.path.join(save_dir, WEIGHTS_NAME))
         torch.save(model, os.path.join(save_dir, "model.pt"))
 

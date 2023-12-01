@@ -29,24 +29,21 @@ class Evaluator:
         self.clf = FG_model_cls
         self.mode = mode
         self.eval_dataloader = eval_dataloader
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
     
     def evaluate(self, eval_dataloader=None):
         self.clf.eval()
         if self.eval_dataloader is None and eval_dataloader is not None: self.eval_dataloader = eval_dataloader
         else: eval_dataloader = self.eval_dataloader
-        pred_list = []
-        label_list = []
+        pred_tensor = torch.Tensor().to(self.device)
+        label_tensor = torch.Tensor().to(self.device)
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
                 _, classifier_out, _ = self.clf(**data, eval=True)
-                pred = classifier_out['logits']
-            pred_list.append(pred)
-            tmp = data["img_labels"]
-            label_list.append(tmp)
-        pred_list = torch.cat(pred_list, 0)
-        labels = torch.cat(label_list, 0)#.cpu().detach().numpy()
-        pred = pred_list#.cpu().detach().numpy()        
-        outputs = {'pred':pred, 'labels':labels}
+                pred = classifier_out['logits']            
+            pred_tensor = torch.cat((pred_tensor, pred), 0)
+            label_tensor = torch.cat((label_tensor, torch.stack(data["img_labels"],0).to(self.device)), 0)     
+        outputs = {'pred':pred_tensor, 'labels':label_tensor}
 
         if self.mode is None:
             if len(labels.shape) == 1:
@@ -85,16 +82,11 @@ class Evaluator:
             outputs.update(res)
 
         if self.mode == 'multiclass':
-            # if len(pred.shape) == 2:
-            #     pred = pred.view()
-            # print(labels)
-            # print(f"the shape of labels: {labels.shape}")
-            num_batch = pred.shape[0]
-            pred = pred.reshape(num_batch, 13, 3)
+            num_batch = pred_tensor.shape[0]
+            pred_tensor = pred_tensor.reshape(num_batch, 13, 3)
 
-            pred_label = pred.argmax(-1)
-            outputs["pred_label"] = pred_label
-            acc = (pred_label == labels).sum()/pred_label.shape[-1]
+            pred_tensor = pred_tensor.argmax(-1)
+            acc = (pred_tensor == label_tensor).sum()/pred_tensor.numel()
             outputs['acc'] = acc
             
             ### during training phase, this operation work in CPU which slow the calculation.
