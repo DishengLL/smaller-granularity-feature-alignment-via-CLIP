@@ -200,10 +200,9 @@ class TestingCollator:
         report_list = []
         for data in batch:
             inputs['img'].append(data[0])
-            report_list.append(data[1])
+            inputs['prompts'] .append(data[1])
             inputs['img_labels'].append(data[2])
         # inputs['img_labels'] = torch.tensor(np.stack(inputs['img_labels']).astype(float))
-        inputs['prompts'] =  report_list
         return inputs
 
 
