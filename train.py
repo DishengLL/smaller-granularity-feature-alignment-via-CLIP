@@ -194,7 +194,7 @@ class Trainer:
             import pandas as pd
             from distutils.dir_util import copy_tree
             res = pd.DataFrame(self.score_logs)
-            res.to_csv(pwd + r"\\output\\res.csv")
+            res.to_csv(output_path + r"/res.csv")
             res = res.set_index('global_step')
             # take the average column best
             best_iter = res.mean(1).idxmax()
