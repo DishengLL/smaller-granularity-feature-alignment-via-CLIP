@@ -9,7 +9,7 @@ import numpy as np
 def plot(get_text_embedding, prompt, title = None):
   text_features = get_text_embedding
   similarity_matrix = torch.mm(text_features, text_features.t())
-  text_features /= text_features.norm(dim=-1, keepdim=True)
+  text_features = text_features / text_features.norm(dim=-1, keepdim=True)
   # text_features = text_features.detach().numpy()
   similarity = (1 * text_features @ text_features.T)
   print(similarity.shape)

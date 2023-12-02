@@ -60,7 +60,7 @@ if __name__ == "__main__":
     os.environ['TOKENIZERS_PARALLELISM']='false'
 
     num_of_thread = 4
-    save_model_path = pwd + "/output/checkpoint/"
+    save_model_path = pwd + "/output/"
 
     # set cuda devices
     os.environ['CUDA_VISIBLE_DEVICES']='0'
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     # set training configurations
     train_config = {
 
-        'batch_size': 57,
+        'batch_size': 100,
         'num_epochs': 10,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         'eval_batch_size': 256,
         'eval_steps': 1000,
         'save_steps': 1000,
-        "save_path": save_model_path,
+        # "save_path": save_model_path,
         "model_zoo": ""   # the path of offline models
     }
 
@@ -98,12 +98,17 @@ if __name__ == "__main__":
     parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
     parser.add_argument('--vision_only', type=bool, default = False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', type=str, help="vision encoder in image branch")
+    parser.add_argument('--save_dir', type=str, help="the dir to save output")
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
     prompt = "basic" if args.prompt == None else args.prompt
     visual_branch_only = args.vision_only
-    
+    if  args.save_dir == None:
+      save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}/"
+    else:
+      save_model_path = save_model_path + "/" + args.save_dir
+    print(">>>>>>>>>>",save_model_path)
         
     train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,) 
     train_collate_fn = ImageTextContrastiveCollator()
@@ -137,30 +142,30 @@ if __name__ == "__main__":
     train_objectives = [
         (train_loader, loss_model, 1),
     ]
-    model_save_path = save_model_path
     trainer = Trainer()
 
     try:
+      # torch.autograd.set_detect_anomaly(True)
+      # with torch.autograd.profiler.profile():     
       trainer.train(
-          model,
-          train_objectives= train_objectives,
-          warmup_ratio=train_config['warmup'],
-          epochs=train_config['num_epochs'],
-          optimizer_params={'lr':train_config['lr']},
-          output_path=train_config["save_path"],
-          evaluation_steps=train_config['eval_steps'],
-          weight_decay=train_config['weight_decay'],
-          save_steps=train_config['save_steps'],
-          # steps_per_epoch = 1,
-          evaluator = _evaluator_,
-          eval_dataloader=eval_dataloader,
-          use_amp=True,
-          )
+        model,
+        train_objectives= train_objectives,
+        warmup_ratio=train_config['warmup'],
+        epochs=train_config['num_epochs'],
+        optimizer_params={'lr':train_config['lr']},
+        output_path = save_model_path,
+        evaluation_steps=train_config['eval_steps'],
+        weight_decay=train_config['weight_decay'],
+        save_steps=train_config['save_steps'],
+        # steps_per_epoch = 1,
+        evaluator = _evaluator_,
+        eval_dataloader=eval_dataloader,
+        use_amp=True,)
       print('done')
-      email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
+      # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
     except Exception as e:
       Traceback = traceback.format_exc()
       T = f"{Traceback}"
-      email.send_email("1554200903@qq.com", "train FG-CLIP_Vision_branch_only", T, "error")
+      # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", T, "error")
       print(T)
       

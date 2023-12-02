@@ -18,6 +18,7 @@ from torch import Tensor
 from transformers import AutoModel, AutoTokenizer
 import os
 from torchvision import models
+from collections import OrderedDict
 os.environ['CURL_CA_BUNDLE'] = ''
 
 import requests.packages.urllib3
@@ -130,7 +131,7 @@ class SplitVisEncoder(nn.Module):
         # 取每个时间步的输出
         # x = x.permute(1, 0, 2)
 
-        return x.cuda()
+        return x #.cuda()
 
 class TextBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False, nntype = None):
@@ -152,7 +153,7 @@ class TextBranch(nn.Module):
             raise NotImplemented("has not implemented the custom backbone in text branch")
         else:
             ## the default backbone is CLIP -- text encoder
-            self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B/32", device=self.device)
+            self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B-32.pt", device=self.device)
         # 冻结 CLIP 部分的参数
         if self.backbone != "custom":
           for param in self.clip_model.parameters():
@@ -175,7 +176,7 @@ class TextBranch(nn.Module):
         if self.backbone != "custom":
           with torch.no_grad():
               for text_input in text_inputs:
-                text_feature = torch.load(text_input).to(self.device)
+                text_feature = torch.load(text_input, map_location=self.device)
                 text_features.append(text_feature)                  
         text_features = torch.stack(text_features, dim = 0).squeeze().to(self.device)
         output = self.transformer(text_features)  ## ToDo 正则化处理
@@ -219,7 +220,25 @@ class ImgBranch(nn.Module):
 
     
     def densenet(self, n_dim = 512):
-        model = models.densenet121(pretrained=True)
+        model = models.densenet121(weights=None)
+        # 初始化一个空 dict
+        model_dict = model.state_dict()
+        pretrained_state = torch.load("/public_bme/data/lds/model_zoo/densenet/densenet121-a639ec97.pth")
+        # 修改 key
+        new_state_dict = OrderedDict()
+        for k, v in pretrained_state.items():
+            if 'denseblock' in k:
+                param = k.split(".")
+                k1 = ".".join(param[:-3] + [param[-3] + param[-2]] + [param[-1]])
+                new_state_dict[k1] = v
+            else:
+                new_state_dict[k] = v
+        
+        model.load_state_dict(new_state_dict)
+
+
+        # model.load_state_dict(checkpoint)
+
         num_ftrs = model.classifier.in_features
         model.classifier = nn.Sequential(nn.Linear(num_ftrs, n_dim))  
         return model
@@ -356,12 +375,12 @@ class LGCLIP(nn.Module):
             batch = similarities.shape[0]
         for i in range(batch):
             similarity = similarities[i]
-            caption_loss += self.contrastive_loss(similarity)
-            image_loss += self.contrastive_loss(similarity.T)
+            caption_loss = caption_loss + self.contrastive_loss(similarity)
+            image_loss = image_loss + self.contrastive_loss(similarity.T)
         return (caption_loss + image_loss) / 2.0
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        logits /=  logits.norm(dim=-1, keepdim=True)
+        logits =  logits / logits.norm(dim=-1, keepdim=True)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -375,12 +394,12 @@ class LGCLIP(nn.Module):
             loss = 0 # "no applicable in visual branch case"
             text_embeds = 0
             logits_per_image = 0
-            img_embeds = self.encode_image(img_path).cuda()
+            img_embeds = self.encode_image(img_path).to(device)#.cuda()
             if eval:
               return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
             if not self.visual_branch_only:
-              text_embeds = self.encode_text(input_text).cuda()
+              text_embeds = self.encode_text(input_text).to(device)#.cuda()
               logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
               if return_loss:
@@ -484,7 +503,7 @@ class Orthogonal_dif(nn.Module):
           if return_loss:
               logits_per_text =  self.compute_logits(text_embeds)
               loss = self.contrastive_loss(logits_per_text)
-              loss += self.contrastive_loss(logits_per_text.T)
+              loss = loss + self.contrastive_loss(logits_per_text.T)
           return {'text_embeds':text_embeds,
                   'loss_value':loss, 
                   'multi_logits_per_text':logits_per_text}
@@ -493,8 +512,8 @@ class Orthogonal_dif(nn.Module):
               for sample in text_embeds:
                 logits_each_sample = self.compute_logits(sample)
                 multi_logits_per_text.append(logits_each_sample)
-                loss += self.contrastive_loss(logits_each_sample)
-                loss += self.contrastive_loss(logits_each_sample.T)
+                loss = loss + self.contrastive_loss(logits_each_sample)
+                loss = loss + self.contrastive_loss(logits_each_sample.T)
               multi_logits = torch.stack(multi_logits_per_text, dim = 0)
           return {'text_embeds':text_embeds,
                   'loss_value':loss, 

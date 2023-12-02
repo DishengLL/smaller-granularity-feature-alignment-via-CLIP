@@ -17,7 +17,7 @@ class OrthogonalLoss(nn.Module):
         diagonal = torch.diagonal(cosine_similarity)
         
         # 排除对角线上的相似度，将其设置为0
-        cosine_similarity -= torch.diag(diagonal)
+        cosine_similarity = cosine_similarity - torch.diag(diagonal)
         cosine_similarity = torch.abs(cosine_similarity)
         
         # 计算损失，按公式 L_{MOL} = 1/2 * sum(CosineSimilarity)
