@@ -64,7 +64,7 @@ class ImageTextContrastiveDataset(Dataset):
       '''
       row = self.df.iloc[index]
       if self.backbone == "biomedclip":
-        img_tensor_path =  row.Biomed_img_tensor_path
+        img_tensor_path =  row.BiomedClip_img_tensor_path
       elif self.backbone == "clip":
         img_tensor_path =  row.Clip_img_tensor_path
       else: 
@@ -160,7 +160,7 @@ class TestingDataset(Dataset):
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
         if backbone_type not in ["clip", "biomedclip", "custom", "densenet"]:
-            raise ValueError("backbone type error")
+            raise ValueError("backbone type error: {backbone_type}")
         if backbone_type == "biomedclip" and prompt_type == "basic":
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biomedclip_basic.pt"

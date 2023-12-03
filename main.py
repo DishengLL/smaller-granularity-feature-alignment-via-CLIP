@@ -12,8 +12,9 @@ from models import MultiTaskModel
 from train import Trainer
 from evaluate import  Evaluator
 from _email_ import send_email
-import traceback
 import argparse
+import traceback
+import constants as _constants_
 
 # def performance():
 #     import cProfile
@@ -94,10 +95,10 @@ if __name__ == "__main__":
                 )
     
     parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
-    parser.add_argument('--backbone', type=str, help='the backbone module in the model')
+    parser.add_argument('--backbone', type=str,choices=["clip", "biomedclip"], help='the backbone module in the model')
     parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
     parser.add_argument('--vision_only', type=bool, default = False, help='does the model contain vision branch')
-    parser.add_argument('--backbone_v', type=str, help="vision encoder in image branch")
+    parser.add_argument('--backbone_v', choices=['densenet'], type=str, help="vision encoder in image branch")
     parser.add_argument('--save_dir', type=str, help="the dir to save output")
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
@@ -108,7 +109,7 @@ if __name__ == "__main__":
       save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}/"
     else:
       save_model_path = save_model_path + "/" + args.save_dir
-    print(">>>>>>>>>>",save_model_path)
+    print("saving path: ",save_model_path)
         
     train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,) 
     train_collate_fn = ImageTextContrastiveCollator()
@@ -161,7 +162,7 @@ if __name__ == "__main__":
         evaluator = _evaluator_,
         eval_dataloader=eval_dataloader,
         use_amp=True,)
-      print('done')
+      print(_constants_.GREEN + 'done' + _constants_.RESET)
       # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
     except Exception as e:
       Traceback = traceback.format_exc()

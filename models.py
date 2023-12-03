@@ -15,7 +15,6 @@ from zmq import device
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import constants as _constants_
 from torch import Tensor
-from transformers import AutoModel, AutoTokenizer
 import os
 from torchvision import models
 from collections import OrderedDict
@@ -148,7 +147,7 @@ class TextBranch(nn.Module):
         if self.backbone in ["biomed", "BiomedCLIP", "biomedclip"]:
             import open_clip
             self.clip_model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
-            self.tokenizer = open_clip.get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+            # self.tokenizer = open_clip.get_tokenizer('/public_bme/data/lds/model_zoo/biomed/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
         elif self.backbone == "custom":
             raise NotImplemented("has not implemented the custom backbone in text branch")
         else:
@@ -250,8 +249,8 @@ class ImgBranch(nn.Module):
         '''
         images = []
         for image in image_path:
-            if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
-                image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
+            # if "/Users/liu/Desktop/school_academy/ShanghaiTech" in image:
+            #     image = image.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
             images.append(torch.load(image))
 
         image_input = torch.tensor(np.stack(images)).to(self.device)
