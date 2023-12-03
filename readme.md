@@ -9,7 +9,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
 ### Model  
-<img src=".\imgs\structure.png" style="zoom:50%;"></img>
+<img src=".\imgs\NN_struct.12.1.png" style="zoom:50%;"></img>
 
 ### ToDo
 - [x] GPU(CUDA) version code 
