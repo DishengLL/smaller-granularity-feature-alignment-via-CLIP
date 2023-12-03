@@ -179,7 +179,7 @@ class Trainer:
                     self.score_logs['global_step'].append(global_step)
                     for key in scores.keys():
                         if key in ['acc','auc', 'auc/mse']:
-                            self.score_logs[key].append(scores[key])
+                            self.score_logs[key].append(scores[key].to("cpu").numpy())
 
                 if self.evaluator is None and global_step % save_steps == 0:
                     state_dict = model.state_dict()
@@ -197,15 +197,16 @@ class Trainer:
             res.to_csv(output_path + r"/res.csv")
             res = res.set_index('global_step')
             # take the average column best
-            best_iter = res.mean(1).idxmax()
-            best_save_path = os.path.join(output_path, './best')
-            if not os.path.exists(best_save_path): os.makedirs(best_save_path)
-            best_origin_path = os.path.join(output_path, f'./{best_iter}')
-            print(f'save best checkpoint at iter {best_iter} to', best_save_path)
-            try:
-              copy_tree(best_origin_path, best_save_path)
-            except:
-                print(_constants_.RED + "copy_tree error in main.py" + _constants_.RESET)
+            # print(res.mean(1))
+            # best_iter = res.mean(1).idxmax()
+            # best_save_path = os.path.join(output_path, './best')
+            # if not os.path.exists(best_save_path): os.makedirs(best_save_path)
+            # best_origin_path = os.path.join(output_path, f'./{best_iter}')
+            # print(f'save best checkpoint at iter {best_iter} to', best_save_path)
+            # try:
+            #   copy_tree(best_origin_path, best_save_path)
+            # except:
+            #     print(_constants_.RED + "copy_tree error in main.py" + _constants_.RESET)
                 
 
         if eval_dataloader is None and output_path is not None:   #No evaluator, but output path: save final model version
