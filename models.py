@@ -146,7 +146,7 @@ class TextBranch(nn.Module):
        
         if self.backbone in ["biomed", "BiomedCLIP", "biomedclip"]:
             import open_clip
-            self.clip_model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+            self.clip_model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
             # self.tokenizer = open_clip.get_tokenizer('/public_bme/data/lds/model_zoo/biomed/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
         elif self.backbone == "custom":
             raise NotImplemented("has not implemented the custom backbone in text branch")
@@ -207,7 +207,7 @@ class ImgBranch(nn.Module):
         
         if self.backbone in ["biomedCLIP", "biomed", "biomedclip",]:
             import open_clip
-            self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+            self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
         elif self.backbone == "custom":
             raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
         else:
