@@ -241,7 +241,7 @@ class Trainer:
         state_dict = model.state_dict()
         print("save_dir: ", save_dir)
         torch.save(state_dict, os.path.join(save_dir, WEIGHTS_NAME))
-        torch.save(model, os.path.join(save_dir, "model.pt"))
+        # torch.save(model, os.path.join(save_dir, "model.pt"))
 
     def _export_onnx_(self,model, onnx_file_path):
         # onnx_file_path = "your_model.onnx"  # 保存的 ONNX 文件名
