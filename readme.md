@@ -1,6 +1,7 @@
 # Fine-grained Feature Alignment via Contrastive Learning
-
+<div style="text-align: center;">
 <img src=".\imgs\chest.png" style="width:50%; height:auto;"></img>
+</div>
 ### General 
 **a feature representation task.**
 
