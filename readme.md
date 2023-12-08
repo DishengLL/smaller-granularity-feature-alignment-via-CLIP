@@ -1,8 +1,9 @@
 # Fine-grained Feature Alignment via Contrastive Learning
 
-<div style="text-align: center;">
-  <img src=".\imgs\chest.png" style="width: 50%; height: auto; margin: 0 auto;">
+<div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+  <img src=".\imgs\chest.png" style="width: 50%; height: auto;">
 </div>
+
 
 
 ### General 
