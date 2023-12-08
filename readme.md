@@ -1,6 +1,6 @@
 # Fine-grained Feature Alignment via Contrastive Learning
 
-<img src=".\imgs\chest.png" style="zoom:30%;"></img>
+<img src=".\imgs\chest.png" style="width:50%; height:auto;"></img>
 ### General 
 **a feature representation task.**
 
