@@ -16,24 +16,13 @@ currently using the Classification task as a utility task, aiming to build a gen
 <img src=".\imgs\NN_struct.12.3.png" style="zoom:50%;"></img>
 
 ### ToDo
-- [x] GPU(CUDA) version code 
-- [ ] polish code -- improve the efficiency of model inference
-  - [ ] image opening and preprocessing take tremendous of time  --- preprocess image, and store then into numpy or tensor
 
 - [ ] evaluation  
   overall -- MSE     
   each disease -- confusion matrix
-- [ ] get and store prompt embeddings for reusing 
-
-
-- [x] biomedCLIP -- this branch works on biomedCLIP pre-trained model (baseline version using original CLIP)
-
-
 - [ ] modality gap shift exploration
-  
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
-
-- [ ] think: contrastive learn in image branch feature extractor part
+- [ ] Base line model --- CNN ---Densenet121 $_{[3]}$
 
 ### Ablation
 - [ ] visual branch only
@@ -49,7 +38,14 @@ currently using the Classification task as a utility task, aiming to build a gen
 ##### model and methodology
 [CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf) -- Average AUC = 84.9   
 
-[Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)
+### Reference
+
+[1] [Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)
+
+[2] [Xplainer: From X-Ray Observations to
+Explainable Zero-Shot Diagnosis](https://arxiv.org/pdf/2303.13391.pdf)
+
+[3] [CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf)
 
 
 ### progress
