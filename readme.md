@@ -17,7 +17,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 
 ### ToDo
 - [ ] data exploration
-  - [ ] labels's distribution(KL) 
+  - [ ] labels's distribution(KL divergence) 
 - [ ] training data labels process -- no found
 - [ ] cross entropy loss update -- no found
 - [ ] corelation's corelation -- high order similarity --- GPT-4 generated hierarchical structure
