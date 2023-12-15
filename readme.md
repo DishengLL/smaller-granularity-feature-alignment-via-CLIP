@@ -16,7 +16,10 @@ currently using the Classification task as a utility task, aiming to build a gen
 <img src=".\imgs\NN_struct.12.3.png" style="zoom:50%;"></img>
 
 ### ToDo
-
+- [ ] data exploration
+- [ ] training data labels process -- no found
+- [ ] cross entropy loss update -- no found
+- [ ] corelation's corelation -- high order similarity --- GPT-4 generated hierarchical structure
 - [ ] evaluation  
   overall -- MSE     
   each disease -- confusion matrix
@@ -39,7 +42,6 @@ currently using the Classification task as a utility task, aiming to build a gen
 [CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf) -- Average AUC = 84.9   
 
 ### Reference
-
 [1] [Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)
 
 [2] [Xplainer: From X-Ray Observations to
