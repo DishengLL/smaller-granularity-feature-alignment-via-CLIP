@@ -31,7 +31,8 @@ CHEXPERT_LABELS = [
  'Pleural Effusion',
  'Pleural Other',
  'Pneumonia',
- 'Pneumothorax'
+ 'Pneumothorax',
+ "Support Devices"
 ]
 
 BASIC_PROMPT = [
