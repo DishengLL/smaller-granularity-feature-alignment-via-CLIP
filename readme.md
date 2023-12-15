@@ -65,6 +65,29 @@ Explainable Zero-Shot Diagnosis](https://arxiv.org/pdf/2303.13391.pdf)
 
 Memo:
 ```
+Structured labels
+The mimic-cxr-2.0.0-chexpert.csv.gz and mimic-cxr-2.0.0-negbio.csv.gz files are compressed comma delimited value files. A total of 227,827 studies are assigned a label by CheXpert and NegBio. Eight studies could not be labeled due to a lack of a findings or impression section. The first three columns are:
+
+subject_id - An integer unique for an individual patient
+study_id - An integer unique for an individual study (i.e. an individual radiology report with one or more images associated with it)
+The remaining columns are labels as presented in the CheXpert article [8]:
+
+Atelectasis
+Cardiomegaly
+Consolidation
+Edema
+Enlarged Cardiomediastinum
+Fracture
+Lung Lesion
+Lung Opacity
+Pleural Effusion
+Pneumonia
+Pneumothorax
+Pleural Other
+Support Devices
+No Finding
+Note that "No Finding" is the absence of any of the 13 descriptive labels and a check that the text does not mention a specified set of other common findings beyond those covered by the descriptive labels. Thus, it is possible for a study in the CheXpert set to have no labels assigned. For example, study 57,321,224 has the following findings/impression text: "Hyperinflation.  No evidence of acute disease.".   this would be assigned a label of "No Finding", but the use of "hyperinflation" suppresses the labeling of no finding. For details see the CheXpert article [8], and the list of phrases are publicly available in their code repository (phrases/mention/no_finding.txt). There are 2,414 studies which do not have a label assigned by CheXpert. Conversely, all studies present in the provided files have been assigned a label by NegBio.
+
 Each label column contains one of four values: 1.0, -1.0, 0.0, or missing. These labels have the following interpretation:
 
 1.0 - The label was positively mentioned in the associated study, and is present in one or more of the corresponding images
@@ -75,9 +98,6 @@ e.g. "No pneumothorax."
 Explicit uncertainty: "The cardiac size cannot be evaluated."
 Ambiguous language: "The cardiac contours are stable."
 Missing (empty element) - No mention of the label was made in the report
-
-
-for `no finding`, this column gets 3 kind of values(1, missing)
 
 for `Support Devices`, this column get 4 kind of values(1, 0, -1, missing), most of them are missing and 1, missing>1>0>>-1
 ```

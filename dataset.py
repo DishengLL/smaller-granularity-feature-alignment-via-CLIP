@@ -254,6 +254,7 @@ class Process_raw_csv():
                 return label_dic
             if value == constants.POSITIVE:
                 label_dic[column_name] = constants.POSITIVE_CLASS
+                label_dic["No Finding"] = constants.NEGATIVE_CLASS
             elif value == constants.NEGATIVE:
                 label_dic[column_name] = constants.NEGATIVE_CLASS
         return label_dic
@@ -282,14 +283,14 @@ class Process_raw_csv():
         img_path = constants.DATA_DIR + sub_path
         _df_["img_path"] = img_path
 
-    def raw_data_process(self, save_path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv"):
+    def raw_data_process(self, save_path=pwd+"\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv"):
         '''
         the main method in this class
         process raw data sheet.
         the generated one has col [subject_id, study_id, label, img_path, train_label]
         the 
         '''
-        df = pd.read_csv('D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
+        df = pd.read_csv(pwd+'\data\\mimic-cxr-2.0.0-chexpert.csv', index_col = 0)
         df = self.image_label_preprocess(df)
         df.reset_index(inplace=True)
         self.path_concat(df)
@@ -435,19 +436,19 @@ class make_data_set():
 
 # if __name__ == "__main__":
     
-    # a = Process_raw_csv()
-    # a.raw_data_process()
-    # b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv", condition=condition, col_name="dir")
-    # b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\p10_12.csv")
+#     a = Process_raw_csv()
+#     a.raw_data_process()
+#     # b = get_sub_set_data(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\cxr_postprocess_2_Nov.csv", condition=condition, col_name="dir")
+#     # b.get_sub_set(save=True, dist="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\p10_12.csv")
 
-    # print("----making train/test dataset-----\n")
-    # # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
-    # c = make_data_set()
-    # x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv")
-    # # print(x)
-    # print(x[x["split"] == "test"].sum())
-    # print("--------get training and testing dataset csv file---------\n")
-    # c = make_data_set()
-    # c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv", target_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv", target_val = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_validate.csv")
+#     print("----making train/test dataset-----\n")
+#     # source2="/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/mimic-cxr-train/cxr_postprocess.csv"
+#     c = make_data_set()
+#     x = c.combine(save=True, path="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv")
+#     # print(x)
+#     print(x[x["split"] == "test"].sum())
+#     print("--------get training and testing dataset csv file---------\n")
+#     c = make_data_set()
+#     c.save_training_testing(source="D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_final.csv", target_1 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_train.csv", target_2 = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_test.csv", target_val = "D:\\exchange\\ShanghaiTech\\learning\\code\\diagnosisP\\x_ray_constrastive\\data\\mimic-cxr-train\\P10_12_validate.csv")
 
 
