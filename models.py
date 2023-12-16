@@ -188,8 +188,9 @@ class ImgBranch(nn.Module):
         # 初始化 CLIP 预训练模型和处理器
         self.projection_head = nn.Linear(512, 512, bias=False)
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        nlabel = len(_constants_.CHEXPERT_LABELS)
         
-        self.VisEncoder = SplitVisEncoder(13, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
+        self.VisEncoder = SplitVisEncoder(nlabel, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
         
         self.device = device
         if backbone_v == "densenet":
@@ -408,7 +409,7 @@ class LGCLIP(nn.Module):
 
 class PN_classifier(nn.Module):
     def __init__(self,
-        num_class = 13,
+        num_class = len(_constants_.CHEXPERT_LABELS),
         input_dim=512,
         mode='multiclass',
         num_cat = 3,

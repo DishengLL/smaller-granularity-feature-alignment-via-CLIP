@@ -34,7 +34,7 @@ class ImageTextContrastiveDataset(Dataset):
         # imgpath, subject_id, report, labels...(14 labels)
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd+"/data/mimic-cxr-train/P10_12_train_12_1.csv"
+        filename = pwd+"/data/mimic-cxr-train/P10_12_train_12_16_labels14.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if backbone_type not in ["clip", "biomedclip", "custom"]:
@@ -69,7 +69,7 @@ class ImageTextContrastiveDataset(Dataset):
         img_tensor_path =  row.Clip_img_tensor_path
       else: 
         img_tensor_path =  row.Clip_img_tensor_path
-      return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_label)
+      return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_14_labels)
 
     def __len__(self):
         return len(self.df)
@@ -98,7 +98,7 @@ class ImageTextContrastiveDataset1(Dataset):
         super().__init__()
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd + "/data/mimic-cxr-train/P10_12_train_11_19.csv"
+        filename = pwd + "/data/mimic-cxr-train/P10_12_test_12_16_labels14.csv"
 
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
@@ -110,7 +110,7 @@ class ImageTextContrastiveDataset1(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         img_path =  row.ws_file_path
-        return img_path, self.prompts, row.train_label
+        return img_path, self.prompts, row.train_14_labels
 
     def __len__(self):
         return len(self.df)
@@ -154,7 +154,7 @@ class TestingDataset(Dataset):
         for _ in datalist:
             # filename = f'./local_data/{data}.csv'
             # filename = os.path.join(constants.DATA_DIR, "final.csv")
-            filename = pwd + r"/data/mimic-cxr-train/P10_12_test_12_1.csv"
+            filename = pwd + r"/data/mimic-cxr-train/P10_12_test_12_16_labels14.csv"
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
@@ -185,7 +185,7 @@ class TestingDataset(Dataset):
         else: 
           img_tensor_path =  row.Clip_img_tensor_path
         # img_path =  row.ws_file_path   # the column name for work station context
-        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_label)
+        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.test_14_labels)
 
     def __len__(self):
         return len(self.df)
@@ -243,20 +243,27 @@ class Process_raw_csv():
 
     def generate_label(self, row):
         label_dic = {}
+        study_id = -1
         for disease in constants.CHEXPERT_LABELS:
             label_dic[disease] = constants.UNCERTAIN_CLASS
         for column_name, value in row.items():
-            if column_name == "study_id": continue
-            if column_name == "No Finding" and value == constants.POSITIVE:
-                for i in label_dic:
-                    label_dic[i] = constants.NEGATIVE_CLASS
-                label_dic[column_name] = constants.POSITIVE_CLASS
-                return label_dic
+            if column_name == "study_id": 
+              study_id = int(value)
+              continue
+            # if column_name == "No Finding" and value == constants.POSITIVE:
+            #     label_dic[column_name] = constants.POSITIVE_CLASS
+            #     label_dic['study_id'] = study_id
+            #     # return label_dic
             if value == constants.POSITIVE:
                 label_dic[column_name] = constants.POSITIVE_CLASS
-                label_dic["No Finding"] = constants.NEGATIVE_CLASS
+                if column_name != "No Finding":
+                  label_dic["No Finding"] = constants.NEGATIVE_CLASS
             elif value == constants.NEGATIVE:
                 label_dic[column_name] = constants.NEGATIVE_CLASS
+                if column_name != "No Finding":
+                  label_dic["No Finding"] = constants.NEGATIVE_CLASS
+            
+        label_dic['study_id'] = study_id
         return label_dic
 
     def image_label_preprocess(self, df):

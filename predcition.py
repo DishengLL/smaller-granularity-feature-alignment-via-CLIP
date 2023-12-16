@@ -20,8 +20,8 @@ def plot(get_text_embedding, prompt, title = None):
   plt.figure(figsize=(8, 5))
   plt.imshow(similarity)
   plt.colorbar()
-  plt.yticks(range(13), prompt, fontsize=7)
-  plt.xticks(range(13), prompt, fontsize=7, rotation=40)
+  plt.yticks(range(len(_constants_.CHEXPERT_LABELS)), prompt, fontsize=7)
+  plt.xticks(range(len(_constants_.CHEXPERT_LABELS)), prompt, fontsize=7, rotation=40)
   # for i, image in enumerate(text):
   #     plt.imshow(image, extent=(i - 0.5, i + 0.5, -1.6, -0.6), origin="lower")
   for x in range(similarity.shape[1]):
