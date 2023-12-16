@@ -68,6 +68,10 @@ Explainable Zero-Shot Diagnosis](https://arxiv.org/pdf/2303.13391.pdf)
 
 Memo:
 ```
+CheXpert is an open-source rule based tool that is built on NegBio. It proceeds in three stages: (1) extraction, (2) classification, and (3) aggregation. In the extraction stage, all mentions of a label are identified, including alternate spellings, synonyms, and abbreviations (e.g. for pneumothorax, the words "pneumothoraces" and "ptx" would also be captured) [8]. Mentions are then classified as positive, uncertain, or negative using local context. Finally, aggregation is necessary as there may be multiple mentions of a label. Priority is given to positive mentions, followed by uncertain mentions, and lastly negative mentions. If a positive mention exists, then the label is positive. Conversely, if a negative and uncertain mention exist, the label is uncertain. These stages are used to define all labels except "No Finding", which is only positive if all other labels except "Support Devices" are negative or unmentioned. More detail is provided in the CheXpert article [8]. The output of CheXpert was saved to a CSV file with one row per study and one column per finding.
+```
+
+```
 Structured labels
 The mimic-cxr-2.0.0-chexpert.csv.gz and mimic-cxr-2.0.0-negbio.csv.gz files are compressed comma delimited value files. A total of 227,827 studies are assigned a label by CheXpert and NegBio. Eight studies could not be labeled due to a lack of a findings or impression section. The first three columns are:
 
