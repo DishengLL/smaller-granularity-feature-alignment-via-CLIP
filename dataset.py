@@ -243,20 +243,27 @@ class Process_raw_csv():
 
     def generate_label(self, row):
         label_dic = {}
+        study_id = -1
         for disease in constants.CHEXPERT_LABELS:
             label_dic[disease] = constants.UNCERTAIN_CLASS
         for column_name, value in row.items():
-            if column_name == "study_id": continue
-            if column_name == "No Finding" and value == constants.POSITIVE:
-                for i in label_dic:
-                    label_dic[i] = constants.NEGATIVE_CLASS
-                label_dic[column_name] = constants.POSITIVE_CLASS
-                return label_dic
+            if column_name == "study_id": 
+              study_id = int(value)
+              continue
+            # if column_name == "No Finding" and value == constants.POSITIVE:
+            #     label_dic[column_name] = constants.POSITIVE_CLASS
+            #     label_dic['study_id'] = study_id
+            #     # return label_dic
             if value == constants.POSITIVE:
                 label_dic[column_name] = constants.POSITIVE_CLASS
-                label_dic["No Finding"] = constants.NEGATIVE_CLASS
+                if column_name != "No Finding":
+                  label_dic["No Finding"] = constants.NEGATIVE_CLASS
             elif value == constants.NEGATIVE:
                 label_dic[column_name] = constants.NEGATIVE_CLASS
+                if column_name != "No Finding":
+                  label_dic["No Finding"] = constants.NEGATIVE_CLASS
+            
+        label_dic['study_id'] = study_id
         return label_dic
 
     def image_label_preprocess(self, df):
