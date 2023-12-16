@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Awesome-pyecharts</title>
+  <script type="text/javascript" src="https://assets.pyecharts.org/assets/v5/echarts.min.js"></script>
+
+</head>
+
+<body>
+  <div id="a8eff009dc1043b482844aa640a1a8a8" class="chart-container" style="width: 3000px; height:900px; "></div>
+  <script>
+    var chart_a8eff009dc1043b482844aa640a1a8a8 = echarts.init(
+      document.getElementById('a8eff009dc1043b482844aa640a1a8a8'), 'white', { renderer: 'canvas' });
+    var option_a8eff009dc1043b482844aa640a1a8a8 = {
+      "animation": true,
+      "animationThreshold": 2000,
+      "animationDuration": 1000,
+      "animationEasing": "cubicOut",
+      "animationDelay": 0,
+      "animationDurationUpdate": 300,
+      "animationEasingUpdate": "cubicOut",
+      "animationDelayUpdate": 0,
+      "aria": {
+        "enabled": false
+      },
+      "color": [
+        "#5470c6",
+        "#91cc75",
+        "#fac858",
+        "#ee6666",
+        "#73c0de",
+        "#3ba272",
+        "#fc8452",
+        "#9a60b4",
+        "#ea7ccc"
+      ],
+      "series": [
+        {
+          "type": "graph",
+          "layout": "force",
+          "symbolSize": 10,
+          "circular": {
+            "rotateLabel": false
+          },
+          "force": {
+            "repulsion": 10000,
+            "gravity": 0.2,
+            "edgeLength": 30,
+            "friction": 0.6,
+            "layoutAnimation": true
+          },
+          "label": {
+            "show": true,
+            "margin": 8
+          },
+          "lineStyle": {
+            "show": true,
+            "width": 1,
+            "opacity": 1,
+            "curveness": 0,
+            "type": "solid"
+          },
+          "roam": true,
+          "draggable": false,
+          "focusNodeAdjacency": true,
+          "data": [
+            {
+              "name": "Chest X-ray Findings",
+              "symbolSize": 50
+            },
+            {
+              "name": "No Finding",
+              "symbolSize": 50
+            },
+            {
+              "name": "Heart-Related Issues",
+              "symbolSize": 50
+            },
+            {
+              "name": "Enlarged Cardiomediastinum",
+              "symbolSize": 50
+            },
+            {
+              "name": "Cardiomegaly",
+              "symbolSize": 50
+            },
+            {
+              "name": "Lung Issues",
+              "symbolSize": 50
+            },
+            {
+              "name": "Lung Lesion",
+              "symbolSize": 50
+            },
+            {
+              "name": "Lung Opacity",
+              "symbolSize": 50
+            },
+            {
+              "name": "Edema",
+              "symbolSize": 50
+            },
+            {
+              "name": "Consolidation",
+              "symbolSize": 50
+            },
+            {
+              "name": "Pneumonia",
+              "symbolSize": 50
+            },
+            {
+              "name": "Atelectasis",
+              "symbolSize": 50
+            },
+            {
+              "name": "Pneumothorax",
+              "symbolSize": 50
+            },
+            {
+              "name": "Pleural Issues",
+              "symbolSize": 50
+            },
+            {
+              "name": "Pleural Effusion",
+              "symbolSize": 50
+            },
+            {
+              "name": "Pleural Other",
+              "symbolSize": 50
+            },
+            {
+              "name": "Other Issues",
+              "symbolSize": 50
+            },
+            {
+              "name": "Fracture",
+              "symbolSize": 50
+            },
+            {
+              "name": "Support Devices",
+              "symbolSize": 50
+            }
+          ],
+          "edgeLabel": {
+            "show": false,
+            "margin": 8
+          },
+          "edgeSymbol": [
+            "circle",
+            "arrow"
+          ],
+          "edgeSymbolSize": [
+            4,
+            10
+          ],
+          "links": [
+            {
+              "source": "Chest X-ray Findings",
+              "target": "No Finding"
+            },
+            {
+              "source": "Chest X-ray Findings",
+              "target": "Heart-Related Issues"
+            },
+            {
+              "source": "Chest X-ray Findings",
+              "target": "Lung Issues"
+            },
+            {
+              "source": "Chest X-ray Findings",
+              "target": "Pleural Issues"
+            },
+            {
+              "source": "Chest X-ray Findings",
+              "target": "Other Issues"
+            },
+            {
+              "source": "Heart-Related Issues",
+              "target": "Enlarged Cardiomediastinum"
+            },
+            {
+              "source": "Heart-Related Issues",
+              "target": "Cardiomegaly"
+            },
+            {
+              "source": "Lung Issues",
+              "target": "Lung Lesion"
+            },
+            {
+              "source": "Lung Issues",
+              "target": "Lung Opacity"
+            },
+            {
+              "source": "Lung Opacity",
+              "target": "Edema"
+            },
+            {
+              "source": "Lung Opacity",
+              "target": "Consolidation"
+            },
+            {
+              "source": "Lung Opacity",
+              "target": "Pneumonia"
+            },
+            {
+              "source": "Lung Issues",
+              "target": "Atelectasis"
+            },
+            {
+              "source": "Lung Issues",
+              "target": "Pneumothorax"
+            },
+            {
+              "source": "Pleural Issues",
+              "target": "Pleural Effusion"
+            },
+            {
+              "source": "Pleural Issues",
+              "target": "Pleural Other"
+            },
+            {
+              "source": "Other Issues",
+              "target": "Fracture"
+            },
+            {
+              "source": "Other Issues",
+              "target": "Support Devices"
+            }
+          ]
+        }
+      ],
+      "legend": [
+        {
+          "data": [],
+          "selected": {},
+          "show": true,
+          "padding": 5,
+          "itemGap": 10,
+          "itemWidth": 25,
+          "itemHeight": 14,
+          "backgroundColor": "transparent",
+          "borderColor": "#ccc",
+          "borderWidth": 1,
+          "borderRadius": 0,
+          "pageButtonItemGap": 5,
+          "pageButtonPosition": "end",
+          "pageFormatter": "{current}/{total}",
+          "pageIconColor": "#2f4554",
+          "pageIconInactiveColor": "#aaa",
+          "pageIconSize": 15,
+          "animationDurationUpdate": 800,
+          "selector": false,
+          "selectorPosition": "auto",
+          "selectorItemGap": 7,
+          "selectorButtonGap": 10
+        }
+      ],
+      "tooltip": {
+        "show": true,
+        "trigger": "item",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+          "type": "line"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "textStyle": {
+          "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+      },
+      "title": [
+        {
+          "show": true,
+          "text": "Directed Graph",
+          "target": "blank",
+          "subtarget": "blank",
+          "padding": 5,
+          "itemGap": 10,
+          "textAlign": "auto",
+          "textVerticalAlign": "auto",
+          "triggerEvent": false
+        }
+      ]
+    };
+    chart_a8eff009dc1043b482844aa640a1a8a8.setOption(option_a8eff009dc1043b482844aa640a1a8a8);
+  </script>
+</body>
+
+</html>

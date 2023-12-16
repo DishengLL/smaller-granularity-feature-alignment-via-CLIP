@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, classification_report, mean_square
 from tqdm import tqdm
 import json
 
-import constants
+import constants 
 
 class Evaluator:
     '''do evaluation on chexpert5x200 zero-shot classification
@@ -83,7 +83,7 @@ class Evaluator:
 
         if self.mode == 'multiclass':
             num_batch = pred_tensor.shape[0]
-            pred_tensor = pred_tensor.reshape(num_batch, 13, 3)
+            pred_tensor = pred_tensor.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
 
             pred_tensor = pred_tensor.argmax(-1)
             acc = (pred_tensor == label_tensor).sum()/pred_tensor.numel()
@@ -186,7 +186,7 @@ class Evaluator:
                 # print(labels)
                 # print(f"the shape of labels: {labels.shape}")
                 num_batch = pred.shape[0]
-                pred = pred.reshape(num_batch, 13, 3)
+                pred = pred.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
                 overall_logits_list.append(pred)
                 pred_label = pred.argmax(-1)
                 overall_prediction_list.append(pred_label)
