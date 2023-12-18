@@ -78,7 +78,7 @@ if __name__ == "__main__":
         'lr': 2e-5,
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
-        'eval_steps': 1000,
+        'eval_steps': 100,
         'save_steps': 1000,
         # "save_path": save_model_path,
         "model_zoo": ""   # the path of offline models
