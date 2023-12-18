@@ -172,8 +172,8 @@ class Trainer:
                     for key in scores.keys():
                         if key in ['acc','auc', 'auc/mse']:
                             print('{}: {:.4f}'.format(key, scores[key]))
-                    save_dir = os.path.join(output_path, f'{global_step}/')
-                    self._save_ckpt(model, save_dir)
+                    # save_dir = os.path.join(output_path, f'{global_step}/')
+                    # self._save_ckpt(model, save_dir)
 
                     # score logs save the list of scores
                     self.score_logs['global_step'].append(global_step)
