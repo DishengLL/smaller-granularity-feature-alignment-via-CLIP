@@ -83,20 +83,23 @@ class Evaluator:
 
         if self.mode == 'multiclass':
             num_batch = pred_tensor.shape[0]
-            pred_tensor = pred_tensor.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
 
+            auc_dict = self.get_AUC(pred_tensor.reshape(num_batch,-1), label_tensor)
+
+            pred_tensor = pred_tensor.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
             pred_tensor = pred_tensor.argmax(-1)
             acc = (pred_tensor == label_tensor).sum()/pred_tensor.numel()
             outputs['acc'] = acc
+            outputs['auc_dict'] = auc_dict
             
+            ### in my case, using AUC as the major metric
             ### during training phase, this operation work in CPU which slow the calculation.
-            # res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
-            # # print(res)
+            # res = classification_report(label_tensor.flatten().cpu(), pred_tensor.flatten().cpu(), output_dict=True)
             # res = res['macro avg']
             # res.pop('support')
             # outputs.update(res)
 
-            # cnf_matrix = confusion_matrix(labels, pred_label)
+            # cnf_matrix = confusion_matrix(label_tensor.flatten().cpu(), pred_tensor.flatten().cpu())
             # res = self.process_confusion_matrix(cnf_matrix)
             # outputs.update(res)
             ###
@@ -233,6 +236,7 @@ class Evaluator:
 
 
     def process_confusion_matrix(self, cnf_matrix):
+        print(cnf_matrix)
         FP = cnf_matrix.sum(axis=0) - np.diag(cnf_matrix) 
         FN = cnf_matrix.sum(axis=1) - np.diag(cnf_matrix)
         TP = np.diag(cnf_matrix)
@@ -258,7 +262,7 @@ class Evaluator:
         outputs['fdr'] = FP/(TP+FP)
 
         # Overall accuracy for each class
-        # outputs['acc'] = (TP+TN)/(TP+FP+FN+TN)
+        outputs['acc1'] = (TP+TN)/(TP+FP+FN+TN)
         if cnf_matrix.shape[0] > 2: # multiclass
             for k,v in outputs.items(): # take macro avg over each class
                 outputs[k] = np.mean(v)
@@ -266,3 +270,94 @@ class Evaluator:
             for k,v in outputs.items(): # take macro avg over each class
                 outputs[k] = v[1]
         return outputs
+
+    def get_AUC(self, predictions_tensor, labels_tensor, plot=False):
+      """
+      for each label(disease) gets its own auc
+      plot: bool, whether plot the roc plot in this function
+      return auc value 
+      """
+      disease_auc = {}
+      bins = [i/20 for i in range(20)] + [1]
+      for i, disease in enumerate(constants.CHEXPERT_LABELS):
+        label_dis = labels_tensor[:, i]
+        each_class_roc = {}
+        for k, j in enumerate(constants.class_name):
+          pred_dis = predictions_tensor[:, i*len(constants.class_name) + k].cpu().numpy()
+          true_class = [1 if constants.class_name[j] == y else 0 for y in label_dis]
+          if(len(set(true_class))==1):
+            print(constants.RED, "this disease have something wrong: "+constants.RESET, disease, ", ", j, "in this case set auc is 0!!!")
+            each_class_roc[j] = 0
+            continue
+          plot(true_class, pred_dis)
+          each_class_roc[j] = roc_auc_score(true_class, pred_dis, multi_class="ovr", average="micro",)
+        disease_auc[disease] = each_class_roc
+      return disease_auc
+        
+        
+    def get_all_roc_coordinates(self, y_real, y_proba):
+      '''
+      Calculates all the ROC Curve coordinates (tpr and fpr) by considering each point as a threshold for the predicion of the class.
+      
+      Args:
+          y_real: The list or series with the real classes.
+          y_proba: The array with the probabilities for each class, obtained by using the `.predict_proba()` method.
+          
+      Returns:
+          tpr_list: The list of TPRs representing each threshold.
+          fpr_list: The list of FPRs representing each threshold.
+      '''
+      tpr_list = [0]
+      fpr_list = [0]
+      for i in range(len(y_proba)):
+          threshold = y_proba[i]
+          y_pred = y_proba >= threshold
+          tpr, fpr = calculate_tpr_fpr(y_real, y_pred)
+          tpr_list.append(tpr)
+          fpr_list.append(fpr)
+      return tpr_list, fpr_list
+        
+    def plot_roc_curve(tpr, fpr, scatter = True, ax = None):
+      '''
+      Plots the ROC Curve by using the list of coordinates (tpr and fpr).
+      
+      Args:
+          tpr: The list of TPRs representing each coordinate.
+          fpr: The list of FPRs representing each coordinate.
+          scatter: When True, the points used on the calculation will be plotted with the line (default = True).
+      ''' 
+      if ax == None:
+          plt.figure(figsize = (5, 5))
+          ax = plt.axes()
+      
+      if scatter:
+          sns.scatterplot(x = fpr, y = tpr, ax = ax)
+      sns.lineplot(x = fpr, y = tpr, ax = ax)
+      sns.lineplot(x = [0, 1], y = [0, 1], color = 'green', ax = ax)
+      plt.xlim(-0.05, 1.05)
+      plt.ylim(-0.05, 1.05)
+      plt.xlabel("False Positive Rate")
+      plt.ylabel("True Positive Rate")
+          
+    def plot(true_label, prob):
+        plt.figure(figsize = (14, 3)) 
+        ax = plt.subplot(2, 3, i+1)
+        sns.histplot(x = "prob", data = df_aux, hue = 'class', color = 'b', ax = ax, bins = bins)
+        ax.set_title(c)
+        ax.legend([f"Class: {c}", "Rest"])
+        ax.set_xlabel(f"P(x = {c})")
+        
+        # Calculates the ROC Coordinates and plots the ROC Curves
+        ax_bottom = plt.subplot(2, 3, i+4)
+        tpr, fpr = get_all_roc_coordinates(true_label, prob)
+        plot_roc_curve(tpr, fpr, scatter = False, ax = ax_bottom)
+        ax_bottom.set_title("ROC Curve OvR")
+        
+        Calculates the ROC AUC OvR
+        print(disease, j)
+        print(f"pred: \n{pred_dis}")
+        print(f"class: \n{true_class}, {len(true_class)}")
+        
+      
+      
+      

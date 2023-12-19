@@ -170,8 +170,12 @@ class Trainer:
                     scores = self.evaluator.evaluate()
                     print(f'\n\033[31m######### Eval {global_step} #########\033[0m')
                     for key in scores.keys():
-                        if key in ['acc','auc', 'auc/mse']:
-                            print('{}: {:.4f}'.format(key, scores[key]))
+                        if key in ['acc','auc', 'auc/mse', ]:
+                          print('{}: {:.4f}'.format(key, scores[key]))
+                        if key == "auc_dict":
+                          for i,j in scores[key].items():
+                            print(i, j)
+                          # print("auc_dict: \n", scores[key])
                     # save_dir = os.path.join(output_path, f'{global_step}/')
                     # self._save_ckpt(model, save_dir)
 
@@ -179,13 +183,13 @@ class Trainer:
                     self.score_logs['global_step'].append(global_step)
                     for key in scores.keys():
                         if key in ['acc','auc', 'auc/mse']:
-                            self.score_logs[key].append(scores[key].to("cpu").numpy())
+                            self.score_logs[key].append(scores[key])
 
                 if self.evaluator is None and global_step % save_steps == 0:
                     state_dict = model.state_dict()
                     save_dir =  os.path.join(output_path, f'{global_step}/')
-                    self._save_ckpt(model, save_dir)
-                    print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
+                    # self._save_ckpt(model, save_dir)
+                    # print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
                     
                 if torch.cuda.is_available():
                   torch.cuda.empty_cache()
@@ -213,9 +217,9 @@ class Trainer:
             state_dict = model.state_dict()
             if "/Users/liu/Desktop/school_academy/ShanghaiTech" in output_path:
                 output_path = output_path.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
-            torch.save(state_dict, os.path.join(output_path, WEIGHTS_NAME))
-            print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
-            torch.save(model,  os.path.join(output_path, "whole_model.pth"))
+            # torch.save(state_dict, os.path.join(output_path, WEIGHTS_NAME))
+            # print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
+            # torch.save(model,  os.path.join(output_path, "whole_model.pth"))
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
