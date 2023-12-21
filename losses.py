@@ -161,8 +161,6 @@ class LG_CLIP_LOSS(nn.Module):
             raise ValueError("input prompts is None")
         if img_labels is None:
             raise ValueError("img_label which will be used in Classifier is None")
-        # print("\n", img, "\n")
-        # print(help(self.model))
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
         all_loss = self.alpha*_clip_["loss_value"] + self.beta*Cls["loss_value"] + self.gamma * Orth["loss_value"]
         return all_loss
