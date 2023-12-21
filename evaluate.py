@@ -289,7 +289,7 @@ class Evaluator:
             print(constants.RED, "this disease have something wrong: "+constants.RESET, disease, ", ", j, "in this case set auc is 0!!!")
             each_class_roc[j] = 0
             continue
-          plot(true_class, pred_dis)
+          # plot(true_class, pred_dis)
           each_class_roc[j] = roc_auc_score(true_class, pred_dis, multi_class="ovr", average="micro",)
         disease_auc[disease] = each_class_roc
       return disease_auc
@@ -353,7 +353,7 @@ class Evaluator:
         plot_roc_curve(tpr, fpr, scatter = False, ax = ax_bottom)
         ax_bottom.set_title("ROC Curve OvR")
         
-        Calculates the ROC AUC OvR
+        # Calculates the ROC AUC OvR
         print(disease, j)
         print(f"pred: \n{pred_dis}")
         print(f"class: \n{true_class}, {len(true_class)}")

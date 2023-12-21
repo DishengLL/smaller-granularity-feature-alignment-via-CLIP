@@ -60,7 +60,7 @@ if __name__ == "__main__":
     os.environ['PYTHONASHSEED'] = str(seed)
     os.environ['TOKENIZERS_PARALLELISM']='false'
 
-    num_of_thread = 4
+    num_of_thread = 1
     save_model_path = pwd + "/output/"
 
     # set cuda devices
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         collate_fn=val_collate_fn,
         shuffle=False,
         pin_memory=True,
-        num_workers = 4,
+        num_workers = num_of_thread,
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,
