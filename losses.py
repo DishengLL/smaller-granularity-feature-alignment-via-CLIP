@@ -133,11 +133,19 @@ class ImageSuperviseLoss(nn.Module):
         return outputs
 
 class LG_CLIP_LOSS(nn.Module):
-    def __init__(self, alpha = 1, beta = 1, game = 1, MultiTaskModel=None):
+    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weigh = False):
         super().__init__()
-        self.alpha = alpha
-        self.beta = beta
-        self.game = game
+        nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
+        if learnable_weigh: 
+          self.alpha = torch.nn.Parameter(torch.randn(1))
+          self.beta = torch.nn.Parameter(torch.randn(1))
+          self.gamma = torch.nn.Parameter(torch.randn(1))
+          self.delta = torch.nn.Parameter(torch.randn(1))
+        else:
+          self.alpha = alpha
+          self.beta = beta
+          self.gamma = gamma
+          self.delta = delta
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")
         self.model = MultiTaskModel
@@ -156,6 +164,6 @@ class LG_CLIP_LOSS(nn.Module):
         # print("\n", img, "\n")
         # print(help(self.model))
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
-        all_loss = self.alpha*_clip_["loss_value"] + self.beta*Cls["loss_value"] + self.game * Orth["loss_value"]
+        all_loss = self.alpha*_clip_["loss_value"] + self.beta*Cls["loss_value"] + self.gamma * Orth["loss_value"]
         return all_loss
         

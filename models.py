@@ -18,6 +18,8 @@ from torch import Tensor
 import os
 from torchvision import models
 from collections import OrderedDict
+import logging
+logging.basicConfig(level=logging.WARNING)
 os.environ['CURL_CA_BUNDLE'] = ''
 
 import requests.packages.urllib3
@@ -529,6 +531,49 @@ class Orthogonal_dif(nn.Module):
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
+    
+class Hier_graph_align():
+  """
+  this class tries to align the prior pathological knowledge with the disease embedding generated
+  in the intermediate module 
+  
+  Funcs:
+  1. init
+  2. forward
+  
+  Return:
+   the total cosine similarity between diseases and target (scaler)
+  """
+  def __init__(self, text_image_sim_matrix):
+    print(text_image_sim_matrix)
+    self.sim_matrix = text_image_sim_matrix
+    self.disease_corr = torch.matmul(self.sim_matrix, self.sim_matrix.t())
+  
+  def forward(self,
+        target_matrix : torch.Tensor,
+        data_process_type: str = 'normalization'
+        ):
+    '''
+    data_process_type works for data preprocessing  --- target and generated matrix
+    '''
+    n_disease = self.disease_corr.shape[0]
+    tot_cos_dis = 0
+    if (data_process_type == 'softmax'):
+      if (target_matrix.sum() != n_disease*n_disease or self.sim_matrix.sum() != n_disease*n_disease):
+        logging.info("softmax operation!!")
+        target_matrix = np.exp(target_matrix) / np.sum(np.exp(target_matrix), axis=1, keepdims=True)
+        self.sim_matrix = np.exp(self.sim_matrix) / np.sum(np.exp(self.sim_matrix), axis=1, keepdims=True)
+    elif (data_process_type == 'normalization'):
+      logging.info("normalization operation")
+      target_matrix = target_matrix / torch.norm(target_matrix, p=2, dim=1, keepdim=True)
+      self.sim_matrix = self.sim_matrix / torch.norm(self.sim_matrix, p=2, dim=1, keepdim=True)
+      
+    for i in range(n_disease):
+      disease = self.disease_corr[i , :].float()
+      target = target_matrix[i , :].float()
+      cosine_similarity = F.cosine_similarity(disease, target, dim=0)
+      tot_cos_dis += cosine_similarity
+    return tot_cos_dis
     
 
 class MultiTaskModel(nn.Module):
