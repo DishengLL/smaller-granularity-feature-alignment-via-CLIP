@@ -561,7 +561,7 @@ class Hier_graph_align():
     if (data_process_type == 'softmax'):
       if (target_matrix.sum() != n_disease*n_disease or self.sim_matrix.sum() != n_disease*n_disease):
         logging.info("softmax operation!!")
-        target_matrix = np.exp(target_matrix) / np.sum(np.exp(target_matrix), axis=1, keepdims=True)
+        target_matrix = target_matrix / torch.norm(target_matrix, p=2, dim=1, keepdim=True)
         self.sim_matrix = np.exp(self.sim_matrix) / np.sum(np.exp(self.sim_matrix), axis=1, keepdims=True)
     elif (data_process_type == 'normalization'):
       logging.info("normalization operation")
