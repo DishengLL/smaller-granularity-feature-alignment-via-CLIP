@@ -390,6 +390,7 @@ class LGCLIP(nn.Module):
             img_path=None,
             return_loss=True,
             eval = False,
+            graph_align = False,
             **kwargs,
             ):
             # input_text = input_text.cuda()/
@@ -406,6 +407,11 @@ class LGCLIP(nn.Module):
 
               if return_loss:
                   loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                  if graph_align:
+                    graph_alignment = Hier_graph_align(logits_per_image)
+                    prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")
+                    graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
+                    loss += graph_align_loss
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
 
@@ -549,7 +555,7 @@ class Hier_graph_align():
     self.sim_matrix = text_image_sim_matrix
     self.disease_corr = torch.matmul(self.sim_matrix, self.sim_matrix.t())
   
-  def forward(self,
+  def get_loss(self,
         target_matrix : torch.Tensor,
         data_process_type: str = 'normalization'
         ):
