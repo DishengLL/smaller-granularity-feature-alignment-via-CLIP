@@ -194,12 +194,12 @@ class Trainer:
                 if torch.cuda.is_available():
                   torch.cuda.empty_cache()
 
-        if save_best_model:
-            import pandas as pd
-            from distutils.dir_util import copy_tree
-            res = pd.DataFrame(self.score_logs)
-            res.to_csv(output_path + r"/res.csv")
-            res = res.set_index('global_step')
+        # if save_best_model:
+        #     import pandas as pd
+        #     from distutils.dir_util import copy_tree
+        #     res = pd.DataFrame(self.score_logs)
+        #     res.to_csv(output_path + r"/res.csv")
+        #     res = res.set_index('global_step')
             # take the average column best
             # print(res.mean(1))
             # best_iter = res.mean(1).idxmax()
