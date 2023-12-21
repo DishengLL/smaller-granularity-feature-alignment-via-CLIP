@@ -15,6 +15,14 @@ currently using the Classification task as a utility task, aiming to build a gen
 ### Model  
 <img src=".\imgs\NN_struct.12.3.png" style="zoom:50%;"></img>
 
+### Pathology correlation:
+ In reality, the diseases diagnosed from x-ray images are supposed to be correlated with each other to some extent. **Therefore**, the totally orthogonalizing  may not make sense.    
+ In order to inject the prior knowledge of this correlation, I use graph to represent the hierarchical relation between my 14 labels, and hope this prior knowledge can guild the model learning.
+<div align="center" style="position: relative;">
+  <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
+  <p style="position: absolute; bottom: 0; margin: 0;">Hierarchical relation tree of 14 labels</p>
+</div>
+
 ### ToDo
 - [ ] data exploration
   - [ ] labels's distribution(KL divergence) 
