@@ -135,7 +135,6 @@ class ImageSuperviseLoss(nn.Module):
 class LG_CLIP_LOSS(nn.Module):
     def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weigh = False):
         super().__init__()
-        nn.Parameter(torch.log(torch.tensor(1/logit_scale_init_value)))
         if learnable_weigh: 
           self.alpha = torch.nn.Parameter(torch.randn(1))
           self.beta = torch.nn.Parameter(torch.randn(1))
