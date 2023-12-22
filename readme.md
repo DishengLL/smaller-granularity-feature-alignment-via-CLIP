@@ -23,18 +23,13 @@ currently using the Classification task as a utility task, aiming to build a gen
   <p style="position: absolute; bottom: 0; margin: 0;">Hierarchical relation tree of 14 labels</p>
 </div>
 
-### ToDo
-- [ ] data exploration
-  - [ ] labels's distribution(KL divergence) 
-- [ ] training data labels process -- no found
-- [ ] cross entropy loss update -- no found
-- [ ] corelation's corelation -- high order similarity --- GPT-4 generated hierarchical structure
-- [ ] evaluation  
-  overall -- MSE     
-  each disease -- confusion matrix
+### ToDo   
+- [ ] retrain biomedCLIP version (w and w/o text)
+- [ ] retrain clip version (w and w/o text)
+- [ ] densetnet version
 - [ ] modality gap shift exploration
 - [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
-- [ ] Base line model --- CNN ---Densenet121 $_{[3]}$
+- [x] Base line model --- CNN ---Densenet121 $_{[3]}$
 
 ### Ablation
 - [ ] visual branch only
