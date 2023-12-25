@@ -136,10 +136,10 @@ class LG_CLIP_LOSS(nn.Module):
     def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weight = False):
         super().__init__()
         if learnable_weight: 
-          self.alpha = torch.nn.Parameter(torch.tensor(1), requires_grad=True)
-          self.beta = torch.nn.Parameter(torch.randn(1),requires_grad=True)
-          self.gamma = torch.nn.Parameter(torch.randn(1), requires_grad=True)
-          self.delta = torch.nn.Parameter(torch.randn(1), requires_grad=True)
+          self.alpha = torch.nn.Parameter(torch.tensor(1.0), requires_grad=True)
+          self.beta = torch.nn.Parameter(torch.tensor(1.0),requires_grad=True)
+          self.gamma = torch.nn.Parameter(torch.tensor(1.0), requires_grad=True)
+          self.delta = torch.nn.Parameter(torch.tensor(1.0), requires_grad=True)
         else:
           self.alpha = nn.Parameter(torch.tensor(alpha), requires_grad=False)
           self.beta = nn.Parameter(torch.tensor(beta), requires_grad=False)
