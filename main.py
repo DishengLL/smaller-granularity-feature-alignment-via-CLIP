@@ -15,6 +15,9 @@ from _email_ import send_email
 import argparse
 import traceback
 import constants as _constants_
+import logging
+
+
 
 # def performance():
 #     import cProfile
@@ -48,7 +51,17 @@ import constants as _constants_
 #         sys.exit(0)
 
 if __name__ == "__main__":
-    # print(constants.BLUE + f"run Fine-Grain Feature Alignment CLIP(FG_FA_C)" + constants.RESET)
+    logging.basicConfig(
+    level=logging.DEBUG,  # 设置日志级别为DEBUG
+    format='%(asctime)s - %(levelname)s - %(message)s',  # 设置日志格式
+    handlers=[
+        logging.StreamHandler(),  # 输出到控制台
+        logging.FileHandler('app.log')  # 输出到文件
+        ]
+    )
+
+    # 创建日志记录器
+    logger = logging.getLogger('my_logger')
     email = send_email.send_email()
     pwd = os.getcwd()
     # set random seed
@@ -100,11 +113,21 @@ if __name__ == "__main__":
     parser.add_argument('--vision_only',action='store_true', default=False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', choices=['densenet'], type=str, help="vision encoder in image branch")
     parser.add_argument('--save_dir', type=str, help="the dir to save output")
+    parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
+    parser.add_argument('--high_order',  type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
     prompt = "basic" if args.prompt == None else args.prompt
     visual_branch_only = args.vision_only
+    learnable_weight = args.learnable_weight
+    high_order = args.high_order
+    if learnable_weight:
+      print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
+      logger.info("using learnable weights among sub-loss during training!")
+    if high_order != "NA":
+      print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
+      logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
     if  args.save_dir == None:
       save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}/"
     else:
@@ -121,8 +144,8 @@ if __name__ == "__main__":
         num_workers = num_of_thread,
         )
 
-    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v)
-    loss_model = LG_CLIP_LOSS(MultiTaskModel = model).to(device)
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, high_order=high_order)
+    loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight,).to(device)
 
     # build evaluator
     val_data = TestingDataset(backbone_type=backbone)

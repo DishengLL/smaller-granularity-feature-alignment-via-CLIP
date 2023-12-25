@@ -283,7 +283,8 @@ class LGCLIP(nn.Module):
         logit_scale_init_value=0.07,
         nntype = None,
         visual_branch_only = False,
-        backbone_v = None
+        backbone_v = None, 
+        graph_align = "NA"
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -302,6 +303,7 @@ class LGCLIP(nn.Module):
             print('load model weight from:', checkpoint)
         self.nntype = nntype
         self.visual_branch_only = visual_branch_only
+        self.graph_align = graph_align
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -407,11 +409,12 @@ class LGCLIP(nn.Module):
 
               if return_loss:
                   loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-                  if graph_align:
+                  if self.graph_align != "NA":
                     graph_alignment = Hier_graph_align(logits_per_image)
-                    prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")
-                    graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
-                    loss += graph_align_loss
+                    if self.graph_align == "binary":
+                      prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")
+                      graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
+                      loss += graph_align_loss
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
 
@@ -511,7 +514,7 @@ class Orthogonal_dif(nn.Module):
           if return_loss:
               logits_per_text =  self.compute_logits(text_embeds)
               loss = self.contrastive_loss(logits_per_text)
-              loss = loss + self.contrastive_loss(logits_per_text.T)
+              # loss = loss + self.contrastive_loss(logits_per_text.T)
           return {'text_embeds':text_embeds,
                   'loss_value':loss, 
                   'multi_logits_per_text':logits_per_text}
@@ -521,7 +524,7 @@ class Orthogonal_dif(nn.Module):
                 logits_each_sample = self.compute_logits(sample)
                 multi_logits_per_text.append(logits_each_sample)
                 loss = loss + self.contrastive_loss(logits_each_sample)
-                loss = loss + self.contrastive_loss(logits_each_sample.T)
+                # loss = loss + self.contrastive_loss(logits_each_sample.T)
               multi_logits = torch.stack(multi_logits_per_text, dim = 0)
           return {'text_embeds':text_embeds,
                   'loss_value':loss, 
@@ -583,7 +586,7 @@ class Hier_graph_align():
     
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None):
+    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA"):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
@@ -591,7 +594,7 @@ class MultiTaskModel(nn.Module):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
-        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v).to(device)
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, graph_align=high_order).to(device)
         self.PN_Classifier = PN_classifier().to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case

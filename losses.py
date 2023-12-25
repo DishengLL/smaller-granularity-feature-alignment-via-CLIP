@@ -133,21 +133,22 @@ class ImageSuperviseLoss(nn.Module):
         return outputs
 
 class LG_CLIP_LOSS(nn.Module):
-    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weigh = False):
+    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weight = False):
         super().__init__()
-        if learnable_weigh: 
-          self.alpha = torch.nn.Parameter(torch.randn(1))
-          self.beta = torch.nn.Parameter(torch.randn(1))
-          self.gamma = torch.nn.Parameter(torch.randn(1))
-          self.delta = torch.nn.Parameter(torch.randn(1))
+        if learnable_weight: 
+          self.alpha = torch.nn.Parameter(torch.tensor(1), requires_grad=True)
+          self.beta = torch.nn.Parameter(torch.randn(1),requires_grad=True)
+          self.gamma = torch.nn.Parameter(torch.randn(1), requires_grad=True)
+          self.delta = torch.nn.Parameter(torch.randn(1), requires_grad=True)
         else:
-          self.alpha = alpha
-          self.beta = beta
-          self.gamma = gamma
-          self.delta = delta
+          self.alpha = nn.Parameter(torch.tensor(alpha), requires_grad=False)
+          self.beta = nn.Parameter(torch.tensor(beta), requires_grad=False)
+          self.gamma = nn.Parameter(torch.tensor(gamma), requires_grad=False)
+          self.delta = nn.Parameter(torch.tensor(delta), requires_grad=False)
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")
         self.model = MultiTaskModel
+        self.learnable_weight = learnable_weight
         
 
     def forward(self, 
@@ -161,6 +162,11 @@ class LG_CLIP_LOSS(nn.Module):
         if img_labels is None:
             raise ValueError("img_label which will be used in Classifier is None")
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
+        # if self.learnable_weight:  # add regularization to advoid gradient exploration
+        print(f'alpha = {self.alpha} and the clip loss is {_clip_["loss_value"]}')
+        print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
+        print(f'gamma = {self.gamma} and the othogonal loss is {Orth["loss_value"]}')
         all_loss = self.alpha*_clip_["loss_value"] + self.beta*Cls["loss_value"] + self.gamma * Orth["loss_value"]
+        print(f"the total loss is {all_loss}\n")
         return all_loss
         

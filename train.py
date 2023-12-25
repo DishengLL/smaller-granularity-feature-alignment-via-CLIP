@@ -83,7 +83,6 @@ class Trainer:
                 {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
                 {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
-
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
             scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
 
@@ -175,6 +174,7 @@ class Trainer:
                         if key == "auc_dict":
                           for i,j in scores[key].items():
                             print(i, j)
+                    print(f'\n\033[31m#######################################\033[0m')
                           # print("auc_dict: \n", scores[key])
                     # save_dir = os.path.join(output_path, f'{global_step}/')
                     # self._save_ckpt(model, save_dir)
