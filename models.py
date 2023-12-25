@@ -362,7 +362,7 @@ class LGCLIP(nn.Module):
         # reshaped_image_embedding = img_emb.view(batch, -1)
         # reshaped_text_embedding =text_emb.view(batch, -1)
         reshaped_text_embedding = text_emb.squeeze()
-        reshaped_image_embedding = text_emb
+        reshaped_image_embedding = img_emb.squeeze()
         if  (len(reshaped_image_embedding.shape) == len(reshaped_text_embedding.shape) == 2):
             reshaped_text_embedding = reshaped_text_embedding.unsqueeze(0)
             reshaped_image_embedding = reshaped_image_embedding.unsqueeze(0)
@@ -396,11 +396,13 @@ class LGCLIP(nn.Module):
             **kwargs,
             ):
             # input_text = input_text.cuda()/
-            loss = 0 # "no applicable in visual branch case"
+            clip_loss = 0 # "no applicable in visual branch case"
+            loss = 0
+            graph_align_loss = 0
             text_embeds = 0
             logits_per_image = 0
             img_embeds = self.encode_image(img_path).to(device)#.cuda()
-            if eval:
+            if eval:  # only need image embeddings for following process
               return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
                 'logits_per_image':logits_per_image, 'loss_value':loss}
             if not self.visual_branch_only:
@@ -408,15 +410,17 @@ class LGCLIP(nn.Module):
               logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
               if return_loss:
-                  loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                  clip_loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                  loss = clip_loss
                   if self.graph_align != "NA":
                     graph_alignment = Hier_graph_align(logits_per_image)
                     if self.graph_align == "binary":
                       prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")
                       graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
-                      loss += graph_align_loss
+                      loss = clip_loss + graph_align_loss
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
-                'logits_per_image':logits_per_image, 'loss_value':loss}
+                'logits_per_image':logits_per_image, 'loss_value': loss, 
+                "graph_align_loss": graph_align_loss, "clip_loss": clip_loss}
 
 class PN_classifier(nn.Module):
     def __init__(self,
@@ -554,9 +558,12 @@ class Hier_graph_align():
    the total cosine similarity between diseases and target (scaler)
   """
   def __init__(self, text_image_sim_matrix):
-    print(text_image_sim_matrix)
     self.sim_matrix = text_image_sim_matrix
-    self.disease_corr = torch.matmul(self.sim_matrix, self.sim_matrix.t())
+    high_order_disease_corr = []
+    for matrix in text_image_sim_matrix:
+      high_order = torch.matmul(matrix, matrix.t())
+      high_order_disease_corr.append(high_order)
+    self.high_order_disease_corr = torch.stack(high_order_disease_corr, dim = 0)  # shape = (batch_size, n_disease, n_disease)
   
   def get_loss(self,
         target_matrix : torch.Tensor,
@@ -564,8 +571,9 @@ class Hier_graph_align():
         ):
     '''
     data_process_type works for data preprocessing  --- target and generated matrix
+    data_process_type: the preprocess operation for the target matrix
     '''
-    n_disease = self.disease_corr.shape[0]
+    n_disease = target_matrix.shape[0]
     tot_cos_dis = 0
     if (data_process_type == 'softmax'):
       if (target_matrix.sum() != n_disease*n_disease or self.sim_matrix.sum() != n_disease*n_disease):
@@ -576,12 +584,15 @@ class Hier_graph_align():
       logging.info("normalization operation")
       target_matrix = target_matrix / torch.norm(target_matrix, p=2, dim=1, keepdim=True)
       self.sim_matrix = self.sim_matrix / torch.norm(self.sim_matrix, p=2, dim=1, keepdim=True)
-      
-    for i in range(n_disease):
-      disease = self.disease_corr[i , :].float()
-      target = target_matrix[i , :].float()
-      cosine_similarity = F.cosine_similarity(disease, target, dim=0)
-      tot_cos_dis += cosine_similarity
+    else:
+      raise NotImplementedError("must specify the preprocess operation type!")
+
+    for each_sample in self.high_order_disease_corr:
+      for i in range(n_disease):
+        disease = each_sample[i , :].float()
+        target = target_matrix[i , :].float().to(device)
+        cosine_similarity = F.cosine_similarity(disease, target, dim=0)
+        tot_cos_dis += cosine_similarity
     return tot_cos_dis
     
 

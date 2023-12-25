@@ -43,7 +43,7 @@ class Evaluator:
                 pred = classifier_out['logits']            
             pred_tensor = torch.cat((pred_tensor, pred), 0)
             label_tensor = torch.cat((label_tensor, torch.stack(data["img_labels"],0).to(self.device)), 0)     
-        outputs = {'pred':pred_tensor, 'labels':label_tensor}
+        outputs = {'pred':pred_tensor, 'labels':label_tensor, "loss": classifier_out['loss_value']}
 
         if self.mode is None:
             if len(labels.shape) == 1:
