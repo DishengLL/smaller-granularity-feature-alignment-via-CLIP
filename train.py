@@ -174,7 +174,7 @@ class Trainer:
                         if key == "auc_dict":
                           for i,j in scores[key].items():
                             print(i, j)
-                    print(contants.GREEN + f"the classifier loss: {scores['loss_value']}" + constants.RESET)
+                    print(_constants_.GREEN + f"the classifier loss: {scores['loss_value']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
                           # print("auc_dict: \n", scores[key])
                     # save_dir = os.path.join(output_path, f'{global_step}/')
