@@ -381,6 +381,8 @@ class LGCLIP(nn.Module):
             similarity = similarities[i]
             caption_loss = caption_loss + self.contrastive_loss(similarity)
             image_loss = image_loss + self.contrastive_loss(similarity.T)
+        caption_loss = caption_loss/batch
+        image_loss = image_loss / batch
         return (caption_loss + image_loss) / 2.0
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
@@ -524,12 +526,14 @@ class Orthogonal_dif(nn.Module):
                   'multi_logits_per_text':logits_per_text}
         else:   ## multiple samples
           if return_loss:
+              n_text_sample = (text_embeds.shape[0])
               for sample in text_embeds:
                 logits_each_sample = self.compute_logits(sample)
                 multi_logits_per_text.append(logits_each_sample)
                 loss = loss + self.contrastive_loss(logits_each_sample)
                 # loss = loss + self.contrastive_loss(logits_each_sample.T)
               multi_logits = torch.stack(multi_logits_per_text, dim = 0)
+              loss = loss / n_text_sample
           return {'text_embeds':text_embeds,
                   'loss_value':loss, 
                   'multi_logits_per_text':multi_logits}
@@ -564,10 +568,25 @@ class Hier_graph_align():
       high_order = torch.matmul(matrix, matrix.t())
       high_order_disease_corr.append(high_order)
     self.high_order_disease_corr = torch.stack(high_order_disease_corr, dim = 0)  # shape = (batch_size, n_disease, n_disease)
-  
+    
+  def adjust_datarange(self, tensor, type = "min_max"):
+    minv = torch.min(tensor)
+    maxv = tensor.max()
+    
+    if type == "zero2one":
+      if (minv < 0 or minv > 1 or maxv < 0 or maxv > 1):
+        scaled_vec  = (tensor - minv) / (maxv - minv)
+        return scaled_vec
+      else:
+        return tensor
+    if type == "min_max":
+      scaled_vec  = (tensor - minv) / (maxv - minv)
+      scaled_vec = 2 * scaled_vec - 1
+      return scaled_vec
+       
   def get_loss(self,
         target_matrix : torch.Tensor,
-        data_process_type: str = 'normalization'
+        data_process_type: str = 'NA'
         ):
     '''
     data_process_type works for data preprocessing  --- target and generated matrix
@@ -584,16 +603,24 @@ class Hier_graph_align():
       logging.info("normalization operation")
       target_matrix = target_matrix / torch.norm(target_matrix, p=2, dim=1, keepdim=True)
       self.sim_matrix = self.sim_matrix / torch.norm(self.sim_matrix, p=2, dim=1, keepdim=True)
+    elif (data_process_type == "NA"):
+      logging.info("do not implement data preprocess")
     else:
       raise NotImplementedError("must specify the preprocess operation type!")
 
+    batch_size = self.high_order_disease_corr.shape[0]
     for each_sample in self.high_order_disease_corr:
+      each_sample_cos_distance = 0
       for i in range(n_disease):
-        disease = each_sample[i , :].float()
+        disease = self.adjust_datarange(each_sample[i , :].float(),  type = "min_max")
         target = target_matrix[i , :].float().to(device)
+        target[i] = 1  # the correlation with itself
+        target = self.adjust_datarange(target, type = "min_max")
         cosine_similarity = F.cosine_similarity(disease, target, dim=0)
-        tot_cos_dis += cosine_similarity
-    return tot_cos_dis
+        each_sample_cos_distance += cosine_similarity
+      tot_cos_dis = tot_cos_dis + (1 - (each_sample_cos_distance/n_disease))
+    avg_tot_cos_dis = tot_cos_dis / batch_size
+    return avg_tot_cos_dis
     
 
 class MultiTaskModel(nn.Module):

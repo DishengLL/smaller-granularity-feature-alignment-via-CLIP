@@ -164,7 +164,7 @@ class LG_CLIP_LOSS(nn.Module):
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
         # if self.learnable_weight:  # add regularization to advoid gradient exploration
         print(f'alpha = {self.alpha} and the clip loss is {_clip_["clip_loss"]}')
-        print(f'belta = {self.delta} and the graph_align loss is {_clip_["graph_align_loss"]}')
+        print(f'delta = {self.delta} and the graph_align loss is {_clip_["graph_align_loss"]}')
         print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
         print(f'gamma = {self.gamma} and the othogonal loss is {Orth["loss_value"]}')
         all_loss = self.alpha*_clip_["clip_loss"] + self.beta*Cls["loss_value"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
