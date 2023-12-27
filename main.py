@@ -115,11 +115,23 @@ if __name__ == "__main__":
     parser.add_argument('--save_dir', type=str, help="the dir to save output")
     parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
     parser.add_argument('--high_order',  type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
+    parser.add_argument('--two_phases',action='store_true', default=False, help='implement 2-phases training scheme') 
+    parser.add_argument('--no_orthogonize',action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
+    parser.add_argument('--no_contrastive',action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
     prompt = "basic" if args.prompt == None else args.prompt
     visual_branch_only = args.vision_only
+    two_phases = args.two_phases
+    if two_phases:
+      print(constants.RED + "using two phase training scheme" + constants.RESET)
+    no_orthogonize = args.no_orthogonize
+    if no_orthogonize:
+      print(constants.RED + "do not implement orthogonization" + constants.RESET)
+    no_contrastive = args.no_contrastive
+    if no_contrastive:
+      print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
     learnable_weight = args.learnable_weight
     high_order = args.high_order
     if learnable_weight:
