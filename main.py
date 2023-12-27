@@ -156,7 +156,7 @@ if __name__ == "__main__":
         num_workers = num_of_thread,
         )
 
-    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, high_order=high_order)
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, high_order=high_order, no_orthogonize = no_orthogonize)
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight,).to(device)
 
     # build evaluator
@@ -196,7 +196,8 @@ if __name__ == "__main__":
         # steps_per_epoch = 1,
         evaluator = _evaluator_,
         eval_dataloader=eval_dataloader,
-        use_amp=True,)
+        use_amp=True,
+        two_phases=two_phases)
       print(_constants_.GREEN + 'done' + _constants_.RESET)
       # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
     except Exception as e:

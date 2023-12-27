@@ -48,12 +48,14 @@ class Trainer:
         checkpoint_path: str = None,
         checkpoint_save_total_limit: int = 0,
         load_best_model_at_last: bool = True,
+        two_phases = False
         ):
         '''
         output_path: model save path
         checkpoint_path: model load and continue to learn path
         '''
         self.best_score = -9999999
+        self.best_auc = -9999999
         self.accumulation_steps = accumulation_steps
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if use_amp:
@@ -174,6 +176,12 @@ class Trainer:
                         if key == "auc_dict":
                           for i,j in scores[key].items():
                             print(i, j)
+                          av_auc = get_average_auc_among_disease(auc_dict, indicator = "positive")
+                          if av_auc > self.best_auc:
+                            self.best_auc = av_auc
+                            print(f"update best avg auc : {self.best_auc}")
+                            save_dir = os.path.join(output_path,"")
+                            self._save_ckpt(model, save_dir)     #save the best model during the iterations
                     print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
                           # print("auc_dict: \n", scores[key])
@@ -259,3 +267,13 @@ class Trainer:
                         # input_names=['input'],  # 指定输入张量的名称
                         # output_names=['output'])  # 指定输出张量的名称
                         )   
+        
+    def get_average_auc_among_disease(auc_dict, indicator = "positive"):
+      average_auc = 0
+      n_disease = len(auc_dict)
+      for disease, auc in auc_dict.items():
+        v = auc[indicator]
+        average_auc = average_auc + v
+      return average_auc/n_disease
+        
+      
