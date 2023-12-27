@@ -284,7 +284,8 @@ class LGCLIP(nn.Module):
         nntype = None,
         visual_branch_only = False,
         backbone_v = None, 
-        graph_align = "NA"
+        graph_align = "NA",
+        no_contrastive = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -304,6 +305,7 @@ class LGCLIP(nn.Module):
         self.nntype = nntype
         self.visual_branch_only = visual_branch_only
         self.graph_align = graph_align
+        self.no_contrastive = no_contrastive
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -412,8 +414,9 @@ class LGCLIP(nn.Module):
               logits_per_image = self.compute_logits(img_embeds, text_embeds) #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
 
               if return_loss:
-                  clip_loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-                  loss = clip_loss
+                  if not self.no_contrastive:
+                    clip_loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+                    loss = clip_loss
                   if self.graph_align != "NA":
                     graph_alignment = Hier_graph_align(logits_per_image)
                     if self.graph_align == "binary":
@@ -624,7 +627,7 @@ class Hier_graph_align():
     
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA"):
+    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", no_orthogonize = False, no_contrastive = False):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
@@ -632,12 +635,13 @@ class MultiTaskModel(nn.Module):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
-        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, graph_align=high_order).to(device)
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, graph_align=high_order, no_contrastive = no_contrastive).to(device)
         self.PN_Classifier = PN_classifier().to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
+        self.no_orthogonize = no_orthogonize
 
     def forward(self,         
                 prompts:list,
@@ -652,5 +656,7 @@ class MultiTaskModel(nn.Module):
         c = 0
         if not eval:
           c = self.Orthogonal_dif(a['text_embeds']) if ((not self.visual_branch_only)) else {"loss_value": 0}
+        if self.no_orthogonize:  # input parameter, which control orthogonization operation
+          c =  {"loss_value": 0}
         return a, b, c
     
