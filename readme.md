@@ -12,7 +12,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 
 **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
-### Problem Distribution:
+### Problem Description:
 To alleviate the workload of radiologists, researchers develop algorithms that can automatically classify X-ray images into different classes (corresponding to the existence of different diseases discovered in X-ray images).   
 even though, the current SOTA specialist model (customized model for one certain disease) gets very good performance, a generalist model (capable of handling multiple diseases simultaneously) is still weak.  
 In this context, what I want to do is establish an algorithm which capable of detecting multiple diseases from X-ray images.  
@@ -22,7 +22,7 @@ To solve this problem, I need to interface 2 main challenges
 1. data scarcity -- clinical data is always scarce due to private code
 2. generalizability -- how can I improve the generalizability of the model to tackle several different diseases
    
-### Potential solution 
+### Potential Solutions 
 1. leveraging the knowledge in the powerful pre-trained LLMs to guide the feature extraction in my image classification task
 2. using a knowledge graph to inject the prior knowledge of different diseases into my feature extractor.
 
@@ -40,7 +40,6 @@ Using contrastive learning to align the diseases' representation between text an
 
 ### ToDo   
 - [ ] modality gap shift exploration
-- [ ] vector output expression loss + contrastive loss between 2 different classifiers' outputs
 - [x] Base line model --- CNN ---Densenet121 $_{[3]}$
 
 ### Ablation
@@ -77,7 +76,7 @@ Explainable Zero-Shot Diagnosis](https://arxiv.org/pdf/2303.13391.pdf)
   - even though this version get similar performace(acc), the more unstable then the biomed version
   - contrastive loss module improves the generalizability of the model (the preliminary and immature insight)
 
-- 2023-11-11-18:
+- 2023-11-18:
   - tune code, retrain 4 models(biomed + with(out) vision, clip + with(out) vision)
 
 
