@@ -176,7 +176,7 @@ class Trainer:
                         if key == "auc_dict":
                           for i,j in scores[key].items():
                             print(i, j)
-                          av_auc = get_average_auc_among_disease(auc_dict, indicator = "positive")
+                          av_auc = self.get_average_auc_among_disease(scores[key], indicator = "positive")
                           if av_auc > self.best_auc:
                             self.best_auc = av_auc
                             print(f"update best avg auc : {self.best_auc}")
@@ -268,7 +268,7 @@ class Trainer:
                         # output_names=['output'])  # 指定输出张量的名称
                         )   
         
-    def get_average_auc_among_disease(auc_dict, indicator = "positive"):
+    def get_average_auc_among_disease(self, auc_dict, indicator = "positive"):
       average_auc = 0
       n_disease = len(auc_dict)
       for disease, auc in auc_dict.items():

@@ -420,7 +420,7 @@ class LGCLIP(nn.Module):
                   if self.graph_align != "NA":
                     graph_alignment = Hier_graph_align(logits_per_image)
                     if self.graph_align == "binary":
-                      prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")
+                      prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")    # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
                       graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
                       loss = clip_loss + graph_align_loss
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
