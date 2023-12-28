@@ -12,7 +12,7 @@ currently using the Classification task as a utility task, aiming to build a gen
 
 **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
-### Problem Distribution:
+### Problem description:
 To alleviate the workload of radiologists, researchers develop algorithms that can automatically classify X-ray images into different classes (corresponding to the existence of different diseases discovered in X-ray images).   
 even though, the current SOTA specialist model (customized model for one certain disease) gets very good performance, a generalist model (capable of handling multiple diseases simultaneously) is still weak.  
 In this context, what I want to do is establish an algorithm which capable of detecting multiple diseases from X-ray images.  
