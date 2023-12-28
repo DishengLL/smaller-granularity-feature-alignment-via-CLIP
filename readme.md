@@ -43,12 +43,12 @@ Using contrastive learning to align the diseases' representation between text an
 - [x] Base line model --- CNN ---Densenet121 $_{[3]}$
 
 ### Ablation
-- [ ] visual branch only
-  - [ ]  CLIP visual encoder, transformer1, classifier
-    - [ ]  using biomedCLIP visual encoder as the backbone, 
+- [x] visual branch only
+  - [x]  CLIP visual encoder, transformer1, classifier
+    - [x]  using biomedCLIP visual encoder as the backbone, 
   - [ ]  custom visual encoder, transformer1, classifier
 - [ ] visual branch + text branch
-  - [ ] CLIP visual/text encoder, transformer1/2, classifier
+  - [x] CLIP visual/text encoder, transformer1/2, classifier
   - [ ] CLIP text encoder, **custom visual encoder**, transformer1/2, classifier
 - [ ] semantic + domain level alignment
 
