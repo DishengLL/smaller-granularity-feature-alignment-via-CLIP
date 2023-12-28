@@ -156,7 +156,7 @@ if __name__ == "__main__":
         num_workers = num_of_thread,
         )
 
-    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, high_order=high_order, no_orthogonize = no_orthogonize)
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive)
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight,).to(device)
 
     # build evaluator
