@@ -391,10 +391,6 @@ class LGCLIP(nn.Module):
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
         logits =  logits / logits.norm(dim=-1, keepdim=True)
-        if self.uncertain_based_weight:
-          uncertain = torch.abs(torch.randn(1, requires_grad=True))
-          logits = logits/(torch.square(uncertain))
-          logits = logits + torch.log(torch.square(uncertain))
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
