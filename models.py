@@ -285,7 +285,8 @@ class LGCLIP(nn.Module):
         visual_branch_only = False,
         backbone_v = None, 
         graph_align = "NA",
-        no_contrastive = False
+        no_contrastive = False,
+        uncertain_based_weight = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -306,6 +307,7 @@ class LGCLIP(nn.Module):
         self.visual_branch_only = visual_branch_only
         self.graph_align = graph_align
         self.no_contrastive = no_contrastive
+        self.uncertain_based_weight = uncertain_based_weight
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -389,6 +391,10 @@ class LGCLIP(nn.Module):
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
         logits =  logits / logits.norm(dim=-1, keepdim=True)
+        if self.uncertain_based_weight:
+          uncertain = torch.abs(torch.randn(1, requires_grad=True))
+          logits = logits/(torch.square(uncertain))
+          logits = logits + torch.log(torch.square(uncertain))
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -627,21 +633,25 @@ class Hier_graph_align():
     
 
 class MultiTaskModel(nn.Module):
-    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", no_orthogonize = False, no_contrastive = False):
+    def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", no_orthogonize = False, no_contrastive = False, **kwargs):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
+        self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         if  (nntype not in ["clip", "biomedclip", "custom"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
-        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, graph_align=high_order, no_contrastive = no_contrastive).to(device)
-        self.PN_Classifier = PN_classifier().to(device)
+        self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
+                                        graph_align=high_order, no_contrastive = no_contrastive, uncertain_based_weight = self.uncertain_based_weight).to(device)
+        self.PN_Classifier = PN_classifier(uncertain_based_weight = self.uncertain_based_weight).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
-          self.Orthogonal_dif = Orthogonal_dif().to(device)
+          self.Orthogonal_dif = Orthogonal_dif(uncertain_based_weight = self.uncertain_based_weight).to(device)
         self.visual_branch_only = visual_branch_only
         self.no_orthogonize = no_orthogonize
+        param_dict = kwargs
+
 
     def forward(self,         
                 prompts:list,

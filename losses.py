@@ -167,7 +167,8 @@ class LG_CLIP_LOSS(nn.Module):
         print(f'delta = {self.delta} and the graph_align loss is {_clip_["graph_align_loss"]}')
         print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
         print(f'gamma = {self.gamma} and the othogonal loss is {Orth["loss_value"]}')
-        all_loss = self.alpha*_clip_["clip_loss"] + self.beta*Cls["loss_value"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
+        auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
+        all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
         print(f"the total loss is {all_loss}\n")
         return all_loss
         
