@@ -286,7 +286,6 @@ class LGCLIP(nn.Module):
         backbone_v = None, 
         graph_align = "NA",
         no_contrastive = False,
-        uncertain_based_weight = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -307,7 +306,6 @@ class LGCLIP(nn.Module):
         self.visual_branch_only = visual_branch_only
         self.graph_align = graph_align
         self.no_contrastive = no_contrastive
-        self.uncertain_based_weight = uncertain_based_weight
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -633,20 +631,20 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
+        param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         if  (nntype not in ["clip", "biomedclip", "custom"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
-                                        graph_align=high_order, no_contrastive = no_contrastive, uncertain_based_weight = self.uncertain_based_weight).to(device)
-        self.PN_Classifier = PN_classifier(uncertain_based_weight = self.uncertain_based_weight).to(device)
+                                        graph_align=high_order, no_contrastive = no_contrastive,).to(device)
+        self.PN_Classifier = PN_classifier().to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
-          self.Orthogonal_dif = Orthogonal_dif(uncertain_based_weight = self.uncertain_based_weight).to(device)
+          self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
         self.no_orthogonize = no_orthogonize
-        param_dict = kwargs
 
 
     def forward(self,         
