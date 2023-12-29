@@ -133,8 +133,8 @@ class ImageSuperviseLoss(nn.Module):
         return outputs
 
 class LG_CLIP_LOSS(nn.Module):
-    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, 
-                 learnable_weight = False,  **kwargs):
+    def __init__(self,  alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, 
+                 learnable_weight = False,  **kwargs,):
         super().__init__()
         if learnable_weight: 
           self.alpha = torch.nn.Parameter(torch.tensor(1.0), requires_grad=True)
@@ -146,16 +146,16 @@ class LG_CLIP_LOSS(nn.Module):
           self.beta = nn.Parameter(torch.tensor(beta), requires_grad=False)
           self.gamma = nn.Parameter(torch.tensor(gamma), requires_grad=False)
           self.delta = nn.Parameter(torch.tensor(delta), requires_grad=False)
-          uncertain_based_weight
+
         if "uncertain_based_weight" in kwargs and kwargs["uncertain_based_weight"]:   ## 优先于learning weight 参数
           # uncertain = torch.abs(torch.randn(1, requires_grad=True))
           # logits = logits/(torch.square(uncertain))
           # logits = logits + torch.log(torch.square(uncertain))
           
-          self.alpha = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
-          self.beta = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)),requires_grad=True)
-          self.gamma = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
-          self.delta = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
+          self.alpha = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
+          self.beta = torch.nn.Parameter(torch.abs(torch.randn(1,)),requires_grad=True)
+          self.gamma = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
+          self.delta = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
            
           
         if MultiTaskModel is None:
