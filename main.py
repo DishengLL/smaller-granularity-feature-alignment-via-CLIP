@@ -161,9 +161,7 @@ if __name__ == "__main__":
         )
     param_dict = {"weight_strategy": uncertain_based_weight}
     # model definition
-    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v, 
-                           high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,
-                           *param_dict)
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
     # loss definition
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight,).to(device)
 
