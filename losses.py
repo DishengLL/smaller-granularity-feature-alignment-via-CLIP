@@ -133,7 +133,8 @@ class ImageSuperviseLoss(nn.Module):
         return outputs
 
 class LG_CLIP_LOSS(nn.Module):
-    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, learnable_weight = False):
+    def __init__(self, alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, 
+                 learnable_weight = False,  **kwargs):
         super().__init__()
         if learnable_weight: 
           self.alpha = torch.nn.Parameter(torch.tensor(1.0), requires_grad=True)
@@ -145,6 +146,18 @@ class LG_CLIP_LOSS(nn.Module):
           self.beta = nn.Parameter(torch.tensor(beta), requires_grad=False)
           self.gamma = nn.Parameter(torch.tensor(gamma), requires_grad=False)
           self.delta = nn.Parameter(torch.tensor(delta), requires_grad=False)
+          uncertain_based_weight
+        if "uncertain_based_weight" in kwargs and kwargs["uncertain_based_weight"]:   ## 优先于learning weight 参数
+          # uncertain = torch.abs(torch.randn(1, requires_grad=True))
+          # logits = logits/(torch.square(uncertain))
+          # logits = logits + torch.log(torch.square(uncertain))
+          
+          self.alpha = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
+          self.beta = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)),requires_grad=True)
+          self.gamma = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
+          self.delta = torch.nn.Parameter(torch.abs(torch.randn(1, requires_grad=True)), requires_grad=True)
+           
+          
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")
         self.model = MultiTaskModel
@@ -162,13 +175,32 @@ class LG_CLIP_LOSS(nn.Module):
         if img_labels is None:
             raise ValueError("img_label which will be used in Classifier is None")
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
+        
+        # auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
+       
+        classification_loss = Cls["loss_value"] /  torch.square(self.beta)+ torch.log(self.beta)
+        class_ortho_loss = Orth["loss_value"] / torch.square(self.gamma) + torch.log(self.gamma)
+        class_clip_loss = _clip_["clip_loss"]/torch.square(self.alpha) + torch.log(self.alpha) 
+        regression_loss = _clip_['graph_align_loss'] / (2*torch.square(self.beta))+ torch.log(self.delta)
+        all_loss = 0
+        # all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
+        if Orth["loss_value"] != 0:
+          all_loss = all_loss + class_ortho_loss
+        if _clip_["clip_loss"] != 0:
+          all_loss = all_loss + class_clip_loss
+        if _clip_['graph_align_loss'] != 0:
+          all_loss = all_loss + regression_loss
+        if all_loss!=0:
+          all_loss = all_loss + classification_loss
+        else:
+          all_loss =  Cls["loss_value"]
+        
         # if self.learnable_weight:  # add regularization to advoid gradient exploration
         print(f'alpha = {self.alpha} and the clip loss is {_clip_["clip_loss"]}')
         print(f'delta = {self.delta} and the graph_align loss is {_clip_["graph_align_loss"]}')
         print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
         print(f'gamma = {self.gamma} and the othogonal loss is {Orth["loss_value"]}')
-        auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
-        all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
+        
         print(f"the total loss is {all_loss}\n")
         return all_loss
         
