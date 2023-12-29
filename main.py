@@ -163,7 +163,7 @@ if __name__ == "__main__":
     # model definition
     model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
     # loss definition
-    loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight,).to(device)
+    loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, uncertain_based_weight = uncertain_based_weight).to(device)
 
     # build evaluator
     val_data = TestingDataset(backbone_type=backbone)
