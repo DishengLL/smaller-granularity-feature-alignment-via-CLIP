@@ -633,6 +633,7 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         # print(_constants_.BLUE+"the current backbone nn is: "+_constants_.RESET+nntype)
         # CLIP fashion alignment
+        param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         if  (nntype not in ["clip", "biomedclip", "custom"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
@@ -646,7 +647,6 @@ class MultiTaskModel(nn.Module):
           self.Orthogonal_dif = Orthogonal_dif(uncertain_based_weight = self.uncertain_based_weight).to(device)
         self.visual_branch_only = visual_branch_only
         self.no_orthogonize = no_orthogonize
-        param_dict = kwargs
 
 
     def forward(self,         
