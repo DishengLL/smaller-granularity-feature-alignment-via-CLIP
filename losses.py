@@ -146,8 +146,9 @@ class LG_CLIP_LOSS(nn.Module):
           self.beta = nn.Parameter(torch.tensor(beta), requires_grad=False)
           self.gamma = nn.Parameter(torch.tensor(gamma), requires_grad=False)
           self.delta = nn.Parameter(torch.tensor(delta), requires_grad=False)
-
-        if "uncertain_based_weight" in kwargs and kwargs["uncertain_based_weight"]:   ## 优先于learning weight 参数
+        weighting_strategy = kwargs["weighting_strategy"]
+        if weighting_strategy == "uncertain_based_weight":
+        # if "uncertain_based_weight" in kwargs and kwargs["uncertain_based_weight"]:   ## 优先于learning weight 参数
           # uncertain = torch.abs(torch.randn(1, requires_grad=True))
           # logits = logits/(torch.square(uncertain))
           # logits = logits + torch.log(torch.square(uncertain))
@@ -156,7 +157,8 @@ class LG_CLIP_LOSS(nn.Module):
           self.beta = torch.nn.Parameter(torch.abs(torch.randn(1,)),requires_grad=True)
           self.gamma = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
           self.delta = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
-           
+        elif weighting_strategy == "task_balance":
+          raise NotImplemented("have not completed")
           
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")

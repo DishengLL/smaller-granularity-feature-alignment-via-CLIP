@@ -119,6 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('--no_orthogonize',action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
     parser.add_argument('--no_contrastive',action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
+    parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
@@ -126,6 +127,9 @@ if __name__ == "__main__":
     visual_branch_only = args.vision_only
     two_phases = args.two_phases
     uncertain_based_weight = args.uncertain_based_weight
+    weight_strategy = args.weight_strategy
+    if  weight_strategy != "NA":
+      print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
     if uncertain_based_weight:
       print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
     if two_phases:
@@ -159,7 +163,7 @@ if __name__ == "__main__":
         pin_memory=True,
         num_workers = num_of_thread,
         )
-    param_dict = {"weight_strategy": uncertain_based_weight}
+    param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
     # model definition
     model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
     # loss definition
