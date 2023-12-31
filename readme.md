@@ -61,7 +61,7 @@ Using contrastive learning to align the diseases' representation between text an
 [1] [Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)  
 [2] [Xplainer: From X-Ray Observations to Explainable Zero-Shot Diagnosis](https://arxiv.org/pdf/2303.13391.pdf)  
 [3] [CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf)    
-[4] [A Simple General Approach to Balance Task Difficulty in Multi-Task Learning](https://arxiv.org/pdf/2002.04792.pdf)   
+[4] [A Simple General Approach to Balance Task Difficulty in Multi-Task Learning]([https://arxiv.org/pdf/2002.04792.pdf](https://readpaper.com/pdf-annotate/note?pdfId=4500343002848976897&noteId=2117093127684745728))   
 [5] [Multi-Task Learning Using Uncertainty to Weigh Losses
 for Scene Geometry and Semantics](https://arxiv.org/pdf/1705.07115.pdf)
 
