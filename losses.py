@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 import models
 from typing import List
+
+logger = logging.getLogger(__name__)
 ## Loss optimizes parameters in Text_encoder -- done
 class OrthogonalLoss(nn.Module):
     def __init__(self):
@@ -147,18 +149,15 @@ class LG_CLIP_LOSS(nn.Module):
           self.gamma = nn.Parameter(torch.tensor(gamma), requires_grad=False)
           self.delta = nn.Parameter(torch.tensor(delta), requires_grad=False)
         weighting_strategy = kwargs["weighting_strategy"]
-        if weighting_strategy == "uncertain_based_weight":
-        # if "uncertain_based_weight" in kwargs and kwargs["uncertain_based_weight"]:   ## 优先于learning weight 参数
-          # uncertain = torch.abs(torch.randn(1, requires_grad=True))
-          # logits = logits/(torch.square(uncertain))
-          # logits = logits + torch.log(torch.square(uncertain))
-          
+        if weighting_strategy == "uncertain_based_weight":   ## 优先于learning weight 参数   
           self.alpha = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
           self.beta = torch.nn.Parameter(torch.abs(torch.randn(1,)),requires_grad=True)
           self.gamma = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
           self.delta = torch.nn.Parameter(torch.abs(torch.randn(1)), requires_grad=True)
         elif weighting_strategy == "task_balance":
-          raise NotImplemented("have not completed")
+          logger.info("I using monotonical increasing function: $e^(x)$")
+          
+        self.weighting_strategy = weighting_strategy
           
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")
@@ -177,32 +176,42 @@ class LG_CLIP_LOSS(nn.Module):
         if img_labels is None:
             raise ValueError("img_label which will be used in Classifier is None")
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
-        
+        all = 0
         # auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
-       
-        classification_loss = Cls["loss_value"] /  torch.square(self.beta)+ torch.log(self.beta)
-        class_ortho_loss = Orth["loss_value"] / torch.square(self.gamma) + torch.log(self.gamma)
-        class_clip_loss = _clip_["clip_loss"]/torch.square(self.alpha) + torch.log(self.alpha) 
-        regression_loss = _clip_['graph_align_loss'] / (2*torch.square(self.beta))+ torch.log(self.delta)
-        all_loss = 0
-        # all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
-        if Orth["loss_value"] != 0:
-          all_loss = all_loss + class_ortho_loss
-        if _clip_["clip_loss"] != 0:
-          all_loss = all_loss + class_clip_loss
-        if _clip_['graph_align_loss'] != 0:
-          all_loss = all_loss + regression_loss
-        if all_loss!=0:
-          all_loss = all_loss + classification_loss
+        if self.weighting_strategy == "uncertain_based_weight":
+          classification_loss = Cls["loss_value"] /  torch.square(self.beta)+ torch.log(self.beta)
+          class_ortho_loss = Orth["loss_value"] / torch.square(self.gamma) + torch.log(self.gamma)
+          class_clip_loss = _clip_["clip_loss"]/torch.square(self.alpha) + torch.log(self.alpha) 
+          regression_loss = _clip_['graph_align_loss'] / (2*torch.square(self.beta))+ torch.log(self.delta)
+          # all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
+          if Orth["loss_value"] != 0:
+            all_loss = all_loss + class_ortho_loss
+          if _clip_["clip_loss"] != 0:
+            all_loss = all_loss + class_clip_loss
+          if _clip_['graph_align_loss'] != 0:
+            all_loss = all_loss + regression_loss
+          if all_loss!=0:
+            all_loss = all_loss + classification_loss
+          else:
+            all_loss =  Cls["loss_value"]
+        elif self.weighting_strategy == "task_balance":
+          # all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
+          if Orth["loss_value"] != 0:
+            all_loss = all_loss + torch.exp(Orth["loss_value"].detach()) * Orth["loss_value"]
+          if _clip_["clip_loss"] != 0:
+            all_loss = all_loss + torch.exp(_clip_["clip_loss"].detach()) * _clip_["clip_loss"]
+          if _clip_['graph_align_loss'] != 0:
+            all_loss = all_loss + torch.exp(_clip_['graph_align_loss'].detach()) * _clip_['graph_align_loss']
+          all_loss = all_loss + torch.exp(Cls["loss_value"] .detach()) * Cls["loss_value"] 
         else:
-          all_loss =  Cls["loss_value"]
+          auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
+          all_loss = self.beta * Cls["loss_value"] + auxiliary_loss
         
         # if self.learnable_weight:  # add regularization to advoid gradient exploration
         print(f'alpha = {self.alpha} and the clip loss is {_clip_["clip_loss"]}')
         print(f'delta = {self.delta} and the graph_align loss is {_clip_["graph_align_loss"]}')
         print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
         print(f'gamma = {self.gamma} and the othogonal loss is {Orth["loss_value"]}')
-        
         print(f"the total loss is {all_loss}\n")
         return all_loss
         
