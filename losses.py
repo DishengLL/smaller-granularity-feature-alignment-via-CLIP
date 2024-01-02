@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import models
 from typing import List
+import logging
 
 logger = logging.getLogger(__name__)
 ## Loss optimizes parameters in Text_encoder -- done
@@ -176,7 +177,7 @@ class LG_CLIP_LOSS(nn.Module):
         if img_labels is None:
             raise ValueError("img_label which will be used in Classifier is None")
         _clip_, Cls, Orth = self.model(prompts, img, img_labels)
-        all = 0
+        all_loss = 0
         # auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
         if self.weighting_strategy == "uncertain_based_weight":
           classification_loss = Cls["loss_value"] /  torch.square(self.beta)+ torch.log(self.beta)
