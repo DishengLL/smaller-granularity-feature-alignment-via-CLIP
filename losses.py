@@ -198,15 +198,15 @@ class LG_CLIP_LOSS(nn.Module):
         elif self.weighting_strategy == "task_balance":
           # all_loss = self.beta*Cls["loss_value"] + auxiliary_loss
           if Orth["loss_value"] != 0:
-            self.gamma = torch.exp(Orth["loss_value"].detach()) 
+            self.gamma = torch.nn.Parameter(torch.exp(Orth["loss_value"].detach())) 
             all_loss = all_loss + torch.exp(Orth["loss_value"].detach()) * Orth["loss_value"]
           if _clip_["clip_loss"] != 0:
-            self.alpha =  torch.exp(_clip_["clip_loss"].detach())
+            self.alpha =  torch.nn.Parameter(torch.exp(_clip_["clip_loss"].detach()))
             all_loss = all_loss + torch.exp(_clip_["clip_loss"].detach()) * _clip_["clip_loss"]
           if _clip_['graph_align_loss'] != 0:
-            self.delta = torch.exp(_clip_['graph_align_loss'].detach())
+            self.delta = torch.nn.Parameter(torch.exp(_clip_['graph_align_loss'].detach()))
             all_loss = all_loss + torch.exp(_clip_['graph_align_loss'].detach()) * _clip_['graph_align_loss']
-          self.beta = torch.exp(Cls["loss_value"] .detach())
+          self.beta = torch.nn.Parameter(torch.exp(Cls["loss_value"] .detach()))
           all_loss = all_loss + torch.exp(Cls["loss_value"] .detach()) * Cls["loss_value"] 
         else:
           auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
