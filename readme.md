@@ -66,6 +66,7 @@ Using contrastive learning to align the diseases' representation between text an
 for Scene Geometry and Semantics](https://arxiv.org/pdf/1705.07115.pdf)
 [6] [Attentional Mixtures of Soft Prompt Tuning
 for Parameter-efficient Multi-task Knowledge Sharing](https://homes.cs.washington.edu/~akari/papers/attempt_preprint.pdf)
+[7] [A Pilot Study of Query-Free Adversarial Attack against Stable Diffusion](https://arxiv.org/pdf/2303.16378.pdf)
 
 
 ### progress
