@@ -289,7 +289,7 @@ class Evaluator:
             print(constants.RED, "this disease have something wrong: "+constants.RESET, disease, ", ", j, "in this case set auc is 0!!!")
             each_class_roc[j] = 0
             continue
-          # plot(true_class, pred_dis)
+          plot(true_class, pred_dis)
           each_class_roc[j] = roc_auc_score(true_class, pred_dis, multi_class="ovr", average="micro",)
         disease_auc[disease] = each_class_roc
       return disease_auc
@@ -338,6 +338,7 @@ class Evaluator:
       plt.ylim(-0.05, 1.05)
       plt.xlabel("False Positive Rate")
       plt.ylabel("True Positive Rate")
+      plt.savefig('./output/AUC_img/output_plot.png')
           
     def plot(true_label, prob):
         plt.figure(figsize = (14, 3)) 
