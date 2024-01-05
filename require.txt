@@ -11,3 +11,4 @@ matplotlib
 pandas
 jinja2
 open_clip_torch
+seaborn
