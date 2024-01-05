@@ -64,6 +64,9 @@ Using contrastive learning to align the diseases' representation between text an
 [4] [A Simple General Approach to Balance Task Difficulty in Multi-Task Learning](https://arxiv.org/pdf/2002.04792.pdf)  
 [5] [Multi-Task Learning Using Uncertainty to Weigh Losses
 for Scene Geometry and Semantics](https://arxiv.org/pdf/1705.07115.pdf)
+[6] [Attentional Mixtures of Soft Prompt Tuning
+for Parameter-efficient Multi-task Knowledge Sharing](https://homes.cs.washington.edu/~akari/papers/attempt_preprint.pdf)
+[7] [A Pilot Study of Query-Free Adversarial Attack against Stable Diffusion](https://arxiv.org/pdf/2303.16378.pdf)
 
 
 ### progress
