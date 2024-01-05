@@ -11,7 +11,6 @@ from dataset import ImageTextContrastiveDataset, ImageTextContrastiveCollator, T
 from models import MultiTaskModel
 from train import Trainer
 from evaluate import  Evaluator
-from _email_ import send_email
 import argparse
 import traceback
 import constants as _constants_
@@ -62,7 +61,6 @@ if __name__ == "__main__":
 
     # 创建日志记录器
     logger = logging.getLogger('my_logger')
-    email = send_email.send_email()
     pwd = os.getcwd()
     # set random seed
     seed = 42
@@ -92,7 +90,7 @@ if __name__ == "__main__":
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
         'eval_steps': 100,
-        'save_steps': 1000,
+        'save_steps': 100,
         # "save_path": save_model_path,
         "model_zoo": ""   # the path of offline models
     }
@@ -149,7 +147,7 @@ if __name__ == "__main__":
       print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
       logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
     if  args.save_dir == None:
-      save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}/"
+      save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
     else:
       save_model_path = save_model_path + "/" + args.save_dir
     print("saving path: ",save_model_path)
