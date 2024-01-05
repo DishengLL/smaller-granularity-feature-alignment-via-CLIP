@@ -14,6 +14,9 @@ import transformers
 import constants as _constants_
 
 WEIGHTS_NAME = "pytorch_model.bin"
+
+FINAL_WEIGHTS_NAME = "final_pytorch_model.bin"
+
 pwd = os.getcwd()
 
 
@@ -199,9 +202,12 @@ class Trainer:
                     save_dir =  os.path.join(output_path, f'{global_step}/')
                     # self._save_ckpt(model, save_dir)
                     # print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
-                    
-                if torch.cuda.is_available():
-                  torch.cuda.empty_cache()
+                
+        save_dir = os.path.join(output_path,"")
+        self._save_ckpt(model, save_dir, final_one = True)   
+                
+                # if torch.cuda.is_available():
+                #   torch.cuda.empty_cache()
 
         # if save_best_model:
         #     import pandas as pd
@@ -249,11 +255,14 @@ class Trainer:
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
 
-    def _save_ckpt(self, model, save_dir):
+    def _save_ckpt(self, model, save_dir, final_one = False):
         if not os.path.exists(save_dir): os.makedirs(save_dir)
         state_dict = model.state_dict()
         print("save_dir: ", save_dir)
-        torch.save(state_dict, os.path.join(save_dir, WEIGHTS_NAME))
+        if not final_one:
+          torch.save(state_dict, os.path.join(save_dir, WEIGHTS_NAME))
+        else:
+          torch.save(state_dict, os.path.join(save_dir, FINAL_WEIGHTS_NAME))
         # torch.save(model, os.path.join(save_dir, "model.pt"))
 
     def _export_onnx_(self,model, onnx_file_path):

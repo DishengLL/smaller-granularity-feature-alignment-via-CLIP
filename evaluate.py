@@ -7,10 +7,9 @@ import torch
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.metrics import roc_auc_score, average_precision_score
 from sklearn.metrics import confusion_matrix, classification_report, mean_squared_error
-
 from tqdm import tqdm
 import json
-
+import matplotlib.pyplot as plt
 import constants 
 
 class Evaluator:
@@ -31,7 +30,7 @@ class Evaluator:
         self.eval_dataloader = eval_dataloader
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    def evaluate(self, eval_dataloader=None):
+    def evaluate(self, eval_dataloader=None, training_step = 0, record_each_roc = False):
         self.clf.eval()
         if self.eval_dataloader is None and eval_dataloader is not None: self.eval_dataloader = eval_dataloader
         else: eval_dataloader = self.eval_dataloader
@@ -198,8 +197,6 @@ class Evaluator:
                 outputs['acc'] = acc
                 accumu_acc.append(acc)
                 res = classification_report(labels.flatten(), pred_label.flatten(), output_dict=True, zero_division=np.nan)
-                np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\label.npy", labels.flatten())
-                np.save(r"D:\exchange\ShanghaiTech\learning\code\diagnosisP\x_ray_constrastive\output\predict_label.npy", pred_label.flatten())
                 # print(res)
                 res = res['macro avg']
                 res.pop('support')
@@ -271,7 +268,7 @@ class Evaluator:
                 outputs[k] = v[1]
         return outputs
 
-    def get_AUC(self, predictions_tensor, labels_tensor, plot=False):
+    def get_AUC(self, predictions_tensor, labels_tensor, plot=False, record_roc = False, training_step = 0):
       """
       for each label(disease) gets its own auc
       plot: bool, whether plot the roc plot in this function
@@ -289,7 +286,7 @@ class Evaluator:
             print(constants.RED, "this disease have something wrong: "+constants.RESET, disease, ", ", j, "in this case set auc is 0!!!")
             each_class_roc[j] = 0
             continue
-          plot(true_class, pred_dis)
+          # self.plot_(true_class, pred_dis)
           each_class_roc[j] = roc_auc_score(true_class, pred_dis, multi_class="ovr", average="micro",)
         disease_auc[disease] = each_class_roc
       return disease_auc
@@ -312,12 +309,12 @@ class Evaluator:
       for i in range(len(y_proba)):
           threshold = y_proba[i]
           y_pred = y_proba >= threshold
-          tpr, fpr = calculate_tpr_fpr(y_real, y_pred)
+          tpr, fpr = self.calculate_tpr_fpr(y_real, y_pred)
           tpr_list.append(tpr)
           fpr_list.append(fpr)
       return tpr_list, fpr_list
         
-    def plot_roc_curve(tpr, fpr, scatter = True, ax = None):
+    def plot_roc_curve(self, tpr, fpr, scatter = True, ax = None):
       '''
       Plots the ROC Curve by using the list of coordinates (tpr and fpr).
       
@@ -340,19 +337,19 @@ class Evaluator:
       plt.ylabel("True Positive Rate")
       plt.savefig('./output/AUC_img/output_plot.png')
           
-    def plot(true_label, prob):
+    def plot_(self, true_label, prob):
         plt.figure(figsize = (14, 3)) 
-        ax = plt.subplot(2, 3, i+1)
-        sns.histplot(x = "prob", data = df_aux, hue = 'class', color = 'b', ax = ax, bins = bins)
-        ax.set_title(c)
-        ax.legend([f"Class: {c}", "Rest"])
-        ax.set_xlabel(f"P(x = {c})")
+        # ax = plt.subplot(2, 3, i+1)
+        # sns.histplot(x = "prob", data = df_aux, hue = 'class', color = 'b', ax = ax, bins = bins)
+        # ax.set_title(c)
+        # ax.legend([f"Class: {c}", "Rest"])
+        # ax.set_xlabel(f"P(x = {c})")
         
         # Calculates the ROC Coordinates and plots the ROC Curves
-        ax_bottom = plt.subplot(2, 3, i+4)
-        tpr, fpr = get_all_roc_coordinates(true_label, prob)
+        # ax_bottom = plt.subplot(2, 3, i+4)
+        tpr, fpr = self.get_all_roc_coordinates(true_label, prob)
         plot_roc_curve(tpr, fpr, scatter = False, ax = ax_bottom)
-        ax_bottom.set_title("ROC Curve OvR")
+        # ax_bottom.set_title("ROC Curve OvR")
         
         # Calculates the ROC AUC OvR
         print(disease, j)
