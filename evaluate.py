@@ -1,5 +1,5 @@
 import pdb
-
+import os
 import pandas as pd
 import numpy as np
 from sklearn import multiclass
@@ -30,7 +30,7 @@ class Evaluator:
         self.eval_dataloader = eval_dataloader
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    def evaluate(self, eval_dataloader=None, training_step = 0, record_each_roc = False):
+    def evaluate(self, eval_dataloader=None, training_step = 0, dump = {}):
         self.clf.eval()
         if self.eval_dataloader is None and eval_dataloader is not None: self.eval_dataloader = eval_dataloader
         else: eval_dataloader = self.eval_dataloader
@@ -43,7 +43,14 @@ class Evaluator:
             pred_tensor = torch.cat((pred_tensor, pred), 0)
             label_tensor = torch.cat((label_tensor, torch.stack(data["img_labels"],0).to(self.device)), 0)     
         outputs = {'pred':pred_tensor, 'labels':label_tensor, "loss": classifier_out['loss_value']}
-
+        num_batch = pred_tensor.shape[0]
+        if dump != None and "dump_path" in dump:
+          tensor_dict = {"predictions": pred_tensor.reshape(num_batch,-1), "labels": label_tensor}
+          pwd = os.getcwd()
+          dump_path = dump["dump_path"]
+          if not os.path.exists( pwd + "/" + dump_path): os.makedirs( pwd + "/" + dump_path)
+          print(f"save tensor_dict in {pwd + dump_path}")
+          torch.save(tensor_dict, pwd + "/" + dump_path + "/tensor.pth")
         if self.mode is None:
             if len(labels.shape) == 1:
                 if len(np.unique(labels)) == 2:
@@ -81,8 +88,6 @@ class Evaluator:
             outputs.update(res)
 
         if self.mode == 'multiclass':
-            num_batch = pred_tensor.shape[0]
-
             auc_dict = self.get_AUC(pred_tensor.reshape(num_batch,-1), label_tensor)
 
             pred_tensor = pred_tensor.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
