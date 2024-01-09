@@ -211,10 +211,12 @@ def get_average_auc_among_disease( auc_dict, indicator = "positive"):
         
       
 
-def load_model(path = None, nntype = 'biomedclip' ):
+def load_model(path = None, nntype = "biomedclip", visual_branch_only = False, backbone_v = None, 
+               high_order="NA", no_orthogonize = False, no_contrastive = False ):
   if path == None:
     raise ValueError("you should specify the path of model")
-  model = MultiTaskModel(nntype="biomedclip")
+  model = MultiTaskModel(nntype = nntype, visual_branch_only=visual_branch_only,backbone_v = backbone_v,high_order=high_order, 
+                         no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
   model.load_state_dict(torch.load(path))
   model.eval()
   return model
@@ -242,7 +244,7 @@ def get_AUC(predictions_tensor, labels_tensor, plot=False, record_roc = False, t
     disease_auc[disease] = each_class_roc
   return disease_auc
 
-def model_infer_eval(model = None):
+def model_infer_eval(model = None, backbone_type = None, dump_path = None):
   if model is None:
     raise ValueError("you should specify the model before inference")
     # build evaluator
@@ -265,8 +267,10 @@ def model_infer_eval(model = None):
   dump = {
     "prediction":"./output/dump/prediction/",
     "label":"./output/dump/labels/",
-    "dump_path":"/output/dump/bio_high_task/"
+    "dump_path":"/output/dump/predict/"
   }
+  if dump_path is not None:
+    dump["dump_path"] = dump_path
   scores = _evaluator_.evaluate(dump = dump)
   print(f'\n\033[31m######### Eval #########\033[0m')
   for key in scores.keys():
@@ -291,6 +295,61 @@ def get_auc_roc(model_path = None):
 
 
 if __name__ == "__main__":
-  model = load_model("./output/biomedclip_None_False_False_binary_False_False_task_balance/pytorch_model.bin")
-  model = load_model("/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/output/biomedclip_None_False_False_binary_False_False_task_balance/final_pytorch_model.bin")
-  model_infer_eval(model)
+  parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
+  parser.add_argument("--dump_path", "-d", type = str, default=None, help="the path to dump the output")
+  parser.add_argument("--model","-m", type = str, required = True, help = "the path of predicted model.")
+  parser.add_argument('--backbone', type=str,choices=["clip", "biomedclip"], help='the backbone module in the model')
+  parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
+  parser.add_argument('--vision_only',action='store_true', default=False, help='does the model contain vision branch')
+  parser.add_argument('--backbone_v', choices=['densenet'], type=str, help="vision encoder in image branch")
+  parser.add_argument('--save_dir', type=str, help="the dir to save output")
+  parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
+  parser.add_argument('--high_order',  type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
+  parser.add_argument('--two_phases',action='store_true', default=False, help='implement 2-phases training scheme') 
+  parser.add_argument('--no_orthogonize',action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
+  parser.add_argument('--no_contrastive',action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
+  parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
+  parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
+  args = parser.parse_args()    
+  model_path = args.model
+  dump = args.dump_path
+  backbone = "biomedclip" if args.backbone == None else args.backbone
+  backbone_v = None if args.backbone_v == None else args.backbone_v
+  prompt = "basic" if args.prompt == None else args.prompt
+  visual_branch_only = args.vision_only
+  two_phases = args.two_phases
+  uncertain_based_weight = args.uncertain_based_weight
+  weight_strategy = args.weight_strategy
+  if  weight_strategy != "NA":
+    print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
+  if uncertain_based_weight:
+    print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
+  if two_phases:
+    print(constants.RED + "using two phase training scheme" + constants.RESET)
+  no_orthogonize = args.no_orthogonize
+  if no_orthogonize:
+    print(constants.RED + "do not implement orthogonization" + constants.RESET)
+  no_contrastive = args.no_contrastive
+  if no_contrastive:
+    print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
+  learnable_weight = args.learnable_weight
+  high_order = args.high_order
+  if learnable_weight:
+    print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
+    logger.info("using learnable weights among sub-loss during training!")
+  if high_order != "NA":
+    print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
+    logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
+  # if  args.save_dir == None:
+  #   save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
+  # else:
+  #   save_model_path = save_model_path + "/" + args.save_dir
+  # print("saving path: ",save_model_path)
+  
+  # model_path = "./output/biomedclip_None_True_False_NA_False_False_NA/final_pytorch_model.bin"
+     
+  # model = load_model("./output/biomedclip_None_False_False_binary_False_False_task_balance/pytorch_model.bin")
+  # model = load_model("/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/output/biomedclip_None_False_False_binary_False_False_task_balance/final_pytorch_model.bin")
+  model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,
+                         high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
+  model_infer_eval(model, backbone_type = backbone, dump_path=dump)
