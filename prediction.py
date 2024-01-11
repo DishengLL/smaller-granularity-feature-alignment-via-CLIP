@@ -278,9 +278,9 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
     raise ValueError("you should specify the model before inference")
     # build evaluator
   model.cuda()
-  config_dict = parse_model_path(model)
+  # config_dict = parse_model_path(model)
   
-  val_data = TestingDataset(backbone_type=config_dict["backbone"])
+  val_data = TestingDataset(backbone_type=backbone_type)
   val_collate_fn = TestingCollator()
   eval_dataloader = DataLoader(val_data,
       batch_size=256,
