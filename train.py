@@ -107,10 +107,7 @@ class Trainer:
         train_loss_dict = defaultdict(list)
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
-            # print("steps_per_epoch>>", steps_per_epoch)
             for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar): # the number of batches
-
-                # check if model parameters keep same
                 for train_idx in range(num_train_objectives): # calculate for each train objective 
                     loss_model = loss_models[train_idx]
                     loss_model.zero_grad()
@@ -144,7 +141,6 @@ class Trainer:
                         scaler.update()
                         skip_scheduler = scaler.get_scale() != scale_before_step
                     else:
-                        # print(data)
                         loss_model_return = loss_model(**data)
                         loss_value = loss_weight * loss_model_return / self.accumulation_steps
                         loss_value.backward()
@@ -187,9 +183,6 @@ class Trainer:
                             self._save_ckpt(model, save_dir)     #save the best model during the iterations
                     print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
-                          # print("auc_dict: \n", scores[key])
-                    # save_dir = os.path.join(output_path, f'{global_step}/')
-                    # self._save_ckpt(model, save_dir)
 
                     # score logs save the list of scores
                     self.score_logs['global_step'].append(global_step)
@@ -197,44 +190,14 @@ class Trainer:
                         if key in ['acc','auc', 'auc/mse']:
                             self.score_logs[key].append(scores[key])
 
-                if self.evaluator is None and global_step % save_steps == 0:
-                    state_dict = model.state_dict()
-                    save_dir =  os.path.join(output_path, f'{global_step}/')
-                    # self._save_ckpt(model, save_dir)
-                    # print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
+                # if self.evaluator is None and global_step % save_steps == 0:
+                #     state_dict = model.state_dict()
+                #     save_dir =  os.path.join(output_path, f'{global_step}/')
+                #     self._save_ckpt(model, save_dir)
+                #     print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
                 
         save_dir = os.path.join(output_path,"")
-        self._save_ckpt(model, save_dir, final_one = True)   
-                
-                # if torch.cuda.is_available():
-                #   torch.cuda.empty_cache()
-
-        # if save_best_model:
-        #     import pandas as pd
-        #     from distutils.dir_util import copy_tree
-        #     res = pd.DataFrame(self.score_logs)
-        #     res.to_csv(output_path + r"/res.csv")
-        #     res = res.set_index('global_step')
-            # take the average column best
-            # print(res.mean(1))
-            # best_iter = res.mean(1).idxmax()
-            # best_save_path = os.path.join(output_path, './best')
-            # if not os.path.exists(best_save_path): os.makedirs(best_save_path)
-            # best_origin_path = os.path.join(output_path, f'./{best_iter}')
-            # print(f'save best checkpoint at iter {best_iter} to', best_save_path)
-            # try:
-            #   copy_tree(best_origin_path, best_save_path)
-            # except:
-            #     print(_constants_.RED + "copy_tree error in main.py" + _constants_.RESET)
-                
-
-        if eval_dataloader is None and output_path is not None:   #No evaluator, but output path: save final model version
-            state_dict = model.state_dict()
-            if "/Users/liu/Desktop/school_academy/ShanghaiTech" in output_path:
-                output_path = output_path.replace("/Users/liu/Desktop/school_academy/ShanghaiTech", "D://exchange//ShanghaiTech//")
-            # torch.save(state_dict, os.path.join(output_path, WEIGHTS_NAME))
-            # print('model saved to', os.path.join(output_path, WEIGHTS_NAME))
-            # torch.save(model,  os.path.join(output_path, "whole_model.pth"))
+        self._save_ckpt(model, save_dir, final_one = True)
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
@@ -258,24 +221,14 @@ class Trainer:
     def _save_ckpt(self, model, save_dir, final_one = False):
         if not os.path.exists(save_dir): os.makedirs(save_dir)
         state_dict = model.state_dict()
-        print("save_dir: ", save_dir)
         if not final_one:
-          torch.save(state_dict, os.path.join(save_dir, WEIGHTS_NAME))
+          save_path = os.path.join(save_dir, WEIGHTS_NAME)
+          torch.save(state_dict, save_path)
+          print("save model checkpoint in: ", save_path)
         else:
-          torch.save(state_dict, os.path.join(save_dir, FINAL_WEIGHTS_NAME))
-        # torch.save(model, os.path.join(save_dir, "model.pt"))
-
-    def _export_onnx_(self,model, onnx_file_path):
-        # onnx_file_path = "your_model.onnx"  # 保存的 ONNX 文件名
-
-        # 使用 torch.onnx.export 导出模型
-        torch.onnx.export(model,  # 已加载的 PyTorch 模型
-                        torch.randn(1, 1) ,  # 示例输入数据
-                        onnx_file_path,  # 保存的 ONNX 文件路径
-                        verbose=True,  # 可选参数，用于显示详细信息
-                        # input_names=['input'],  # 指定输入张量的名称
-                        # output_names=['output'])  # 指定输出张量的名称
-                        )   
+          save_path = os.path.join(save_dir, FINAL_WEIGHTS_NAME)
+          torch.save(state_dict,save_path)
+          print("save final model checkpoint in: ", save_path)
         
     def get_average_auc_among_disease(self, auc_dict, indicator = "positive"):
       average_auc = 0
