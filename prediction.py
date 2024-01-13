@@ -257,6 +257,7 @@ def weight_parser(items=None):
     uncertain_based_weight = "_".join(uncertain_based_weight)
     items.append(uncertain_based_weight)
     return items
+  return items
     
 def parse_model_path(path = None):
   path = path.split('/')[-2]
@@ -324,18 +325,6 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
   parser.add_argument("--dump_path", "-d", type = str, default=None, help="the path to dump the output")
   parser.add_argument("--model","-m", type = str, required = True, help = "the path of predicted model.")
-  # parser.add_argument('--backbone', type=str,choices=["clip", "biomedclip"], help='the backbone module in the model')
-  # parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
-  # parser.add_argument('--vision_only',action='store_true', default=False, help='does the model contain vision branch')
-  # parser.add_argument('--backbone_v', choices=['densenet'], type=str, help="vision encoder in image branch")
-  # parser.add_argument('--save_dir', type=str, help="the dir to save output")
-  # parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
-  # parser.add_argument('--high_order',  type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
-  # parser.add_argument('--two_phases',action='store_true', default=False, help='implement 2-phases training scheme') 
-  # parser.add_argument('--no_orthogonize',action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
-  # parser.add_argument('--no_contrastive',action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
-  # parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
-  # parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
   args = parser.parse_args()    
   model_path = args.model
   dump = args.dump_path
@@ -352,6 +341,6 @@ if __name__ == "__main__":
   high_order = config_dict['high_order']
   if high_order != "NA":
     print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
-  model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,
+  model = load_model(model_path, nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,
                          high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
   model_infer_eval(model, backbone_type = backbone, dump_path=dump)
