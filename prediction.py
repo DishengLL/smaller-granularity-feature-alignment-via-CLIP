@@ -25,7 +25,7 @@ import traceback
 import constants as _constants_
 import logging
 import os
-
+from pathlib import Path 
 
 def plot(get_text_embedding, prompt, title = None):
   text_features = get_text_embedding
@@ -260,9 +260,12 @@ def weight_parser(items=None):
   return items
     
 def parse_model_path(path = None):
-  path = path.split('/')[-2]
+  path_obj = Path(path)
+  path_elements = list(path_obj.parts)
+  path = path_elements[-2]
   items = path.split('_')
   items = weight_parser(items)
+  print(items)
   item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", "no_contrastive", "weight_strategy"]
   assert len(items) == len(item_name)
   config_dict = {}
@@ -298,7 +301,7 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
   dump = {
     "prediction":"./output/dump/prediction/",
     "label":"./output/dump/labels/",
-    "dump_path":"/output/dump/predict/"
+    "dump_path":"./output/dump/predict_with_default_name/"
   }
   if dump_path is not None:
     dump["dump_path"] = dump_path
@@ -316,10 +319,23 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
   print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
   print(f'\n\033[31m#######################################\033[0m')
   
-
-def get_auc_roc(model_path = None):
-  model = load_model(model_path)
-
+def get_auto_dump_file(path:str)->str:
+  '''
+  automatically generate the corresponding dir to store generated tensor
+  return: the path of stored folder
+  '''
+  # Create a Path object
+  path_obj = Path(path)
+  # Get the components of the path as a list
+  path_elements = list(path_obj.parts)
+  file_name = path_elements[-1]
+  dir_name = path_elements[-2]
+  if "final_" in file_name:
+    dir_name +=  "_final"
+  pwd = os.getcwd()
+  full_path = os.path.join("/", "output/dump_prediction_output")
+  full_path = os.path.join(full_path, dir_name)
+  return full_path
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
@@ -328,6 +344,8 @@ if __name__ == "__main__":
   args = parser.parse_args()    
   model_path = args.model
   dump = args.dump_path
+  if dump is None:
+    dump = get_auto_dump_file(model_path)
   config_dict = parse_model_path(model_path)
   backbone = "biomedclip" if config_dict['backbone'] == None else config_dict['backbone']
   backbone_v = None if config_dict['backbone_v'] == None else config_dict['backbone_v']
