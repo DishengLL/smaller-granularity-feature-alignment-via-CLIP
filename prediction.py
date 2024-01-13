@@ -258,6 +258,7 @@ def weight_parser(items=None):
     items.append(uncertain_based_weight)
     return items
   return items
+
     
 def parse_model_path(path = None):
   path = path.split('/')[-2]
