@@ -35,11 +35,18 @@ Using contrastive learning to align the diseases' representation between text an
 <div align="center" style="position: relative;">
   <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
   <p style="position: absolute; bottom: 0; margin: 0;">Hierarchical relation tree of 14 labels</p>
-</div>
+</div>     
+
+### AUC comparison among 14 labels 
+<div align="center" style="position: relative;">
+  <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels</p>
+</div>   
+AUC improves 3.8%.
 
 ### ToDo   
 - [ ] modality gap shift exploration
-- [x] Base line model --- CNN ---Densenet121 $_{[3]}$
+
 
 ### Ablation
 - [x] visual branch only
