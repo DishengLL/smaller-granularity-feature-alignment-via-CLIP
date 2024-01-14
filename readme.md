@@ -40,9 +40,15 @@ Using contrastive learning to align the diseases' representation between text an
 ### AUC comparison among 14 labels 
 <div align="center" style="position: relative;">
   <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
-  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels</p>
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
 </div>   
-AUC improves 3.8%.
+AUC improves 3.38%
+
+<div align="center" style="position: relative;">
+  <img src=".\imgs\AUCcomp_graph_noOrthContras.png" alt="Chest Image" width="100%" height="auto">
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
+</div>   
+AUC improves 6.29%.
 
 ### ToDo   
 - [ ] modality gap shift exploration
