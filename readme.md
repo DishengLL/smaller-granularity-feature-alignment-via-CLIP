@@ -29,7 +29,7 @@ To solve this problem, I need to interface 2 main challenges
 2. using a knowledge graph to inject the prior knowledge of different diseases into my feature extractor.
 
 ### Model  
-<img src=".\imgs\methodology.png" style="zoom:50%;"></img>
+<img src=".\imgs\methodology_blank.png" style="zoom:50%;"></img>
 Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guild the feature extraction in the image branch.
 
 ### Pathology correlation:
