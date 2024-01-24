@@ -9,7 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 from torch import Tensor
-
+from scipy.stats import norm
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -190,12 +190,18 @@ class plot():
     title_text.set_fontweight("bold")
     
     sns.kdeplot(cosine_similarities.flatten(), fill=True, ax=ax2, alpha=0.7)
+    mean_value, std_dev = norm.fit(cosine_similarities.flatten())
     ax2.set_title('Density Plot')
     ax2.set_xlabel('Similarity Values')
     ax2.set_ylabel('Density')
+    ax2.axvline(mean_value, color='red', linestyle='dashed', linewidth=2, label=f'Mean: {mean_value:.2f}')
+    ax2.axvline(mean_value + std_dev, color='green', linestyle='dashed', linewidth=2, label=f'Std: {std_dev:.2f}')
+    ax2.axvline(mean_value - std_dev, color='green', linestyle='dashed', linewidth=2)
+
 
 
     plt.tight_layout()  # 自动调整布局
+    plt.legend()
     # plt.show(plt.savefig(f".\output\sim_heatmap\{backbone}_{template}.png"))
     plt.savefig(f".\output\sim_heatmap\{backbone}_{template}_all.png")
     return 
