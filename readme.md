@@ -57,8 +57,6 @@ AUC improves 3.38%
 </div>   
 AUC improves by 6.29%. By injecting customized knowledge, the model performance in <b><font color=red>fracture</font></b> improves obviously, which is the most challenging for discrimination <a href=#reference>[3]</a>.
 
-
-
 ### ToDo   
 - [ ] modality gap shift exploration
 
