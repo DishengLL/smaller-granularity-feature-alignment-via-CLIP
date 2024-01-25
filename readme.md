@@ -9,7 +9,14 @@
 currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.
 
 **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
+### Abstract
+Leveraging multimodal data, the Visual Language Model(VLM) demonstrated impressive capability of bridging the
+knowledge in multi-modalities. VLMs like CLIP, Flamingo, and DALL-E, which are trained based on the tremendous
+amount of data and computational resources show good performance in many different downstream tasks due to the good generalizability. However, like a double-edged sword, the generalizability of pre-trained VLMs limits their performance in the customized setting. In this project, I try to leverage the prior knowledge in pre-trained VLMs and customize the embedding generation in my general classification task. Using the simple contrastive learning method proposed in the report, a robust generalist classifier is available with the deficiency of training data which is a ubiquitous context in the biomedical setting.
 
+> **A feature representation task.**  
+> currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.  
+> **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
 ### Problem Description:
 To alleviate the workload of radiologists, researchers develop algorithms that can automatically classify X-ray images into different classes (corresponding to the existence of different diseases discovered in X-ray images).   
@@ -26,7 +33,7 @@ To solve this problem, I need to interface 2 main challenges
 2. using a knowledge graph to inject the prior knowledge of different diseases into my feature extractor.
 
 ### Model  
-<img src=".\imgs\methodology.png" style="zoom:50%;"></img>
+<img src=".\imgs\methodology_blank.png" style="zoom:50%;"></img>
 Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guild the feature extraction in the image branch.
 
 ### Pathology correlation:
@@ -35,11 +42,26 @@ Using contrastive learning to align the diseases' representation between text an
 <div align="center" style="position: relative;">
   <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
   <p style="position: absolute; bottom: 0; margin: 0;">Hierarchical relation tree of 14 labels</p>
-</div>
+</div>     
+
+### AUC comparison among 14 labels 
+<div align="center" style="position: relative;">
+  <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
+</div>   
+AUC improves 3.38%
+
+<div align="center" style="position: relative;">
+  <img src=".\imgs\AUCcomp_graph_noOrthContras.png" alt="Chest Image" width="100%" height="auto">
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
+</div>   
+AUC improves by 6.29%. By injecting customized knowledge, the model performance in <b><font color=red>fracture</font></b> improves obviously, which is the most challenging for discrimination <a href=#reference>[3]</a>.
+
+
 
 ### ToDo   
 - [ ] modality gap shift exploration
-- [x] Base line model --- CNN ---Densenet121 $_{[3]}$
+
 
 ### Ablation
 - [x] visual branch only
@@ -51,9 +73,7 @@ Using contrastive learning to align the diseases' representation between text an
   - [ ] CLIP text encoder, **custom visual encoder**, transformer1/2, classifier
 - [ ] semantic + domain level alignment
 
-### SOTA solution
-##### model and methodology
-[CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://arxiv.org/pdf/2003.00827v2.pdf) -- Average AUC = 84.9   
+
 
 ### Reference
 [1] [Towards long-tailed, multi-label disease classification from chest X-ray: Overview of the CXR-LT challenge](https://arxiv.org/pdf/2310.16112v1.pdf)  
