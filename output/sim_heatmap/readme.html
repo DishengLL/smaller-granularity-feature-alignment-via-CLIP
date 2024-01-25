@@ -1,0 +1,85 @@
+<body>
+  I used different PLMs to generate embeddings of differernt prompts.<br>
+  <b>CXR-specific</b> models are <b>more likely to differentiate</b> detailed prompts about diseases.
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMs</title>
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      th,
+      td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <h2>PLMs</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>models' name</th>
+        <th>prompt</th>
+        <th>statis(mean-std) [<b>smaller is better]</b></th>
+        <th>similarty conclusion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Bert</td>
+        <td>basic/detailed</td>
+        <td>0.91-0.1 / 0.97-0.02</td>
+        <td>Bert-detailed get <font color=red>more similar</font> among prompts<br>compared with Bert-basic</td>
+      </tr>
+      <tr>
+        <td>CLIP</td>
+        <td>basic/detailed</td>
+        <td>0.86-0.06 / 0.82-0.09</td>
+        <td>CLIP-detailed get <font color=green>less similar</font> among prompts<br>compared with CLIP-basic</td>
+      </tr>
+      <tr>
+        <td>BiomedCLIP</td>
+        <td>basic/detailed</td>
+        <td>0.7-0.12 / 0.75-0.1</td>
+        <td>BiomedCLIP-detailed get <font color=red>more similar</font> among prompts<br>compared with BiomedCLIP-basic
+        </td>
+      </tr>
+      <tr>
+        <td>CXR-Bert-g</td>
+        <td>basic/detailed</td>
+        <td>0.72-0.11 / 0.89-0.05</td>
+        <td>CXR-Bert-g-detailed get <font color=red>more similar</font> among prompts<br>compared with CXR-Bert-g-basic
+        </td>
+      </tr>
+      <tr>
+        <td>CXR-Bert-s</td>
+        <td>basic/detailed</td>
+        <td>0.19-0.43 / 0.17-0.46</td>
+        <td>CXR-Bert-s-detailed get <font color=green>less similar</font> among prompts<br>compared with
+          CXR-Bert-s-basic</td>
+      </tr>
+      <tr>
+        <td>BioVil-t</td>
+        <td>basic/detailed</td>
+        <td>0.35-0.37 / 0.13-0.45</td>
+        <td>BioVil-t-detailed get <font color=green>less similar</font> among prompts<br>compared with BioVil-t-basic
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</body>
