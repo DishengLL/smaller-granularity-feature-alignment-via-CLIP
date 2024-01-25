@@ -52,6 +52,24 @@ BASIC_PROMPT = [
  "images for Support Devices"
 ]
 
+DESC_PROMPT = {
+    "No Finding": "No pathological findings observed in the X-ray image; a normal result indicating the absence of detectable abnormalities or diseases.",
+    "Enlarged Cardiomediastinum": "Enlargement of the heart and the structures in the central part of the chest, visible on a chest X-ray, often identified in the mediastinal region.",
+    "Cardiomegaly": "Abnormal enlargement of the heart, potentially observed in the cardiac silhouette on a chest X-ray, indicating an increase in cardiac size.",
+    "Lung Lesion": "An abnormality or injury in the lung tissue, which may include tumors, nodules, or other lesions, affecting specific areas within the lungs.",
+    "Lung Opacity": "Increased density or lack of transparency in lung tissue observed on X-ray images, affecting various regions of the lungs and compromising visibility.",
+    "Edema": "Accumulation of excess fluid in the body tissues, including the lungs, leading to swelling; in X-ray images, may manifest as increased density in the lung parenchyma.",
+    "Consolidation": "Solidification of lung tissue, often due to conditions like pneumonia, affecting specific areas of the lungs and causing reduced air exchange.",
+    "Pneumonia": "Inflammation of the lung tissue, typically affecting specific lobes or segments of the lungs, visible as infiltrates on X-ray images.",
+    "Atelectasis": "Collapse or partial collapse of lung tissue, causing reduced air volume in specific lung regions, often observed as opacities on X-ray.",
+    "Pneumothorax": "Presence of air in the pleural space, causing lung collapse; usually seen as a dark area along the pleural line on X-ray images.",
+    "Pleural Effusion": "Accumulation of excess fluid in the pleural cavity, typically seen as blunting of the costophrenic angles or as fluid collections in specific pleural spaces on X-ray.",
+    "Pleural Other": "Various abnormalities affecting the pleura, including pleurisy, pneumopleuritis, or pleural thickening; localized changes visible in the pleural region on X-ray.",
+    "Fracture": "Break or crack in bones of the rib cage or sternum, often visible as discontinuities in specific ribs or bone structures on X-ray.",
+    "Support Devices": "Presence of medical support devices in the patient, such as ventilators, tubes, or other supportive equipment; may be visible in specific areas of the chest or lung fields on X-ray."
+}
+
+
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
