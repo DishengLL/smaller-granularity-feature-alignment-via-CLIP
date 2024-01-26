@@ -37,7 +37,7 @@ class PLM_embedding:
   
   def get_biomedclip_text_embedding(self, text:list):
     from open_clip import create_model_from_pretrained, get_tokenizer 
-    image = r".\imgs\chest.png"
+    image = r"..\imgs\chest.png"
     model, preprocess = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
     model.to(device)
     tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
@@ -137,7 +137,7 @@ class PLM_embedding:
     
 def main():
     parser = argparse.ArgumentParser(description="generate prompt embedding based on different PLMs")
-    parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomed', "biovil_t", "CXR_BERT_s","CXR_BERT_g", "bert"], required=True)
+    parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomedclip', "biovil_t", "cxr_bert_s","cxr_bert_g", "bert"], required=True)
     parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic"],help="specify the prompt template(default: basic).")
     parser.add_argument("--saving_f", '-s',  type=str, default='./data/prompts_tensors' ,help="specify the folder to save embedding.")
     args = parser.parse_args()
@@ -146,7 +146,7 @@ def main():
     if template == "basic":
       text = C.BASIC_PROMPT
     elif template == "detailed":
-      text = C.DESC_PROMPT
+      text = list(C.DESC_PROMPT.values())
     saving_f = args.saving_f
     saving_f += f"/{template}"
     
