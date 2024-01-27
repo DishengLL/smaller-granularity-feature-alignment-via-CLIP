@@ -42,11 +42,11 @@ To solve this problem, I need to interface 2 main challenges
 
 ### Model  
 <img src=".\imgs\methodology_blank.png" style="zoom:50%;"></img>
-Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guild the feature extraction in the image branch.
+Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guide the feature extraction in the image branch.
 
 ### Pathology correlation:
  In reality, the diseases diagnosed from X-ray images are supposed to be correlated with each other to some extent. **Therefore**, the totally orthogonalizing  may not make sense.    
- To inject the prior knowledge of this correlation, I use graph to represent the hierarchical relation between my 14 labels, and hope this prior knowledge can guild the model learning.
+ To inject the prior knowledge of this correlation, I use the graph to represent the hierarchical relation between my 14 labels, and hope this prior knowledge can guide the model learning.
 <div align="center" style="position: relative;">
   <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
   <p style="position: absolute; bottom: 0; margin: 0;">Hierarchical relation tree of 14 labels</p>
@@ -55,7 +55,7 @@ Using contrastive learning to align the diseases' representation between text an
 ### AUC comparison among 14 labels 
 <div align="center" style="position: relative;">
   <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
-  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
+  <p style="position: absolute; bottom: 0; margin: 0;">AUC comparison among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
 </div>   
 AUC improves 3.38%
 
@@ -63,6 +63,7 @@ AUC improves 3.38%
   <img src=".\imgs\AUCcomp_graph_noOrthContras.png" alt="Chest Image" width="100%" height="auto">
   <p style="position: absolute; bottom: 0; margin: 0;">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
 </div>   
+
 AUC improves by 6.29%. By injecting customized knowledge, the model performance in <b><font color=red>fracture</font></b> improves obviously, which is the most challenging for discrimination <a href=#reference>[3]</a>.
 
 
