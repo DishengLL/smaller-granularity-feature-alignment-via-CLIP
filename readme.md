@@ -42,7 +42,7 @@ To solve this problem, I need to interface 2 main challenges
 
 ### Model  
 <p align="center">
-  <img src=""./imgs/methodology_blank.png"" alt="methodology_blank Image" width="50%" height="auto">
+  <img src="./imgs/methodology_blank.png" alt="methodology_blank Image" width="50%" height="auto">
 </p>
 
 Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guide the feature extraction in the image branch.
