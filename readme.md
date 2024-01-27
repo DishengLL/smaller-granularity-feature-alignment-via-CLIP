@@ -1,5 +1,3 @@
-# Fine-grained Feature Alignment via Contrastive Learning
-
 <p align="center">
   <a href="https://github.com/DishengLL/Fine-Grained_Features_Alignment_via_Constrastive_Learning/tree/master">
     <img src="https://img.shields.io/badge/code-red.svg" alt="code">
