@@ -20,10 +20,10 @@
 ### Abstract
 Leveraging multimodal data, the Visual Language Model(VLM) demonstrated impressive capability of bridging the
 knowledge in multi-modalities. VLMs like CLIP, Flamingo, and DALL-E, which are trained based on the tremendous
-amount of data and computational resources show good performance in many different downstream tasks due to the good generalizability. However, like a double-edged sword, the generalizability of pre-trained VLMs limits their performance in the customized setting. In this project, I try to leverage the prior knowledge in pre-trained VLMs and customize the embedding generation in my general classification task. Using the simple contrastive learning method proposed in the report, a robust generalist classifier is available with the deficiency of training data which is a ubiquitous context in the biomedical setting.
+amount of data and computational resources show good performance in many different downstream tasks due to the good generalizability. However, like a double-edged sword, the generalizability of pre-trained VLMs limits their performance in the customized setting. In this project, I try to leverage the prior knowledge in pre-trained VLMs and customize the embedding generation in my general classification task. Using the simple contrastive learning method proposed in the report, a robust generalist classifier is available with the deficiency of training data, a ubiquitous context in the biomedical setting.
 
 > **A feature representation task.**  
-> currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.  
+> Currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.  
 > **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
 ### Problem Description:
@@ -49,7 +49,7 @@ Using contrastive learning to align the diseases' representation between text an
 
 ### Pathology correlation:
  In reality, the diseases diagnosed from X-ray images are supposed to be correlated with each other to some extent. **Therefore**, the totally orthogonalizing  may not make sense.    
- To inject the prior knowledge of this correlation, I use the graph to represent the hierarchical relation between my 14 labels, and hope this prior knowledge can guide the model learning.
+ To inject the prior knowledge of this correlation, I use the graph to represent the hierarchical relation between my 14 labels and hope this prior knowledge can guide the model learning.
 <div align="center" style="position: relative;">
   <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
 </div>     
