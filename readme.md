@@ -70,7 +70,7 @@ AUC improves 3.38%
 
 <p align="center">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
 
-AUC improves by 6.29%. By injecting customized knowledge, the model performance in <b><font color=red>fracture</font></b> improves obviously, which is the most challenging for discrimination <a href=#reference>[3]</a>.
+AUC improves by 6.29%. By injecting customized knowledge, the model performance in **fracture** improves obviously, which is the most challenging for discrimination [3].
 
 
 ### Reference
