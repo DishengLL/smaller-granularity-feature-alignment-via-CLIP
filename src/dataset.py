@@ -41,16 +41,16 @@ class ImageTextContrastiveDataset(Dataset):
             raise ValueError("backbone type error")
         if backbone_type == "clip" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/clip_basic.pt"
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/clip_basic.pt"
         elif backbone_type == "biomedclip" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biomedclip_basic.pt"
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
         elif backbone_type == "cxr_bert_s" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/cxr_bert_s.pt"          
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/cxr_bert_s.pt"          
         elif backbone_type == "biovil_t" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biovil_t.pt"
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biovil_t.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
