@@ -33,23 +33,23 @@ In this context, what I want to do is establish an algorithm which capable of de
 
 ### Challenges:
 To solve this problem, I need to confront 2 main challenges
-1. data scarcity -- clinical data is always scarce due to private code. The deficiency of training data limits the generalibil
-2. generalizability -- how can I improve the generalizability of the model to tackle several different diseases
+1. data scarcity -- clinical data is always scarce due to private code. The deficiency of training data limits the performance of AI models.
+2. generalizability -- Training generalist models that are robust in the detection of multiple diseases is challenging.  
    
 ### Potential Solutions 
-1. leveraging the knowledge in the powerful pre-trained LLMs to guide the feature extraction in my image classification task
-2. using a knowledge graph to inject the prior knowledge of different diseases into my feature extractor.
+1. leveraging the knowledge in the powerful pre-trained LLMs to guide the feature extraction during my image classification task; using text data to alleviate the data scarcity issue.
+2. using a knowledge graph to inject the prior knowledge of the correlation among different diseases, facilitating the algorithm to grasp the latent relationship among diseases.
 
 ### Model  
 <p align="center">
   <img src="./imgs/methodology_blank.png" alt="methodology_blank Image" width="100%" height="auto">
 </p>
 
-Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guide the feature extraction in the image branch.
+Using contrastive learning to align the diseases' representation between text and image, leveraging the power of LLMs to guide the feature extraction in the image branch. 
 
 ### Pathology correlation:
- In reality, the diseases diagnosed from X-ray images are supposed to be correlated with each other to some extent. **Therefore**, the totally orthogonalizing  may not make sense.    
- To inject the prior knowledge of this correlation, I use the graph to represent the hierarchical relation between my 14 labels and hope this prior knowledge can guide the model learning.
+ In reality, the diseases diagnosed from X-ray images are supposed to be correlated with each other to some extent. **Therefore**, the totally orthogonalizing may not make sense.    
+ To inject the prior knowledge of this correlation, I use the graph to represent the hierarchical relationship between my 14 labels and hope this prior knowledge can guide the model learning.
 <div align="center" style="position: relative;">
   <img src="./imgs/graph_convert.png" alt="graph relationship" width="70%" height="auto">
 </div>     
@@ -61,16 +61,16 @@ Using contrastive learning to align the diseases' representation between text an
   <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
 </div>
 
-<p align="center">AUC comparison among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
-AUC improves 3.38%
+<p align="center">AUC comparison among 14 labels(config: BiomedCLIP+grpah+Orth+Contrastive)</p>
+AUC improves by 3.38%
 
 <p align="center">
   <img src=".\imgs\AUCcomp_graph_noOrthContras.png" alt="AUC" width="100%" height="auto">
 </p>
 
-<p align="center">AUC comparision among 14 labels(config: grpah+NoOrth+NoContrastive)</p>
+<p align="center">AUC comparision among 14 labels(config: BiomedCLIP+grpah+NoOrth+NoContrastive)</p>
 
-AUC improves by 6.29%. By injecting customized knowledge, the model performance in **fracture** improves obviously, which is the most challenging for discrimination [3].
+AUC improves by 6.29%. By injecting customized knowledge, the model performance in **fracture** improves obviously, which is the most challenging one for discrimination [3].
 
 
 ### Reference
