@@ -18,22 +18,22 @@
 
 
 ### Abstract
-Leveraging multimodal data, the Visual Language Model(VLM) demonstrated impressive capability of bridging the
-knowledge in multi-modalities. VLMs like CLIP, Flamingo, and DALL-E, which are trained based on the tremendous
-amount of data and computational resources show good performance in many different downstream tasks due to the good generalizability. However, like a double-edged sword, the generalizability of pre-trained VLMs limits their performance in the customized setting. In this project, I try to leverage the prior knowledge in pre-trained VLMs and customize the embedding generation in my general classification task. Using the simple contrastive learning method proposed in the report, a robust generalist classifier is available with the deficiency of training data, a ubiquitous context in the biomedical setting.
+Leveraging multimodal data, the Vision-Language Model(VLM) demonstrated the impressive capability of bridging the
+knowledge among multi-modalities. VLMs like CLIP, Flamingo, and DALL-E, which are trained based on the tremendous
+amount of data and computational resources show good performance in many different downstream tasks due to the good generalizability. However, like a double-edged sword, the generalizability of pre-trained VLMs limits their performance in the customized setting. In this project, I try to leverage the prior knowledge in pre-trained VLMs and customize the embedding generation for my general classification task. Using the simple contrastive learning method proposed in the report, a robust generalist classifier is available with the deficiency of training data, which is a ubiquitous context in the biomedical setting.
 
 > **A feature representation task.**  
-> Currently using the Classification task as a utility task, aiming to build a general disease detecter via chest x-ray.  
+> Currently using the Classification task as a utility task, aiming to build a general disease detecter via chest X-ray images.  
 > **This project tries to explore the data cooperation between multimodal data -- text and image**, and then improve AI downstream tasks.
 
 ### Problem Description:
 To alleviate the workload of radiologists, researchers develop algorithms that can automatically classify X-ray images into different classes (corresponding to the existence of different diseases discovered in X-ray images).   
-even though, the current SOTA specialist model (customized model for one certain disease) gets very good performance, a generalist model (capable of handling multiple diseases simultaneously) is still weak.  
-In this context, what I want to do is establish an algorithm which capable of detecting multiple diseases from X-ray images.  
+even though the current SOTA specialist model (customized model for one certain disease) gets very good performance, a generalist model (capable of handling multiple diseases simultaneously) is still weak because of the difficulty of this task and the deficiency of training data.  
+In this context, what I want to do is establish an algorithm which capable of detecting multiple diseases from X-ray images.
 
 ### Challenges:
-To solve this problem, I need to interface 2 main challenges
-1. data scarcity -- clinical data is always scarce due to private code
+To solve this problem, I need to confront 2 main challenges
+1. data scarcity -- clinical data is always scarce due to private code. The deficiency of training data limits the generalibil
 2. generalizability -- how can I improve the generalizability of the model to tackle several different diseases
    
 ### Potential Solutions 
