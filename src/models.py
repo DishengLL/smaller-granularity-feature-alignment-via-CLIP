@@ -22,11 +22,12 @@ logging.basicConfig(level=logging.WARNING)
 os.environ['CURL_CA_BUNDLE'] = ''
 from pathlib import Path
 from typing import Tuple
-from utils.health_multimodal.image.utils import ImageModelType
-from utils.health_multimodal.image import get_image_inference
+
 
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
+
+pwd = os.getcwd()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 class OrthogonalTextEncoder(nn.Module):
@@ -128,7 +129,11 @@ class ImgBranch(nn.Module):
           for param in self.clip_model.parameters():
             param.requires_grad = False
         elif self.backbone == "cxr_bert_s" or self.backbone == "biovil_t":
+          from utils.health_multimodal.image.utils import ImageModelType
+          from utils.health_multimodal.image import get_image_inference
           self.image_inference_engine = get_image_inference(ImageModelType.BIOVIL_T)
+          self.image_inference_engine.to(device)
+
           # the dimension of the output of biovil_t is 128
           d_model = 128
           
@@ -181,6 +186,8 @@ class ImgBranch(nn.Module):
           image_features = self.backbone_v_model(image_input).float()
         elif self.backbone == "cxr_bert_s" or self.backbone == "biovil_t":
           # image_input is a tensor for image
+          if image_input.dim() == 5:
+            image_input = torch.squeeze(image_input, dim=1)
           image_features = self.image_inference_engine.get_projected_global_embedding(image_input)
         else:
           raise ValueError(f"do not support backbone: {self.backbone}.")
@@ -336,7 +343,8 @@ class LGCLIP(nn.Module):
                     graph_alignment = Hier_graph_align(logits_per_image)
                     if self.graph_align == "binary":
                       # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
-                      prior_graph_tensor = torch.load("./constants/normalized_cost_matrix.pt")   
+                      
+                      prior_graph_tensor = torch.load(pwd + "/../constants/normalized_cost_matrix.pt")   
                       graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
                       loss = clip_loss + graph_align_loss
             return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
@@ -349,6 +357,7 @@ class PN_classifier(nn.Module):
         input_dim=512,
         mode='multiclass',
         num_cat = 3,
+        nntype = "clip_fasion",
         **kwargs) -> None:
         '''args:
         vision_model: the LGCLIP vision branch model that encodes input images into embeddings.
@@ -358,6 +367,8 @@ class PN_classifier(nn.Module):
         input number:  the number of input embeddings
         '''
         super().__init__()
+        if nntype == "biovil_t" or nntype == "cxr_bert_s":
+          input_dim = 128
         self.num_dim = num_class # each dim corresponding with each disease
         assert mode.lower() in ['multiclass','multilabel','binary']
         self.mode = mode.lower()
@@ -541,7 +552,7 @@ class MultiTaskModel(nn.Module):
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
                                         graph_align=high_order, no_contrastive = no_contrastive,).to(device)
-        self.PN_Classifier = PN_classifier().to(device)
+        self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)

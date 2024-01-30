@@ -41,6 +41,8 @@ class ImageInferenceEngine:
         self.model.eval()
         self.resize_size, self.crop_size = infer_resize_params(self.transform.transforms)
         self.to = self.model.to
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def load_and_transform_input_image(self, image_path: Path, transform: Callable) -> Tuple[torch.Tensor, TypeShape2D]:
         """Read an image and apply the transform to it.
@@ -89,7 +91,9 @@ class ImageInferenceEngine:
           
         assert projected_img_emb is not None
         # projected_img_emb = F.normalize(projected_img_emb, dim=-1)
-        assert projected_img_emb.shape[0] == 1
-        assert projected_img_emb.ndim == 2
+        # print(projected_img_emb.shape)
+        # print(projected_img_emb[:].shape)
+        # assert projected_img_emb.shape[0] == 1
+        # assert projected_img_emb.ndim == 2
 
-        return projected_img_emb[0]
+        return projected_img_emb[:]
