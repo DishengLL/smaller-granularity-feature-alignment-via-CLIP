@@ -73,9 +73,11 @@ class ImageTextContrastiveDataset(Dataset):
         img_tensor_path =  row.BiomedClip_img_tensor_path
       elif self.backbone == "clip":
         img_tensor_path =  row.Clip_img_tensor_path
-      elif self.backbone == "biovil_t" or self.backbone == "cxr_bert_s":
+      elif self.backbone == "biovil-t" or self.backbone == "cxr-bert-s":
         img_tensor_path = row.Biovil_img_tensor_path
-      else: ## default, using clip image preprocessing
+      else: 
+        raise NotImplemented(f"backbone model type error {self.backbone}")
+        ## default, using clip image preprocessing
         img_tensor_path =  row.Clip_img_tensor_path
       return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_14_labels)
 
@@ -165,20 +167,20 @@ class TestingDataset(Dataset):
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
-        if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr_bert_s", "biovil_t"]:
+        if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr-bert-s", "biovil-t"]:
             raise ValueError("backbone type error: {backbone_type}")
         if backbone_type == "biomedclip" and prompt_type == "basic":
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"../data/prompts_tensors/basic/biomedclip_basic.pt"
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
         elif backbone_type == "clip" and prompt_type == "basic":  # CLIP and custom (densenet) using CLIP images preprocess
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"../data/prompts_tensors/basic/clip_basic.pt"
-        elif backbone_type == "cxr_bert_s" and prompt_type == "basic":
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/clip_basic.pt"
+        elif backbone_type == "cxr-bert-s" and prompt_type == "basic":
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-            self.prompts_tensor_path = pwd + r"../data/prompts_tensors/basic/cxr_bert_s.pt"          
-        elif backbone_type == "biovil_t" and prompt_type == "basic":
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/cxr_bert_s.pt"          
+        elif backbone_type == "biovil-t" and prompt_type == "basic":
            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
-           self.prompts_tensor_path = pwd + r"../data/prompts_tensors/basic/biovil_t.pt"
+           self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biovil_t.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
@@ -194,10 +196,12 @@ class TestingDataset(Dataset):
           img_tensor_path =  row.BiomedClip_img_tensor_path
         elif self.backbone == "clip":
           img_tensor_path =  row.Clip_img_tensor_path
-        elif self.backbone == "biovil_t" or self.backbone == "cxr_bert_s":
+        elif self.backbone == "biovil-t" or self.backbone == "cxr-bert-s":
           img_tensor_path = row.Biovil_img_tensor_path
-        else:  ## default: using clip image preprocessing
-          img_tensor_path =  row.Clip_img_tensor_path
+        else:  
+          raise NotImplemented(f"backbone model type error {self.backbone}")
+          ## default: using clip image preprocessing
+          # img_tensor_path =  row.Clip_img_tensor_path
         # img_path =  row.ws_file_path   # the column name for work station context
         return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.test_14_labels)
 

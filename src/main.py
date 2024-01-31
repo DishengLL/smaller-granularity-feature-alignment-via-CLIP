@@ -106,7 +106,7 @@ if __name__ == "__main__":
                 )
     
     parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
-    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr_bert_s", "biovil_t"], help='the backbone module in the model')
+    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr-bert-s", "biovil-t"], help='the backbone module in the model')
     parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
     parser.add_argument('--vision_only',"-vo", action='store_true', default=False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', "-bv", choices=['densenet'], type=str, help="vision encoder in image branch")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=False,
         num_workers = num_of_thread,
         )
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        pin_memory=True,
+        pin_memory=False,
         num_workers = num_of_thread,
         )
     _evaluator_ = Evaluator(

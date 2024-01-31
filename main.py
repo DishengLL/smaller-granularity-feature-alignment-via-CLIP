@@ -89,8 +89,8 @@ if __name__ == "__main__":
         'lr': 2e-5,
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
-        'eval_steps': 100,
-        'save_steps': 100,
+        'eval_steps': 5,
+        'save_steps': 5,
         # "save_path": save_model_path,
         "model_zoo": ""   # the path of offline models
     }
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                 )
     
     parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
-    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip"], help='the backbone module in the model')
+    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr_bert_s", "biovil_t"], help='the backbone module in the model')
     parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
     parser.add_argument('--vision_only',"-vo", action='store_true', default=False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', "-bv", choices=['densenet'], type=str, help="vision encoder in image branch")
