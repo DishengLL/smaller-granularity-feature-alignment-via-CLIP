@@ -70,6 +70,65 @@ DESC_PROMPT = {
 }
 
 
+CHEXPERT_DESCRIPTIONS = {
+    'Atelectasis': {
+        'positive': "Atelectasis is a condition in which the lung or a portion of it is collapsed or not fully inflated.",
+        'negative': "No evidence of atelectasis is present in the lung."
+    },
+    'Cardiomegaly': {
+        'positive': "Cardiomegaly refers to an enlarged heart. It can be caused by various conditions, including heart disease.",
+        'negative': "The heart appears to be of normal size; no evidence of cardiomegaly is present."
+    },
+    'Consolidation': {
+        'positive': "Consolidation is a condition in which the lung tissue becomes filled with fluid, such as pus or blood, making it appear more dense on imaging.",
+        'negative': "No evidence of lung consolidation is present."
+    },
+    'Edema': {
+        'positive': "Edema is the accumulation of fluid in the body's tissues, leading to swelling.",
+        'negative': "No evidence of edema is present."
+    },
+    'Enlarged Cardiomediastinum': {
+        'positive': "An enlarged cardiomediastinum refers to an abnormal enlargement of the heart and the structures in the middle of the chest (mediastinum).",
+        'negative': "The size of the cardiomediastinal silhouette appears to be normal."
+    },
+    'Fracture': {
+        'positive': "A fracture is a broken bone, which can be seen on imaging studies such as X-rays.",
+        'negative': "No evidence of bone fracture is present."
+    },
+    'Lung Lesion': {
+        'positive': "A lung lesion is an abnormal area in the lung tissue that may indicate the presence of a tumor or other abnormality.",
+        'negative': "No evidence of lung lesion is present."
+    },
+    'Lung Opacity': {
+        'positive': "Lung opacity refers to an area of increased density in the lung tissue, which may indicate the presence of fluid, inflammation, or other abnormalities.",
+        'negative': "No evidence of lung opacity is present."
+    },
+    'No Finding': {
+        'positive': "No finding indicates that no abnormality or disease is detected in the imaging study.",
+        'negative': "Abnormalities or diseases are detected in the imaging study."
+    },
+    'Pleural Effusion': {
+        'positive': "Pleural effusion is the accumulation of fluid in the pleural cavity, the space between the lungs and the chest wall.",
+        'negative': "No evidence of pleural effusion is present."
+    },
+    'Pleural Other': {
+        'positive': "Other pleural abnormalities or conditions.",
+        'negative': "No evidence of other pleural abnormalities or conditions is present."
+    },
+    'Pneumonia': {
+        'positive': "Pneumonia is an infection that inflames the air sacs in one or both lungs, which may fill with fluid or pus.",
+        'negative': "No evidence of pneumonia is present."
+    },
+    'Pneumothorax': {
+        'positive': "Pneumothorax is a collapsed lung, which occurs when air leaks into the space between the lung and the chest wall.",
+        'negative': "No evidence of pneumothorax is present."
+    },
+    'Support Devices': {
+        'positive': "Support devices refer to medical equipment such as ventilators or feeding tubes used to support the patient's vital functions.",
+        'negative': "No support devices are present."
+    }
+}
+
 
 RESET = "\033[0m"
 BOLD = "\033[1m"

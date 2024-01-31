@@ -37,7 +37,7 @@ class ImageTextContrastiveDataset(Dataset):
         filename = pwd+"/data/mimic-cxr-train/P10_12_train_12_16_labels14.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
-        if backbone_type not in ["clip", "biomedclip", "custom"]:
+        if backbone_type not in ["clip", "biomedclip", "custom", "biovil_t", "cxr_bert_s"]:
             raise ValueError("backbone type error")
         if backbone_type == "clip" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
@@ -45,6 +45,12 @@ class ImageTextContrastiveDataset(Dataset):
         elif backbone_type == "biomedclip" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biomedclip_basic.pt"
+        elif backbone_type == "cxr_bert_s" and prompt_type == "basic":
+            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/cxr_bert_s.pt"          
+        elif backbone_type == "biovil_t" and prompt_type == "basic":
+            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biovil_t.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
@@ -67,6 +73,8 @@ class ImageTextContrastiveDataset(Dataset):
         img_tensor_path =  row.BiomedClip_img_tensor_path
       elif self.backbone == "clip":
         img_tensor_path =  row.Clip_img_tensor_path
+      elif self.backbone == "biovil_t" or self.backbone == "cxr_bert_s":
+        img_tensor_path = row.Biovil_img_tensor_path
       else: 
         img_tensor_path =  row.Clip_img_tensor_path
       return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_14_labels)
@@ -159,14 +167,20 @@ class TestingDataset(Dataset):
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
         self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
-        if backbone_type not in ["clip", "biomedclip", "custom", "densenet"]:
+        if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr_bert_s", "biovil_t"]:
             raise ValueError("backbone type error: {backbone_type}")
         if backbone_type == "biomedclip" and prompt_type == "basic":
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biomedclip_basic.pt"
-        elif prompt_type == "basic":  # CLIP and custom (densenet) using CLIP images preprocess
+        elif backbone_type == "clip" and prompt_type == "basic":  # CLIP and custom (densenet) using CLIP images preprocess
             print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/clip_basic.pt"
+        elif backbone_type == "cxr_bert_s" and prompt_type == "basic":
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/cxr_bert_s.pt"          
+        elif backbone_type == "biovil_t" and prompt_type == "basic":
+           print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/data/prompts_tensors/basic/biovil_t.pt"
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
@@ -182,6 +196,8 @@ class TestingDataset(Dataset):
           img_tensor_path =  row.BiomedClip_img_tensor_path
         elif self.backbone == "clip":
           img_tensor_path =  row.Clip_img_tensor_path
+      elif self.backbone == "biovil_t" or self.backbone == "cxr_bert_s":
+        img_tensor_path = row.Biovil_img_tensor_path
         else: 
           img_tensor_path =  row.Clip_img_tensor_path
         # img_path =  row.ws_file_path   # the column name for work station context

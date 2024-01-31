@@ -77,7 +77,7 @@ class TextBranch(nn.Module):
           self.backbone = "clip"
         else:
           self.backbone = nntype
-        if nntype == "biovil_t" or nntype == "cxr_bert_s" :
+        if nntype == "biovil-t" or nntype == "cxr-bert-s" :
           d_model = 128
         print(_constants_.BOLD + _constants_.BLUE + "in current Text branch, the text backbone for text embedding is: " \
           + _constants_.RESET + self.backbone)            
@@ -128,7 +128,7 @@ class ImgBranch(nn.Module):
           self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
           for param in self.clip_model.parameters():
             param.requires_grad = False
-        elif self.backbone == "cxr_bert_s" or self.backbone == "biovil_t":
+        elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           from utils.health_multimodal.image.utils import ImageModelType
           from utils.health_multimodal.image import get_image_inference
           self.image_inference_engine = get_image_inference(ImageModelType.BIOVIL_T)
@@ -184,7 +184,7 @@ class ImgBranch(nn.Module):
               image_features = self.clip_model.encode_image(image_input).float()
         elif self.backbone == "densenet":
           image_features = self.backbone_v_model(image_input).float()
-        elif self.backbone == "cxr_bert_s" or self.backbone == "biovil_t":
+        elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           # image_input is a tensor for image
           if image_input.dim() == 5:
             image_input = torch.squeeze(image_input, dim=1)
@@ -367,7 +367,7 @@ class PN_classifier(nn.Module):
         input number:  the number of input embeddings
         '''
         super().__init__()
-        if nntype == "biovil_t" or nntype == "cxr_bert_s":
+        if nntype == "biovil-t" or nntype == "cxr-bert-s":
           input_dim = 128
         self.num_dim = num_class # each dim corresponding with each disease
         assert mode.lower() in ['multiclass','multilabel','binary']
@@ -546,7 +546,7 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
-        if  (nntype not in ["clip", "biomedclip", "custom", "cxr_bert_s", "biovil_t"]):
+        if  (nntype not in ["clip", "biomedclip", "custom", "cxr-bert-s", "biovil-t"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
@@ -567,7 +567,6 @@ class MultiTaskModel(nn.Module):
                 eval = False):
         assert img is not None
         assert img_labels is not None
-        
         a = self.Contrastive_Model(prompts, img, eval=eval)
         b = self.PN_Classifier(a['img_embeds'], img_labels)
         c = 0
