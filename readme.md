@@ -61,7 +61,7 @@ Using contrastive learning to align the diseases' representation between text an
   <img src=".\imgs\AUCcomp.png" alt="Chest Image" width="100%" height="auto">
 </div>
 
-<p align="center">AUC comparison among 14 labels(config: BiomedCLIP+grpah+Orth+Contrastive)</p>
+<p align="center">AUC comparison among 14 labels(config: BiomedCLIP+grpah+Orth+NoContrastive)</p>
 AUC improves by 3.38%
 
 <p align="center">
