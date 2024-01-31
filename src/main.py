@@ -158,7 +158,7 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=False,
         num_workers = num_of_thread,
         )
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        pin_memory=True,
+        pin_memory=False,
         num_workers = num_of_thread,
         )
     _evaluator_ = Evaluator(

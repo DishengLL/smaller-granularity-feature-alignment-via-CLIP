@@ -4,7 +4,6 @@ import constants as _constants_
 import  matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import clip
 from torch.utils.data import DataLoader
 from dataset import TestingCollator, TestingDataset
 from evaluate import  Evaluator
@@ -26,6 +25,8 @@ import constants as _constants_
 import logging
 import os
 from pathlib import Path 
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def plot(get_text_embedding, prompt, title = None):
   text_features = get_text_embedding
@@ -104,7 +105,7 @@ class print_plot_CLIP():
     self.prompt = _constants_.BASIC_PROMPT
 
   def get_text_embedding(self):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    import clip
     model, preprocess = clip.load("ViT-B/32", device=device)
 
     text_inputs = torch.cat([clip.tokenize(f"{c}") for c in self.prompt]).to(device)
@@ -215,7 +216,10 @@ def load_model(path = None, nntype = "biomedclip", visual_branch_only = False, b
     raise ValueError("you should specify the path of model")
   model = MultiTaskModel(nntype = nntype, visual_branch_only=visual_branch_only,backbone_v = backbone_v,high_order=high_order, 
                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
-  model.load_state_dict(torch.load(path))
+  if device == "cpu":
+    model.load_state_dict(torch.load(path,  map_location=torch.device('cpu')))
+  else:
+    model.load_state_dict(torch.load(path))
   model.eval()
   return model
 
@@ -267,6 +271,7 @@ def parse_model_path(path = None):
   items = weight_parser(items)
   print(items)
   item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", "no_contrastive", "weight_strategy"]
+  
   assert len(items) == len(item_name)
   config_dict = {}
   converter = {"None": None, "False": False, "True": True}
@@ -281,7 +286,8 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
   if model is None:
     raise ValueError("you should specify the model before inference")
     # build evaluator
-  model.cuda()
+  if device == "cuda":
+    model.cuda()
   # config_dict = parse_model_path(model)
   
   val_data = TestingDataset(backbone_type=backbone_type)
