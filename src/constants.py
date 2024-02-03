@@ -69,6 +69,37 @@ DESC_PROMPT = {
     "Support Devices": "Presence of medical support devices in the patient, such as ventilators, tubes, or other supportive equipment; may be visible in specific areas of the chest or lung fields on X-ray."
 }
 
+Question_based_Prompt_p = 
+['How to diagnose atelectasis as positive from x-ray images?',
+ 'How to diagnose cardiomegaly as positive from x-ray images?',
+ 'How to diagnose consolidation as positive from x-ray images?',
+ 'How to diagnose edema as positive from x-ray images?',
+ 'How to diagnose enlarged cardiomediastinum as positive from x-ray images?',
+ 'How to diagnose fracture as positive from x-ray images?',
+ 'How to diagnose lung lesion as positive from x-ray images?',
+ 'How to diagnose lung opacity as positive from x-ray images?',
+ 'How to diagnose no finding as positive from x-ray images?',
+ 'How to diagnose pleural effusion as positive from x-ray images?',
+ 'How to diagnose pleural other as positive from x-ray images?',
+ 'How to diagnose pneumonia as positive from x-ray images?',
+ 'How to diagnose pneumothorax as positive from x-ray images?',
+ 'How to diagnose support devices as positive from x-ray images?']
+
+Question_based_Prompt_n = 
+['How to diagnose atelectasis as negative from x-ray images?',
+ 'How to diagnose cardiomegaly as negative from x-ray images?',
+ 'How to diagnose consolidation as negative from x-ray images?',
+ 'How to diagnose edema as negative from x-ray images?',
+ 'How to diagnose enlarged cardiomediastinum as negative from x-ray images?',
+ 'How to diagnose fracture as negative from x-ray images?',
+ 'How to diagnose lung lesion as negative from x-ray images?',
+ 'How to diagnose lung opacity as negative from x-ray images?',
+ 'How to diagnose no finding as negative from x-ray images?',
+ 'How to diagnose pleural effusion as negative from x-ray images?',
+ 'How to diagnose pleural other as negative from x-ray images?',
+ 'How to diagnose pneumonia as negative from x-ray images?',
+ 'How to diagnose pneumothorax as negative from x-ray images?',
+ 'How to diagnose support devices as negative from x-ray images?']
 
 CHEXPERT_DESCRIPTIONS = {
     'Atelectasis': {
