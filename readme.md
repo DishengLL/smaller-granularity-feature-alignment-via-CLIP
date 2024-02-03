@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/DishengLL/Fine-Grained_Features_Alignment_via_Constrastive_Learning/tree/master">
+  <a href="https://github.com/DishengLL/Fine-Grained_Features_Alignment_via_Constrastive_Learning/tree/ws">
     <img src="https://img.shields.io/badge/code-red.svg" alt="code">
   </a>
   <a href="https://drive.google.com/file/d/1EsCMuEShvU1luevPJI2nhgxjr23VZopa/view?usp=sharing">
