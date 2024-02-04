@@ -69,8 +69,8 @@ DESC_PROMPT = {
     "Support Devices": "Presence of medical support devices in the patient, such as ventilators, tubes, or other supportive equipment; may be visible in specific areas of the chest or lung fields on X-ray."
 }
 
-Question_based_Prompt_p = 
-['How to diagnose atelectasis as positive from x-ray images?',
+Question_based_Prompt_p = [
+ 'How to diagnose atelectasis as positive from x-ray images?',
  'How to diagnose cardiomegaly as positive from x-ray images?',
  'How to diagnose consolidation as positive from x-ray images?',
  'How to diagnose edema as positive from x-ray images?',
@@ -85,8 +85,8 @@ Question_based_Prompt_p =
  'How to diagnose pneumothorax as positive from x-ray images?',
  'How to diagnose support devices as positive from x-ray images?']
 
-Question_based_Prompt_n = 
-['How to diagnose atelectasis as negative from x-ray images?',
+Question_based_Prompt_n = [
+ 'How to diagnose atelectasis as negative from x-ray images?',
  'How to diagnose cardiomegaly as negative from x-ray images?',
  'How to diagnose consolidation as negative from x-ray images?',
  'How to diagnose edema as negative from x-ray images?',
