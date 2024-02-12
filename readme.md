@@ -65,7 +65,7 @@ Using contrastive learning to align the diseases' representation between text an
 AUC improves by 3.38%
 
 <p align="center">
-  <img src=".\imgs\AUCcomp_graph_noOrthContras.png" alt="AUC" width="100%" height="auto">
+  <img src=".\imgs\AUCcomp_graph_noOrthContras_emphasize.png" alt="AUC" width="100%" height="auto">
 </p>
 
 <p align="center">AUC comparision among 14 labels(config: BiomedCLIP+grpah+NoOrth+NoContrastive)</p>
