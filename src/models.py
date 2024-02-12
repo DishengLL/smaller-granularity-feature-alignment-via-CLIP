@@ -379,9 +379,12 @@ class PN_classifier(nn.Module):
             else:
                 self.loss_fn = nn.BCEWithLogitsLoss()
 
-            self.fc = nn.Linear(num_class*input_dim, num_class*input_dim//2)
-            self.fc1 = nn.Linear(num_class*input_dim//2, num_class*input_dim//3)
-            self.cls = nn.Linear(num_class*input_dim//3, num_class * num_cat)
+            self.fc = nn.Linear(num_class*input_dim, num_class*input_dim)
+            self.cls = nn.Linear(num_class*input_dim, num_class * num_cat)
+            # worse performance in reducing model configuration
+            # self.fc = nn.Linear(num_class*input_dim, num_class*input_dim//2)
+            # self.fc1 = nn.Linear(num_class*input_dim//2, num_class*input_dim//3)
+            # self.cls = nn.Linear(num_class*input_dim//3, num_class * num_cat)
         else:
             self.loss_fn = nn.BCEWithLogitsLoss()
             self.fc = nn.Linear(input_dim, 1)
@@ -399,7 +402,9 @@ class PN_classifier(nn.Module):
         num_batch = num_batch[0]
         img_embeddings = img_embeddings.view(num_batch, -1)
         logits = F.relu(self.fc(img_embeddings))
-        logits = F.relu(self.fc1(logits))
+        logits = F.relu(self.fc(logits))
+        # worse performance in reducing model configuration
+        # logits = F.relu(self.fc1(logits))
         logits = self.cls(logits)
         outputs['logits'] = logits
 
