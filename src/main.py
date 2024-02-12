@@ -106,7 +106,7 @@ if __name__ == "__main__":
                 )
     
     parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
-    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr_bert_s", "biovil_t"], help='the backbone module in the model')
+    parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr-bert-s", "biovil-t"], help='the backbone module in the model')
     parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
     parser.add_argument('--vision_only',"-vo", action='store_true', default=False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', "-bv", choices=['densenet'], type=str, help="vision encoder in image branch")
