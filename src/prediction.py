@@ -206,9 +206,7 @@ def get_average_auc_among_disease( auc_dict, indicator = "positive"):
   for disease, auc in auc_dict.items():
     v = auc[indicator]
     average_auc = average_auc + v
-  return average_auc/n_disease
-        
-      
+  return average_auc/n_disease    
 
 def load_model(path = None, nntype = "biomedclip", visual_branch_only = False, backbone_v = None, 
                high_order="NA", no_orthogonize = False, no_contrastive = False ):
