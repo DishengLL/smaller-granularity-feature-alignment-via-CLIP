@@ -269,7 +269,6 @@ def parse_model_path(path = None):
   items = weight_parser(items)
   print(items)
   item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", "no_contrastive", "weight_strategy"]
-  
   assert len(items) == len(item_name)
   config_dict = {}
   converter = {"None": None, "False": False, "True": True}
