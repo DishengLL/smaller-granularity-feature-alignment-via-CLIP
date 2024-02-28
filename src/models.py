@@ -400,7 +400,9 @@ class PN_classifier(nn.Module):
         # take embeddings before the projection head
         num_batch = img_embeddings.shape
         num_batch = num_batch[0]
+        # the initial image embedding shape should be [batch size, disease number, embedding dimension]
         img_embeddings = img_embeddings.view(num_batch, -1)
+        # after the operation, the image embedding shape should be [batch size, disease number * embedding dimension]
         logits = F.relu(self.fc(img_embeddings))
         logits = F.relu(self.fc(logits))
         # worse performance in reducing model configuration
@@ -421,6 +423,70 @@ class PN_classifier(nn.Module):
             logits = logits.view(-1, self.num_cat)
             
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
+            loss = self.loss_fn(logits, img_label)
+            outputs['loss_value'] = loss
+        return outputs
+      
+class classifier(nn.Module):
+    def __init__(self,
+        num_class = len(_constants_.CHEXPERT_LABELS),
+        input_dim=512,
+        mode='multiclass',
+        num_cat = 3,
+        nntype = "clip_fasion",
+        **kwargs) -> None:
+        '''args:
+        num_class: number of classes to predict (the number of diseases)
+        input_dim: the embedding dim of input
+        mode: multilabel, multiclass, or binary
+        num_cat: the number of output categories
+        '''
+        ## network structure: https://raw.githubusercontent.com/DishengL/ResearchPics/main/classifier_transparenent.png
+
+        super().__init__()
+        if nntype == "biovil-t" or nntype == "cxr-bert-s":
+          input_dim = 128
+        assert mode.lower() in ['multiclass','multilabel','binary']
+        self.mode = mode.lower()
+        self.num_cat = num_cat
+        if num_class > 2 and self.num_cat > 2:   # multi_class
+            self.loss_fn = nn.CrossEntropyLoss()   # input logits
+            self.mode = "multiclass"
+        elif num_class > 2 and self.num_cat == 2:   # multi-labels
+            self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
+            self.mode = "binaryclass"
+        else:
+          raise NotImplementedError("error happen in classifier class (Initialization)")
+        self.fc = nn.Linear(input_dim, input_dim)
+        self.cls = nn.Linear(input_dim, self.num_cat)
+        
+
+    def forward(self,
+        img_embeddings,  ## original image
+        img_label = None,
+        return_loss=True,
+        multilabel = False,
+        **kwargs
+        ):
+        outputs = defaultdict()
+        logits = F.relu(self.fc(img_embeddings))
+        logits = F.relu(self.fc(logits))
+        logits = self.cls(logits)
+        outputs['logits'] = logits
+
+        nested_list = img_label
+        assert img_label is not None
+
+        if multilabel:
+            raise NotImplemented("have not implemented")
+
+        if img_label is not None and return_loss:
+            if type(img_label[0]) is str:
+                nested_list = [json.loads(s) for s in img_label]
+            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
+            logits = logits.view(-1, self.num_cat)
+            
+            if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
             loss = self.loss_fn(logits, img_label)
             outputs['loss_value'] = loss
         return outputs
