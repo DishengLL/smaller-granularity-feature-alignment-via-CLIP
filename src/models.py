@@ -424,6 +424,77 @@ class PN_classifier(nn.Module):
             loss = self.loss_fn(logits, img_label)
             outputs['loss_value'] = loss
         return outputs
+      
+class classifier(nn.Module):
+    def __init__(self,
+        num_class = len(_constants_.CHEXPERT_LABELS),
+        input_dim=512,
+        mode='multiclass',
+        num_cat = 3,
+        nntype = "clip_fasion",
+        **kwargs) -> None:
+        '''args:
+        vision_model: the LGCLIP vision branch model that encodes input images into embeddings.
+        num_class: number of classes to predict
+        input_dim: the embedding dim before the linear output layer
+        mode: multilabel, multiclass, or binary
+        input number:  the number of input embeddings
+        '''
+        super().__init__()
+        if nntype == "biovil-t" or nntype == "cxr-bert-s":
+          input_dim = 128
+        self.num_dim = num_class # each dim corresponding with each disease
+        assert mode.lower() in ['multiclass','multilabel','binary']
+        self.mode = mode.lower()
+        self.num_cat = num_cat
+        if num_class > 2 and self.num_cat > 2:   # multi_class
+            self.loss_fn = nn.CrossEntropyLoss()   # input logits
+            self.mode = "multiclass"
+        elif num_class > 2 and self.num_cat == 2:   # multi-labels
+            self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
+            self.mode = "multilabels"
+        
+        self.fc = nn.Linear(input_dim, input_dim)
+        self.cls = nn.Linear(input_dim, self.num_dim)
+        
+            
+        else:
+          raise NotImplementedError("error happen in classifier class (Initialization)")
+            
+
+    def forward(self,
+        img_embeddings,  ## original image
+        img_label = None,
+        return_loss=True,
+        multilabel = False,
+        **kwargs
+        ):
+        outputs = defaultdict()
+        # take embeddings before the projection head
+        num_batch = img_embeddings.shape
+        num_batch = num_batch[0]
+        img_embeddings = img_embeddings.view(num_batch, -1)
+        logits = F.relu(self.fc(img_embeddings))
+        logits = F.relu(self.fc(logits))
+        logits = self.cls(logits)
+        outputs['logits'] = logits
+
+        nested_list = img_label
+        assert img_label is not None
+
+        if multilabel:
+            raise NotImplemented("have not implemented")
+
+        if img_label is not None and return_loss:
+            if type(img_label[0]) is str:
+                nested_list = [json.loads(s) for s in img_label]
+            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
+            logits = logits.view(-1, self.num_cat)
+            
+            if self.mode == 'multiclass': img_label = img_label.flatten().long()
+            loss = self.loss_fn(logits, img_label)
+            outputs['loss_value'] = loss
+        return outputs
     
 class Orthogonal_dif(nn.Module):
     '''
