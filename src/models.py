@@ -444,15 +444,18 @@ class classifier(nn.Module):
         ## network structure: https://raw.githubusercontent.com/DishengL/ResearchPics/main/classifier_transparenent.png
 
         super().__init__()
+        param_dict = kwargs
+        if "binary" in param_dict and param_dict['binary']:
+          num_cat = 2  # binary classification --- positive and negative 
         if nntype == "biovil-t" or nntype == "cxr-bert-s":
           input_dim = 128
         assert mode.lower() in ['multiclass','multilabel','binary']
         self.mode = mode.lower()
         self.num_cat = num_cat
-        if num_class > 2 and self.num_cat > 2:   # multi_class
+        if num_class > 2 and self.num_cat > 2:   # positive, negative and uncertain
             self.loss_fn = nn.CrossEntropyLoss()   # input logits
             self.mode = "multiclass"
-        elif num_class > 2 and self.num_cat == 2:   # multi-labels
+        elif num_class > 2 and self.num_cat == 2:   # positive and dispositive
             self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
             self.mode = "binaryclass"
         else:
@@ -485,9 +488,10 @@ class classifier(nn.Module):
                 nested_list = [json.loads(s) for s in img_label]
             img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
             logits = logits.view(-1, self.num_cat)
+            img_label_flat = img_label.view(-1)
             
             if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-            loss = self.loss_fn(logits, img_label)
+            loss = self.loss_fn(logits, img_label_flat)
             outputs['loss_value'] = loss
         return outputs
     
@@ -618,13 +622,15 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
+        self.binary_label = param_dict['binary_label'] if "binary_label" in param_dict else False
         if  (nntype not in ["clip", "biomedclip", "custom", "cxr-bert-s", "biovil-t"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
                                         graph_align=high_order, no_contrastive = no_contrastive,).to(device)
-        self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
+        # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
+        self.PN_Classifier = classifier(nntype=nntype, binary = self.binary_label).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
