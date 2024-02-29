@@ -84,7 +84,7 @@ if __name__ == "__main__":
     train_config = {
 
         'batch_size': 100,
-        'num_epochs': 10,
+        'num_epochs': 6,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
@@ -158,8 +158,8 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        pin_memory=False,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
     # model definition
@@ -174,8 +174,8 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        pin_memory=False,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,
