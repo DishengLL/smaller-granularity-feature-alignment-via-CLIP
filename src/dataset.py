@@ -26,7 +26,7 @@ class ImageTextContrastiveDataset(Dataset):
     custom vision encoder using clip_preprocess images
     '''
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
-    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", backbone_type = None) -> None:
+    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", backbone_type = None, binary = False) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
         filename :  the csv file contains all of training data
         '''
@@ -55,6 +55,7 @@ class ImageTextContrastiveDataset(Dataset):
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
         self.backbone = backbone_type
+        self.binary = binary
         
     def convert_labels_2_tensor(self, string_representation:str):
       numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
@@ -79,6 +80,8 @@ class ImageTextContrastiveDataset(Dataset):
         raise NotImplemented(f"backbone model type error {self.backbone}")
         ## default, using clip image preprocessing
         img_tensor_path =  row.Clip_img_tensor_path
+      if self.binary:
+        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.binary_label)
       return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_14_labels)
 
     def __len__(self):
@@ -145,7 +148,7 @@ class TestingDataset(Dataset):
         datalist=['testing'],  # specify the df which used in testing 
         prompt_type="basic",
         backbone_type = None,
-
+        binary = False 
         ) -> None:
         '''
         using data in the datalist to be testing data
@@ -156,6 +159,7 @@ class TestingDataset(Dataset):
         # else:
         #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         self.backbone = backbone_type
+        self.binary = binary
 
         # imgpath, subject_id, report, labels...(14 labels)
         df_list = []
@@ -203,6 +207,8 @@ class TestingDataset(Dataset):
           ## default: using clip image preprocessing
           # img_tensor_path =  row.Clip_img_tensor_path
         # img_path =  row.ws_file_path   # the column name for work station context
+        if self.binary:
+          return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.binary_label)
         return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.test_14_labels)
 
     def __len__(self):

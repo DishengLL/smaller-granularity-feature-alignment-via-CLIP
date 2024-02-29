@@ -84,7 +84,7 @@ if __name__ == "__main__":
     train_config = {
 
         'batch_size': 100,
-        'num_epochs': 10,
+        'num_epochs': 6,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
@@ -118,6 +118,7 @@ if __name__ == "__main__":
     parser.add_argument('--no_contrastive',"-nc",  action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
+    parser.add_argument('--binary_label', "-bl", action='store_true', default=False, help='specify the number of classification class(default: three classes -- positive, negative and uncertain)')  
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
@@ -146,36 +147,39 @@ if __name__ == "__main__":
     if high_order != "NA":
       print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
       logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
+    if binary_label:
+      print(constants.RED+"binary classification setting -- only predict positive and dispositive(negative and uncertain)!"+constants.RESET)
     if  args.save_dir == None:
       save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
     else:
       save_model_path = save_model_path + "/" + args.save_dir
     print("saving path: ",save_model_path)
         
-    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,) 
+    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,binary = binary_label) 
     train_collate_fn = ImageTextContrastiveCollator()
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        pin_memory=False,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
     # model definition
-    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
+    model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
+                           no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, binary_label = binary_label)
     # loss definition
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
 
     # build evaluator
-    val_data = TestingDataset(backbone_type=backbone)
+    val_data = TestingDataset(backbone_type=backbone, binary=binary_label)
     val_collate_fn = TestingCollator()
     eval_dataloader = DataLoader(val_data,
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        pin_memory=False,
-        num_workers = num_of_thread,
+        pin_memory=True,
+        num_workers = 4,
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,

@@ -8,9 +8,9 @@ IMG_SIZE = 224
 IMG_MEAN = .5862785803043838
 IMG_STD = .27950088968644304
 
-POSITIVE = 1
-NEGATIVE = 0
-UNCERTAIN = -1
+POSITIVE = 1  # setting of the original dataset
+NEGATIVE = 0  # setting of the original dataset
+UNCERTAIN = -1  # setting of the original dataset
 
 POSITIVE_CLASS = 0
 NEGATIVE_CLASS = 1
