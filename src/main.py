@@ -127,6 +127,7 @@ if __name__ == "__main__":
     two_phases = args.two_phases
     uncertain_based_weight = args.uncertain_based_weight
     weight_strategy = args.weight_strategy
+    binary_label = args.binary_label
     if  weight_strategy != "NA":
       print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
     if uncertain_based_weight:
