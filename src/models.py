@@ -87,7 +87,7 @@ class TextBranch(nn.Module):
         self.backbone = nntype
         self.projection_head = nn.Linear(d_model, d_model, bias=False)
         
-    def forward(self, text_inputs:list):
+    def forward(self, text_features):
         '''
         文字分支：
         输入: b * [prompt1, prompt2, prompt3, ...]
@@ -95,12 +95,6 @@ class TextBranch(nn.Module):
         输出: b x [n vectors corresponding with prompts]
         直接输入处理后的文字embedding tensor, 不需要进行模型的推理
         '''
-        text_features = []
-        if self.backbone != "custom":
-          for text_input in text_inputs:
-            text_feature = torch.load(text_input, map_location=device)
-            text_features.append(text_feature)                  
-        text_features = torch.stack(text_features, dim = 0).squeeze().to(device)
         output = self.transformer(text_features) 
         return  output
  
@@ -168,17 +162,12 @@ class ImgBranch(nn.Module):
         model.classifier = nn.Sequential(nn.Linear(num_ftrs, n_dim))  
         return model
 
-    def forward(self, image_path):
+    def forward(self, image_input):
         '''
         input: img_path, str
         imd : b X 512
         output: b x n x 512
         '''
-        images = []
-        for image in image_path:
-            images.append(torch.load(image))
-
-        image_input = torch.tensor(np.stack(images)).to(device)
         if "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
           with torch.no_grad():
               image_features = self.clip_model.encode_image(image_input).float()
@@ -484,9 +473,9 @@ class classifier(nn.Module):
             raise NotImplemented("have not implemented")
 
         if img_label is not None and return_loss:
-            if type(img_label[0]) is str:
-                nested_list = [json.loads(s) for s in img_label]
-            img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
+            # if type(img_label[0]) is str:
+            #     nested_list = [json.loads(s) for s in img_label]
+            # img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
             logits = logits.view(-1, self.num_cat)
             img_label_flat = img_label.view(-1)
             

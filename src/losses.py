@@ -169,7 +169,7 @@ class LG_CLIP_LOSS(nn.Module):
     def forward(self, 
                 img = None,
                 prompts:list = None,
-                img_labels: List[int] = None):
+                img_labels = None):
         if img is None:
             raise ValueError("input image_path is None")
         if prompts is None:

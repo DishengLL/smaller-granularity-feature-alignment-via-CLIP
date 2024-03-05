@@ -16,6 +16,9 @@ import os
 import json
 import constants
 from torch import tensor
+import torch
+
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 # dataset.py provide all the tensor model needs
@@ -82,7 +85,9 @@ class ImageTextContrastiveDataset(Dataset):
         img_tensor_path =  row.Clip_img_tensor_path
       if self.binary:
         return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.binary_label)
-      return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.train_14_labels)
+      img_tensor = torch.load(img_tensor_path)
+      prompt_tensor = torch.load(self.prompts_tensor_path)
+      return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.train_14_labels)
 
     def __len__(self):
         return len(self.df)
@@ -95,11 +100,13 @@ class ImageTextContrastiveCollator:
         '''
     def __call__(self, batch):
         inputs = defaultdict(list)
-        report_list = []
         for data in batch:
-            inputs['img'].append(data[0])
+            inputs["img"].append(data[0])
             inputs["prompts"].append(data[1])
-            inputs['img_labels'].append(data[2])
+            inputs["img_labels"].append(data[2]) 
+        inputs['img'] = torch.tensor(np.stack(inputs["img"])).to(device)
+        inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
+        inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
 
 class ImageTextContrastiveDataset1(Dataset):
@@ -205,11 +212,11 @@ class TestingDataset(Dataset):
         else:  
           raise NotImplemented(f"backbone model type error {self.backbone}")
           ## default: using clip image preprocessing
-          # img_tensor_path =  row.Clip_img_tensor_path
-        # img_path =  row.ws_file_path   # the column name for work station context
+        img_tensor = torch.load(img_tensor_path)
+        prompt_tensor = torch.load(self.prompts_tensor_path)
         if self.binary:
-          return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.binary_label)
-        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.test_14_labels)
+          return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.binary_label)
+        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.test_14_labels)
 
     def __len__(self):
         return len(self.df)
@@ -221,12 +228,13 @@ class TestingCollator:
         '''
     def __call__(self, batch):
         inputs = defaultdict(list)
-        report_list = []
         for data in batch:
-            inputs['img'].append(data[0])
-            inputs['prompts'] .append(data[1])
-            inputs['img_labels'].append(data[2])
-        # inputs['img_labels'] = torch.tensor(np.stack(inputs['img_labels']).astype(float))
+            inputs["img"].append(data[0])
+            inputs["prompts"].append(data[1])
+            inputs["img_labels"].append(data[2]) 
+        inputs['img'] = torch.tensor(np.stack(inputs["img"])).to(device)
+        inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
+        inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
 
 
