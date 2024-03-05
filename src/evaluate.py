@@ -41,7 +41,7 @@ class Evaluator:
                 _, classifier_out, _ = self.clf(**data, eval=True)
                 pred = classifier_out['logits']            
             pred_tensor = torch.cat((pred_tensor, pred), 0)
-            label_tensor = torch.cat((label_tensor, torch.stack(data["img_labels"],0).to(self.device)), 0)     
+            label_tensor = torch.cat((label_tensor, (data["img_labels"])), 0)     
         outputs = {'pred':pred_tensor, 'labels':label_tensor, "loss": classifier_out['loss_value']}
         num_batch = pred_tensor.shape[0]
         if dump != None and "dump_path" in dump:

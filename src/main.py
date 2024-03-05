@@ -50,6 +50,7 @@ import logging
 #         sys.exit(0)
 
 if __name__ == "__main__":
+    torch.multiprocessing.set_start_method('spawn')# good solution !!!!
     logging.basicConfig(
     level=logging.DEBUG,  # 设置日志级别为DEBUG
     format='%(asctime)s - %(levelname)s - %(message)s',  # 设置日志格式
@@ -83,13 +84,13 @@ if __name__ == "__main__":
     # set training configurations
     train_config = {
 
-        'batch_size': 100,
+        'batch_size': 200,
         'num_epochs': 6,
         'warmup': 0.1, # the first 10% of training steps are used for warm-up
         'lr': 2e-5,
         'weight_decay': 1e-4,
         'eval_batch_size': 256,
-        'eval_steps': 100,
+        'eval_steps': 100 ,
         'save_steps': 100,
         # "save_path": save_model_path,
         "model_zoo": ""   # the path of offline models
@@ -162,8 +163,9 @@ if __name__ == "__main__":
         batch_size=train_config['batch_size'],
         collate_fn=train_collate_fn,
         shuffle=True,
-        pin_memory=True,
+        # pin_memory=True,
         num_workers = 4,
+        prefetch_factor =4
         )
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
     # model definition
@@ -179,8 +181,9 @@ if __name__ == "__main__":
         batch_size=train_config['eval_batch_size'],
         collate_fn=val_collate_fn,
         shuffle=False,
-        pin_memory=True,
+        # pin_memory=True,
         num_workers = 4,
+        prefetch_factor = 5
         )
     _evaluator_ = Evaluator(
         FG_model_cls = model,
