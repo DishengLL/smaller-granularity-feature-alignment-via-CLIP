@@ -6,10 +6,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from transformers import AutoTokenizer
 from transformers import CLIPFeatureExtractor, CLIPProcessor
-# from transformers.utils import TensorType
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.image_utils import is_torch_tensor
-# from nltk.tokenize import RegexpTokenizer
 from PIL import Image
 from sklearn.preprocessing import OrdinalEncoder
 import os
@@ -17,9 +15,9 @@ import json
 import constants
 from torch import tensor
 import torch
+import ast
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
 
 # dataset.py provide all the tensor model needs
 pwd = os.getcwd()
@@ -29,7 +27,8 @@ class ImageTextContrastiveDataset(Dataset):
     custom vision encoder using clip_preprocess images
     '''
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
-    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", backbone_type = None, binary = False) -> None:
+    def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", 
+                 backbone_type = None, binary = False, **kwargs) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
         filename :  the csv file contains all of training data
         '''
@@ -37,7 +36,7 @@ class ImageTextContrastiveDataset(Dataset):
         # imgpath, subject_id, report, labels...(14 labels)
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd+"/../data/mimic-cxr-train/P10_12_train_1_29_labels14_biovil.csv"
+        filename = pwd+"/../data/project_using_data/all_train_data_sub_3_14.csv"
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
         if backbone_type not in ["clip", "biomedclip", "custom", "biovil-t", "cxr-bert-s"]:
@@ -59,11 +58,20 @@ class ImageTextContrastiveDataset(Dataset):
             raise ValueError()
         self.backbone = backbone_type
         self.binary = binary
+        self.label_strategy = None
+        if "label_strategy" in kwargs:
+          self.label_strategy = kwargs["label_strategy"]
+          
         
     def convert_labels_2_tensor(self, string_representation:str):
-      numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
-      tensor_representation = tensor(numbers_list)
-      return tensor_representation
+      # numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
+      # tensor_representation = tensor(numbers_list)
+      list_value = eval(string_representation)
+      return tensor(list_value)
+      # list_value_str = string_representation[string_representation.index('['):string_representation.rindex(']')+1]
+      # list_value = ast.literal_eval(list_value_str)
+      # tensor_representation = tensor(list_value)
+      # return tensor_representation
 
     def __getitem__(self, index):
       '''
@@ -78,20 +86,17 @@ class ImageTextContrastiveDataset(Dataset):
       elif self.backbone == "clip":
         img_tensor_path =  row.Clip_img_tensor_path
       elif self.backbone == "biovil-t" or self.backbone == "cxr-bert-s":
-        img_tensor_path = row.Biovil_img_tensor_path
+        img_tensor_path = row.Biovil_img_tensor_path_old
       else: 
         raise NotImplemented(f"backbone model type error {self.backbone}")
-        ## default, using clip image preprocessing
-        img_tensor_path =  row.Clip_img_tensor_path
-      if self.binary:
-        return img_tensor_path, self.prompts_tensor_path, self.convert_labels_2_tensor(row.binary_label)
       img_tensor = torch.load(img_tensor_path)
       prompt_tensor = torch.load(self.prompts_tensor_path)
-      return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.train_14_labels)
+      if self.label_strategy == "S2":
+        return img_tensor, self.prompts_tensor_path, self.convert_labels_2_tensor(row.strategy1_14_labels)
+      return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
 
     def __len__(self):
         return len(self.df)
-
 
 class ImageTextContrastiveCollator:
     def __init__(self, use_eda=True):
@@ -104,6 +109,7 @@ class ImageTextContrastiveCollator:
             inputs["img"].append(data[0])
             inputs["prompts"].append(data[1])
             inputs["img_labels"].append(data[2]) 
+
         inputs['img'] = torch.tensor(np.stack(inputs["img"])).to(device)
         inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
         inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
@@ -118,7 +124,7 @@ class ImageTextContrastiveDataset1(Dataset):
         super().__init__()
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd + "/../data/mimic-cxr-train/P10_12_test_12_16_labels14.csv"
+        filename = pwd + "/../data/project_using_data/all_train_data_sub_3_14.csv"
 
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
@@ -130,7 +136,7 @@ class ImageTextContrastiveDataset1(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         img_path =  row.ws_file_path
-        return img_path, self.prompts, row.train_14_labels
+        return img_path, self.prompts, row.project_3_classes_14_labels
 
     def __len__(self):
         return len(self.df)
@@ -155,7 +161,7 @@ class TestingDataset(Dataset):
         datalist=['testing'],  # specify the df which used in testing 
         prompt_type="basic",
         backbone_type = None,
-        binary = False 
+        **kwargs
         ) -> None:
         '''
         using data in the datalist to be testing data
@@ -166,14 +172,10 @@ class TestingDataset(Dataset):
         # else:
         #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         self.backbone = backbone_type
-        self.binary = binary
 
-        # imgpath, subject_id, report, labels...(14 labels)
         df_list = []
         for _ in datalist:
-            # filename = f'./local_data/{data}.csv'
-            # filename = os.path.join(constants.DATA_DIR, "final.csv")
-            filename = pwd + r"/../data/mimic-cxr-train/P10_12_test_1_29_labels14_biovil.csv"
+            filename = pwd + r"/../data/project_using_data/all_test_sub_3_14.csv"
             print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
             df = pd.read_csv(filename, index_col=0)
             df_list.append(df)
@@ -195,11 +197,17 @@ class TestingDataset(Dataset):
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
+        self.label_strategy = None
+        if "label_strategy" in kwargs:
+          self.label_strategy = kwargs["label_strategy"]
     
     def convert_labels_2_tensor(self, string_representation:str):
-      numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
-      tensor_representation = tensor(numbers_list)
-      return tensor_representation
+      # numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
+      # tensor_representation = tensor(numbers_list)
+      # return tensor_representation
+      numbers_list = eval(string_representation)
+      return tensor(numbers_list)
+
 
     def __getitem__(self, index):
         row = self.df.iloc[index]
@@ -214,9 +222,9 @@ class TestingDataset(Dataset):
           ## default: using clip image preprocessing
         img_tensor = torch.load(img_tensor_path)
         prompt_tensor = torch.load(self.prompts_tensor_path)
-        if self.binary:
-          return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.binary_label)
-        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.test_14_labels)
+        if self.label_strategy:
+          return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.strategy1_14_labels)
+        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
 
     def __len__(self):
         return len(self.df)
@@ -236,7 +244,6 @@ class TestingCollator:
         inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
         inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
-
 
 ### the classes below focus on data exploration and raw usable dataset maker
 class data_exploration():
@@ -373,7 +380,6 @@ class get_sub_set_data():
 
         return target   
 
-
 def condition(row):   
     """
     just using data of p10-p12
@@ -470,8 +476,6 @@ class make_data_set():
         
                 
         # new_df.to_csv("/Users/liu/Desktop/school_academy/ShanghaiTech/learning/code/diagnosisP/x_ray_constrastive/data/final_data.csv")
-
-
 
 # if __name__ == "__main__":
     

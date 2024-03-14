@@ -119,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('--no_contrastive',"-nc",  action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
-    parser.add_argument('--binary_label', "-bl", action='store_true', default=False, help='specify the number of classification class(default: three classes -- positive, negative and uncertain)')  
+    parser.add_argument('--label_strategy', "-LS", type=str,choices=["S1", "Original", "S2"], default="Original", help="specify the labeling strategy(default: Original - 3 labels)")
     args = parser.parse_args()    
     backbone = "biomedclip" if args.backbone == None else args.backbone
     backbone_v = None if args.backbone_v == None else args.backbone_v
@@ -128,7 +128,6 @@ if __name__ == "__main__":
     two_phases = args.two_phases
     uncertain_based_weight = args.uncertain_based_weight
     weight_strategy = args.weight_strategy
-    binary_label = args.binary_label
     if  weight_strategy != "NA":
       print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
     if uncertain_based_weight:
@@ -143,21 +142,21 @@ if __name__ == "__main__":
       print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
     learnable_weight = args.learnable_weight
     high_order = args.high_order
+    label_strategy = args.label_strategy
+    print(constants.RED+f"label_strategy setting -- {label_strategy}"+constants.RESET)
     if learnable_weight:
       print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
       logger.info("using learnable weights among sub-loss during training!")
     if high_order != "NA":
       print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
       logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
-    if binary_label:
-      print(constants.RED+"binary classification setting -- only predict positive and dispositive(negative and uncertain)!"+constants.RESET)
     if  args.save_dir == None:
       save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
     else:
       save_model_path = save_model_path + "/" + args.save_dir
     print("saving path: ",save_model_path)
-        
-    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt,binary = binary_label) 
+    
+    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, label_strategy = label_strategy) 
     train_collate_fn = ImageTextContrastiveCollator()
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
@@ -170,12 +169,12 @@ if __name__ == "__main__":
     param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
     # model definition
     model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
-                           no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, binary_label = binary_label)
+                           no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,label_strategy = label_strategy)
     # loss definition
     loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
 
     # build evaluator
-    val_data = TestingDataset(backbone_type=backbone, binary=binary_label)
+    val_data = TestingDataset(backbone_type=backbone, label_strategy = label_strategy)
     val_collate_fn = TestingCollator()
     eval_dataloader = DataLoader(val_data,
         batch_size=train_config['eval_batch_size'],

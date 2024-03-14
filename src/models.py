@@ -434,23 +434,24 @@ class classifier(nn.Module):
 
         super().__init__()
         param_dict = kwargs
-        if "binary" in param_dict and param_dict['binary']:
+        label_strategy = param_dict['label_strategy'] if "label_strategy" in param_dict  else "3_class"
+        if label_strategy == "S1":
           num_cat = 2  # binary classification --- positive and negative 
         if nntype == "biovil-t" or nntype == "cxr-bert-s":
           input_dim = 128
         assert mode.lower() in ['multiclass','multilabel','binary']
         self.mode = mode.lower()
         self.num_cat = num_cat
-        if num_class > 2 and self.num_cat > 2:   # positive, negative and uncertain
+        if num_class > 2 and self.num_cat > 2:   # positive, negative and uncertain --- multiple classes 
             self.loss_fn = nn.CrossEntropyLoss()   # input logits
-            self.mode = "multiclass"
-        elif num_class > 2 and self.num_cat == 2:   # positive and dispositive
+            self.cls = nn.Linear(input_dim, self.num_cat) 
+        elif num_class > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
             self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
-            self.mode = "binaryclass"
+            self.cls = nn.Linear(input_dim, 1)
         else:
           raise NotImplementedError("error happen in classifier class (Initialization)")
         self.fc = nn.Linear(input_dim, input_dim)
-        self.cls = nn.Linear(input_dim, self.num_cat)
+        
         
 
     def forward(self,
@@ -479,8 +480,11 @@ class classifier(nn.Module):
             logits = logits.view(-1, self.num_cat)
             img_label_flat = img_label.view(-1)
             
-            if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-            loss = self.loss_fn(logits, img_label_flat)
+            # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
+            print(self.mode)
+            print(logits.dtype)
+            print(img_label_flat.dtype)
+            loss = self.loss_fn(logits, img_label_flat.long())
             outputs['loss_value'] = loss
         return outputs
     
@@ -611,7 +615,8 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
-        self.binary_label = param_dict['binary_label'] if "binary_label" in param_dict else False
+        self.label_strategy = param_dict['label_strategy'] if "label_strategy" in param_dict else False
+        # S1 -- binary classification
         if  (nntype not in ["clip", "biomedclip", "custom", "cxr-bert-s", "biovil-t"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
@@ -619,7 +624,7 @@ class MultiTaskModel(nn.Module):
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
                                         graph_align=high_order, no_contrastive = no_contrastive,).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
-        self.PN_Classifier = classifier(nntype=nntype, binary = self.binary_label).to(device)
+        self.PN_Classifier = classifier(nntype=nntype, label_strategy = self.label_strategy).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
