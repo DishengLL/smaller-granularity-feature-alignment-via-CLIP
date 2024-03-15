@@ -36,9 +36,11 @@ class ImageTextContrastiveDataset(Dataset):
         # imgpath, subject_id, report, labels...(14 labels)
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd+"/../data/project_using_data/all_train_data_sub_3_14.csv"
+        filename = pwd+"/../data/project_using_data/all_train_data_3_11.csv"
+        # filename = pwd+"/../data/project_using_data/train_3_15.csv"  # temp small training data 10000
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
+        self.df = self.df.head(100000)
         if backbone_type not in ["clip", "biomedclip", "custom", "biovil-t", "cxr-bert-s"]:
             raise ValueError("backbone type error")
         if backbone_type == "clip" and prompt_type == "basic":
@@ -58,9 +60,9 @@ class ImageTextContrastiveDataset(Dataset):
             raise ValueError()
         self.backbone = backbone_type
         self.binary = binary
-        self.label_strategy = None
-        if "label_strategy" in kwargs:
-          self.label_strategy = kwargs["label_strategy"]
+        self.labeling_strategy = None
+        if "labeling_strategy" in kwargs:
+          self.labeling_strategy = kwargs["labeling_strategy"]
           
         
     def convert_labels_2_tensor(self, string_representation:str):
@@ -91,8 +93,8 @@ class ImageTextContrastiveDataset(Dataset):
         raise NotImplemented(f"backbone model type error {self.backbone}")
       img_tensor = torch.load(img_tensor_path)
       prompt_tensor = torch.load(self.prompts_tensor_path)
-      if self.label_strategy == "S2":
-        return img_tensor, self.prompts_tensor_path, self.convert_labels_2_tensor(row.strategy1_14_labels)
+      if self.labeling_strategy == "S1":
+        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.strategy1_14_labels)
       return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
 
     def __len__(self):
@@ -172,14 +174,11 @@ class TestingDataset(Dataset):
         # else:
         #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         self.backbone = backbone_type
-
-        df_list = []
-        for _ in datalist:
-            filename = pwd + r"/../data/project_using_data/all_test_sub_3_14.csv"
-            print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
-            df = pd.read_csv(filename, index_col=0)
-            df_list.append(df)
-        self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
+        filename = pwd + r"/../data/project_using_data/all_test_3_11.csv"
+        print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
+        self.df = pd.read_csv(filename, index_col=0)
+        # self.df = self.df.head(300)
+        # self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
         if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr-bert-s", "biovil-t"]:
             raise ValueError("backbone type error: {backbone_type}")
         if backbone_type == "biomedclip" and prompt_type == "basic":
@@ -197,9 +196,9 @@ class TestingDataset(Dataset):
         else:
             print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
             raise ValueError()
-        self.label_strategy = None
-        if "label_strategy" in kwargs:
-          self.label_strategy = kwargs["label_strategy"]
+        self.labeling_strategy = None
+        if "labeling_strategy" in kwargs:
+          self.labeling_strategy = kwargs["labeling_strategy"]
     
     def convert_labels_2_tensor(self, string_representation:str):
       # numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
@@ -222,7 +221,7 @@ class TestingDataset(Dataset):
           ## default: using clip image preprocessing
         img_tensor = torch.load(img_tensor_path)
         prompt_tensor = torch.load(self.prompts_tensor_path)
-        if self.label_strategy:
+        if self.labeling_strategy == "S1":
           return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.strategy1_14_labels)
         return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
 

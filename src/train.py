@@ -170,8 +170,8 @@ class Trainer:
                     scores = self.evaluator.evaluate()
                     print(f'\n\033[31m######### Eval {global_step} #########\033[0m')
                     for key in scores.keys():
-                        if key in ['acc','auc', 'auc/mse', ]:
-                          print('{}: {:.4f}'.format(key, scores[key]))
+                        # if key in ['acc','auc', 'auc/mse', ]:
+                        #   print('{}: {:.4f}'.format(key, scores[key]))
                         if key == "auc_dict":
                           for i,j in scores[key].items():
                             print(i, j)
@@ -234,7 +234,10 @@ class Trainer:
       average_auc = 0
       n_disease = len(auc_dict)
       for disease, auc in auc_dict.items():
-        v = auc[indicator]
+        if indicator in auc_dict:
+          v = auc[indicator]
+        else:
+          v = auc
         average_auc = average_auc + v
       return average_auc/n_disease
         
