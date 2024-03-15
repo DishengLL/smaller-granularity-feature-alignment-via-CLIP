@@ -434,8 +434,8 @@ class classifier(nn.Module):
 
         super().__init__()
         param_dict = kwargs
-        label_strategy = param_dict['label_strategy'] if "label_strategy" in param_dict  else "3_class"
-        if label_strategy == "S1":
+        labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict  else "3_class"
+        if labeling_strategy == "S1":
           num_cat = 2  # binary classification --- positive and negative 
         if nntype == "biovil-t" or nntype == "cxr-bert-s":
           input_dim = 128
@@ -477,14 +477,11 @@ class classifier(nn.Module):
             # if type(img_label[0]) is str:
             #     nested_list = [json.loads(s) for s in img_label]
             # img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
-            logits = logits.view(-1, self.num_cat)
-            img_label_flat = img_label.view(-1)
-            
+            if logits.shape != img_label.shape:
+              batch_size = img_label.shape[0]
+              logits = logits.view(batch_size, -1)
             # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-            print(self.mode)
-            print(logits.dtype)
-            print(img_label_flat.dtype)
-            loss = self.loss_fn(logits, img_label_flat.long())
+            loss = self.loss_fn(logits, img_label)
             outputs['loss_value'] = loss
         return outputs
     
@@ -615,7 +612,7 @@ class MultiTaskModel(nn.Module):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
-        self.label_strategy = param_dict['label_strategy'] if "label_strategy" in param_dict else False
+        self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
         # S1 -- binary classification
         if  (nntype not in ["clip", "biomedclip", "custom", "cxr-bert-s", "biovil-t"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
@@ -624,7 +621,7 @@ class MultiTaskModel(nn.Module):
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
                                         graph_align=high_order, no_contrastive = no_contrastive,).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
-        self.PN_Classifier = classifier(nntype=nntype, label_strategy = self.label_strategy).to(device)
+        self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)

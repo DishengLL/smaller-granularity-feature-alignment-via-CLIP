@@ -18,7 +18,8 @@ class Evaluator:
     def __init__(self,
         FG_model_cls,
         eval_dataloader=None,
-        mode=None,
+        labeling_strategy = None, 
+        mode ='multiclass',
         ) -> None:
         '''specify class_names if doing zero-shot classification.
         mode: `binary`, 'multiclass`, or `multilabel`,
@@ -26,21 +27,39 @@ class Evaluator:
         recommend to set explicitly to avoid errors.
         '''
         self.clf = FG_model_cls
-        self.mode = mode
         self.eval_dataloader = eval_dataloader
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.labeling_strategy = labeling_strategy
+        self.mode = "binary" if labeling_strategy in ["S1"] else "multiclass"
     
+    
+    def transform_data_for_eval_each_disease(self, predictions_tensor = None, target_tensor = None):
+      predict_label_dim = predictions_tensor.shape[-1]
+      batch_n = predictions_tensor.shape[0]
+      disease_n = predictions_tensor.shape[1]
+      transform_data = {}
+      if predict_label_dim == 1: # binary classification
+        predictions_tensor = predictions_tensor.view(batch_n, -1)
+        for disease in range(disease_n):
+          each_disease_transform_data = {}
+          disease_pred = predictions_tensor[:, disease].cpu().numpy().astype(np.float64)
+          disease_target = target_tensor[:, disease].cpu().numpy().astype(np.int32)
+          each_disease_transform_data["pre"] = disease_pred
+          each_disease_transform_data['tar'] = disease_target
+          transform_data[constants.CHEXPERT_LABELS[disease]] = each_disease_transform_data
+      return transform_data
+      
     def evaluate(self, eval_dataloader=None, training_step = 0, dump = {}):
         self.clf.eval()
         if self.eval_dataloader is None and eval_dataloader is not None: self.eval_dataloader = eval_dataloader
         else: eval_dataloader = self.eval_dataloader
-        pred_tensor = torch.Tensor().to(self.device)
-        label_tensor = torch.Tensor().to(self.device)
+        pred_tensor =  torch.empty(0).to(self.device)
+        label_tensor =  torch.empty(0).to(self.device)
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
                 _, classifier_out, _ = self.clf(**data, eval=True)
-                pred = classifier_out['logits']            
-            pred_tensor = torch.cat((pred_tensor, pred), 0)
+                pred = classifier_out['logits']          
+            pred_tensor = torch.cat((pred_tensor, pred), dim=0)  
             label_tensor = torch.cat((label_tensor, (data["img_labels"])), 0)     
         outputs = {'pred':pred_tensor, 'labels':label_tensor, "loss": classifier_out['loss_value']}
         num_batch = pred_tensor.shape[0]
@@ -51,28 +70,21 @@ class Evaluator:
           if not os.path.exists( pwd + "/" + dump_path): os.makedirs( pwd + "/" + dump_path)
           print(f"save tensor_dict in {pwd + dump_path}")
           torch.save(tensor_dict, pwd + "/" + dump_path + "/tensor.pth")
-        if self.mode is None:
-            if len(labels.shape) == 1:
-                if len(np.unique(labels)) == 2:
-                    self.mode = 'binary'
-                else:
-                    self.mode = 'multiclass'
-            else:
-                self.mode = 'multilabel'
-            print(f'no mode specified, will pick mode `{self.mode}` by data.')
 
+        # Evaluation metric depends on the labelling strategy used
+        
         if self.mode == 'binary':
-            if pred.shape[1] == 1:
-                pred_score = torch.tensor(pred).sigmoid().numpy().flatten()
-                auc = roc_auc_score(labels, pred_score)
-                outputs['auc'] = auc
-                pred_label = np.ones(len(pred))
-                pred_label[pred_score<0.5] = 0
-                acc = (pred_label == labels).mean()
-                outputs['acc'] = acc
-                
+            if pred.shape[-1] == 1:    # NN output 1 value for binary classification
+              pred_tensor =  torch.sigmoid(pred_tensor)
+              transform_data = self.transform_data_for_eval_each_disease(pred_tensor, label_tensor)
+              each_auc = {}
+              for i, disease in enumerate(constants.CHEXPERT_LABELS):
+                auc = roc_auc_score(transform_data[disease]["tar"] , transform_data[disease]["pre"],)
+                each_auc[disease] = auc
+              outputs["auc_dict"] = each_auc
 
             else: # have 2 outputs
+                raise RuntimeError("Have not implement")
                 pred_score = torch.tensor(pred).sigmoid().numpy()
                 pred_label = np.argmax(pred_score, 1)
                 acc = (pred_label == labels).mean()
@@ -82,10 +94,10 @@ class Evaluator:
                 # res = self.process_confusion_matrix(cnf_matrix)
                 # outputs.update(res)
 
-            res = classification_report(labels, pred_label, output_dict=True, zero_division=np.nan_to_num)
-            res = res['macro avg']
-            res.pop('support')
-            outputs.update(res)
+            # res = classification_report(labels, pred_tensor., output_dict=True, zero_division=np.nan_to_num)
+            # res = res['macro avg']
+            # res.pop('support')
+            # outputs.update(res)
 
         if self.mode == 'multiclass':
             auc_dict = self.get_AUC(pred_tensor.reshape(num_batch,-1), label_tensor)
