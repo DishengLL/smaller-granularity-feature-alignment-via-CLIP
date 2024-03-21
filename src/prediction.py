@@ -200,20 +200,25 @@ class print_plot_CLIP():
 # a.plot()
 # a.plot_UMAP()
         
-def get_average_auc_among_disease( auc_dict, indicator = "positive"):
+def get_average_auc_among_disease( auc_dict, indicator = "positive", labeling_strategy = None):
   average_auc = 0
   n_disease = len(auc_dict)
-  for disease, auc in auc_dict.items():
-    v = auc[indicator]
-    average_auc = average_auc + v
+  if labeling_strategy != "S1":
+    for disease, auc in auc_dict.items():
+      v = auc[indicator]
+      average_auc = average_auc + v
+  else: # binary case
+    for disease, auc in auc_dict.items():
+      v = auc
+      average_auc = average_auc + v
   return average_auc/n_disease    
 
 def load_model(path = None, nntype = "biomedclip", visual_branch_only = False, backbone_v = None, 
-               high_order="NA", no_orthogonize = False, no_contrastive = False ):
+               high_order="NA", no_orthogonize = False, no_contrastive = False , labeling_strategy = None):
   if path == None:
     raise ValueError("you should specify the path of model")
   model = MultiTaskModel(nntype = nntype, visual_branch_only=visual_branch_only,backbone_v = backbone_v,high_order=high_order, 
-                         no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
+                         no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy )
   if device == "cpu":
     model.load_state_dict(torch.load(path,  map_location=torch.device('cpu')))
   else:
@@ -279,7 +284,7 @@ def parse_model_path(path = None):
     print(f"{constants.RED} {i} {constants.RESET}: {j}")
   return config_dict
 
-def model_infer_eval(model = None, backbone_type = None, dump_path = None):
+def model_infer_eval(model = None, backbone_type = None, dump_path = None, labeling_strategy = None):
   if model is None:
     raise ValueError("you should specify the model before inference")
     # build evaluator
@@ -287,19 +292,19 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
     model.cuda()
   # config_dict = parse_model_path(model)
   
-  val_data = TestingDataset(backbone_type=backbone_type)
+  val_data = TestingDataset(backbone_type=backbone_type, labeling_strategy = labeling_strategy)
   val_collate_fn = TestingCollator()
   eval_dataloader = DataLoader(val_data,
       batch_size=256,
       collate_fn=val_collate_fn,
       shuffle=False,
-      pin_memory=True,
-      num_workers = 2,
+      # pin_memory=True,   # CPU only
+      num_workers = 4,
       )
   _evaluator_ = Evaluator(
       FG_model_cls = model,
       eval_dataloader = eval_dataloader,
-      mode='multiclass')
+      labeling_strategy = labeling_strategy)
     
   dump = {
     "prediction":"./output/dump/prediction/",
@@ -316,11 +321,12 @@ def model_infer_eval(model = None, backbone_type = None, dump_path = None):
       if key == "auc_dict":
         for i,j in scores[key].items():
           print(i, j)
-        av_auc = get_average_auc_among_disease(scores[key], indicator = "positive")
+        av_auc = get_average_auc_among_disease(scores[key], indicator = "positive", labeling_strategy = labeling_strategy)
 
           
   print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
-  print(f'\n\033[31m#######################################\033[0m')
+  print(_constants_.GREEN + f"the average auc: {av_auc}" + _constants_.RESET)
+  print(f'\033[31m#######################################\033[0m')
   
 def get_auto_dump_file(path:str)->str:
   '''
@@ -341,12 +347,15 @@ def get_auto_dump_file(path:str)->str:
   return full_path
 
 if __name__ == "__main__":
+  torch.multiprocessing.set_start_method('spawn')# good solution !!!!
   parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
   parser.add_argument("--dump_path", "-d", type = str, default=None, help="the path to dump the output")
   parser.add_argument("--model","-m", type = str, required = True, help = "the path of predicted model.")
+  parser.add_argument("--labeling_strategy","-LS", type = str, required = True, help = "labeling strategy: binary or 3-classes")
   args = parser.parse_args()    
   model_path = args.model
   dump = args.dump_path
+  ls = args.labeling_strategy
   if dump is None:
     dump = get_auto_dump_file(model_path)
   config_dict = parse_model_path(model_path)
@@ -362,6 +371,7 @@ if __name__ == "__main__":
   high_order = config_dict['high_order']
   if high_order != "NA":
     print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
+  print(constants.RED + f"labeling strategy: {ls}" + constants.RESET)
   model = load_model(model_path, nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,
-                         high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive, )
-  model_infer_eval(model, backbone_type = backbone, dump_path=dump)
+                         high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = ls )
+  model_infer_eval(model, backbone_type = backbone, dump_path=dump, labeling_strategy = ls)
