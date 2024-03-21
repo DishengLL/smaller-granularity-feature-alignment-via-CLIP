@@ -1,0 +1,14 @@
+Namespace(backbone='biomedclip', backbone_v=None, high_order='binary', labeling_strategy='S1', learnable_weight=False, no_contrastive=True, no_orthogonize=True, prompt=None, save_dir=None, two_phases=False, uncertain_based_weight=False, vision_only=False, weight_strategy='task_balance')
+current weighting strategy is [31mtask_balance[0m
+[31mdo not implement orthogonization[0m
+[31mdo not implement contrastive learning between text and images[0m
+label_strategy setting -- [31m S1 [0m
+[31mintegrate graph alignment into the whole loss, using binary graph![0m
+saving path:  /home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/scripts/output//biomedclip_None_False_False_binary_True_True_task_balance/
+[31mload training data from[0m /home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/scripts/../data/project_using_data/all_train_data_3_11.csv
+[31mbiomedclip text encoder[0m processes [31mbasic[0m prompt
+[1m[34min current image branch, the vis backbone for vis embedding is: [0mbiomedclip
+[1m[34min current Text branch, the text backbone for text embedding is: [0mbiomedclip
+[31mTesting load testing data from[0m /home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/scripts/../data/project_using_data/all_test_3_11.csv
+currently using [31mbiomedclip[0m to process [31mbasic[0m prompt
+self.mode : binary: labeling_strategy: S1

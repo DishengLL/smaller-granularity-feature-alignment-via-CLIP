@@ -19,7 +19,6 @@ class Evaluator:
         FG_model_cls,
         eval_dataloader=None,
         labeling_strategy = None, 
-        mode ='multiclass',
         ) -> None:
         '''specify class_names if doing zero-shot classification.
         mode: `binary`, 'multiclass`, or `multilabel`,
@@ -31,7 +30,7 @@ class Evaluator:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.labeling_strategy = labeling_strategy
         self.mode = "binary" if labeling_strategy in ["S1"] else "multiclass"
-    
+        print(f"self.mode : {self.mode}: labeling_strategy: {labeling_strategy}")
     
     def transform_data_for_eval_each_disease(self, predictions_tensor = None, target_tensor = None):
       predict_label_dim = predictions_tensor.shape[-1]
@@ -99,7 +98,7 @@ class Evaluator:
             # res.pop('support')
             # outputs.update(res)
 
-        if self.mode == 'multiclass':
+        elif self.mode == 'multiclass':
             auc_dict = self.get_AUC(pred_tensor.reshape(num_batch,-1), label_tensor)
 
             pred_tensor = pred_tensor.reshape(num_batch, len(constants.CHEXPERT_LABELS), 3)
@@ -120,7 +119,7 @@ class Evaluator:
             # outputs.update(res)
             ###
         
-        if self.mode == 'multilabel':    ## focus on multi-labels
+        elif self.mode == 'multilabel':    ## focus on multi-labels
             pred_score = torch.tensor(pred).sigmoid().numpy()
             auroc_list, auprc_list,mse = [], [],[]
             for i in range(pred_score.shape[1]):
@@ -185,7 +184,7 @@ class Evaluator:
                     
 
                 else: # have 2 outputs
-                    pred_score = torch.tensor(pred).sigmoid().numpy()
+                    pred_score = torch.tensor(pred).softmax().numpy()
                     pred_label = np.argmax(pred_score, 1)
                     acc = (pred_label == labels).mean()
                     outputs['acc'] = acc
@@ -285,7 +284,7 @@ class Evaluator:
                 outputs[k] = v[1]
         return outputs
 
-    def get_AUC(self, predictions_tensor, labels_tensor, plot=False, record_roc = False, training_step = 0):
+    def get_AUC(self, predictions_tensor, labels_tensor, plot=False, record_roc = False, training_step = 0, labeling_strategy = None):
       """
       for each label(disease) gets its own auc
       plot: bool, whether plot the roc plot in this function
