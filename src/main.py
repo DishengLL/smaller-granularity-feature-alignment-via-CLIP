@@ -16,6 +16,35 @@ import constants as _constants_
 import logging
 from utils import utils
 
+# set training configurations
+train_config = {
+    'batch_size': 100,
+    'num_epochs': 6,
+    'warmup': 0.1, # the first 10% of training steps are used for warm-up
+    'lr': 2e-5,
+    'weight_decay': 1e-4,
+    'eval_batch_size': 256,
+    'eval_steps': 100,
+    'save_steps': 100,
+    # "save_path": save_model_path,
+    "model_zoo": ""   # the path of offline models
+}
+
+transform = transforms.Compose([
+              transforms.RandomHorizontalFlip(0.5),
+              transforms.ColorJitter(0.2,0.2),
+              transforms.RandomAffine(degrees=10, scale=(0.8,1.1), translate=(0.0625,0.0625)),
+              transforms.Resize((256, 256)),
+              transforms.RandomCrop((constants.IMG_SIZE, constants.IMG_SIZE)),
+              transforms.ToTensor(),
+              transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
+            )
+
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+if device == "cuda:0":
+  torch.cuda.set_device(device)
+  
+
 def main():
   logger = utils.set_env_config()
   args_parser = utils.parser()
@@ -27,34 +56,7 @@ def main():
   save_model_path = pwd + "/output/"
 
   num_workers = 5
-  device = "cuda:0" if torch.cuda.is_available() else "cpu"
-  if device == "cuda:0":
-    torch.cuda.set_device(device)
 
-  # set training configurations
-  train_config = {
-      'batch_size': 100,
-      'num_epochs': 6,
-      'warmup': 0.1, # the first 10% of training steps are used for warm-up
-      'lr': 2e-5,
-      'weight_decay': 1e-4,
-      'eval_batch_size': 256,
-      'eval_steps': 100,
-      'save_steps': 100,
-      # "save_path": save_model_path,
-      "model_zoo": ""   # the path of offline models
-  }
-
-  transform = transforms.Compose([
-                  transforms.RandomHorizontalFlip(0.5),
-                  transforms.ColorJitter(0.2,0.2),
-                  transforms.RandomAffine(degrees=10, scale=(0.8,1.1), translate=(0.0625,0.0625)),
-                  transforms.Resize((256, 256)),
-                  transforms.RandomCrop((constants.IMG_SIZE, constants.IMG_SIZE)),
-                  transforms.ToTensor(),
-                  transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
-              )
-      
   backbone = "biomedclip" if args.backbone == None else args.backbone
   backbone_v = None if args.backbone_v == None else args.backbone_v
   prompt = "basic" if args.prompt == None else args.prompt
@@ -62,22 +64,22 @@ def main():
   two_phases = args.two_phases
   uncertain_based_weight = args.uncertain_based_weight
   weight_strategy = args.weight_strategy
+  no_contrastive = args.no_contrastive
+  learnable_weight = args.learnable_weight
+  high_order = args.high_order
+  labeling_strategy = args.labeling_strategy
+  no_orthogonize = args.no_orthogonize
+  
   if  weight_strategy != "NA":
     print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
   if uncertain_based_weight:
     print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
   if two_phases:
     print(constants.RED + "using two phase training scheme" + constants.RESET)
-  no_orthogonize = args.no_orthogonize
   if no_orthogonize:
     print(constants.RED + "do not implement orthogonization" + constants.RESET)
-  no_contrastive = args.no_contrastive
   if no_contrastive:
     print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
-  learnable_weight = args.learnable_weight
-  high_order = args.high_order
-  labeling_strategy = args.labeling_strategy
-  print(f"label_strategy setting -- {constants.RED} {labeling_strategy} {constants.RESET}")
   if learnable_weight:
     print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
     logger.info("using learnable weights among sub-loss during training!")
@@ -88,7 +90,9 @@ def main():
     save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
   else:
     save_model_path = save_model_path + "/" + args.save_dir
+  
   print("saving path: ",save_model_path)
+  print(f"label_strategy setting -- {constants.RED} {labeling_strategy} {constants.RESET}") 
   
   train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, labeling_strategy = labeling_strategy) 
   train_collate_fn = ImageTextContrastiveCollator()
@@ -101,6 +105,7 @@ def main():
       prefetch_factor = 5
       )
   param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
+  
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
                           no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy)
