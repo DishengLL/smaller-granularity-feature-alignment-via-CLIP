@@ -68,7 +68,6 @@ class SplitVisEncoder(nn.Module):
         x = self.encoder(x)
 
         return x #.cuda()
-
 class TextBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False, nntype = None):
         super().__init__()
