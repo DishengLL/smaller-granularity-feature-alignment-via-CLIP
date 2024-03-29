@@ -50,6 +50,10 @@ class parser:
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
     parser.add_argument('--labeling_strategy', "-LS", type=str,choices=["S1", "Original", "S2"], default="Original", help="specify the labeling strategy(default: Original - 3 labels)")
+    parser.add_argument('--contrastive_param', "-CP", type=int, required=False, default= 1, help="specify the parameter for contrastive loss, which is the bridge between textual and visual branches.")
+    parser.add_argument('--classification_param', "-ClsP", type=int, required=False, default= 1, help="specify the parameter for classification loss.")
+    parser.add_argument('--orthogonal_param', "-OP", type=int, required=False, default= 1, help="specify the parameter for orthogonal loss.")
+    parser.add_argument('--graph_param', "-GP", type=int, required=False, default= 1, help="specify the parameter for high-order loss.")
     args = parser.parse_args() 
     return args
       
