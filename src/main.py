@@ -49,6 +49,8 @@ def main():
   logger = utils.set_env_config()
   args_parser = utils.parser()
   args = args_parser.set_arg_parser()
+  print(args)
+  print()
   pwd = os.getcwd()
   utils.set_random_seed()
 
@@ -69,7 +71,22 @@ def main():
   high_order = args.high_order
   labeling_strategy = args.labeling_strategy
   no_orthogonize = args.no_orthogonize
+  contrastive_param = args.contrastive_param
+  cls_param = args.classification_param
+  orthogonal_param = args.orthogonal_param
+  graph_param = args.graph_param
   
+  
+  if contrastive_param != 1:
+    print(f"contrastive loss parameter is {constants.RED + str(contrastive_param) + constants.RESET}")
+  if cls_param != 1:
+    print(f"classification loss parameter is {constants.RED + str(cls_param) + constants.RESET}")
+  if orthogonal_param != 1:
+    print(f"orthogonal loss parameter is {constants.RED + str(orthogonal_param) + constants.RESET}")
+  if graph_param != 1:
+    print(f"high-order loss parameter is {constants.RED + str(graph_param) + constants.RESET}")
+
+
   if  weight_strategy != "NA":
     print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
   if uncertain_based_weight:
@@ -104,7 +121,9 @@ def main():
       num_workers = num_workers,
       prefetch_factor = 5
       )
-  param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy}
+  param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy, 
+                "contrastive_param": contrastive_param, "cls_param": cls_param,
+                "orthogonal_param": orthogonal_param, "graph_param": graph_param}
   
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 

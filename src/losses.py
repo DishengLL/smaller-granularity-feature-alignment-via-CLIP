@@ -164,7 +164,19 @@ class LG_CLIP_LOSS(nn.Module):
             raise ValueError("input MultiTaskModel is None!!!!")
         self.model = MultiTaskModel
         self.learnable_weight = learnable_weight
-        
+      
+        if kwargs["contrastive_param"] != 1:
+          ### specify the weight of contrastive loss, in this case, the weight of contrastive loss is fixed.
+          self.alpha = nn.Parameter(torch.tensor(kwargs["contrastive_param"]), requires_grad=False)
+        if kwargs["cls_param"] != 1:
+          ### specify the weight of classification loss, in this case, the weight of contrastive loss is fixed.
+          self.beta = nn.Parameter(torch.tensor(kwargs["cls_param"]), requires_grad=False)
+        if kwargs["orthogonal_param"] != 1:
+          ### specify the weight of orthogonal loss, in this case, the weight of contrastive loss is fixed.
+          self.gamma = nn.Parameter(torch.tensor(kwargs["orthogonal_param"]), requires_grad=False)
+        if kwargs["graph_param"] != 1:
+          ### specify the weight of high-order loss, in this case, the weight of contrastive loss is fixed.
+          self.delta = nn.Parameter(torch.tensor(kwargs["graph_param"]), requires_grad=False)
 
     def forward(self, 
                 img = None,
