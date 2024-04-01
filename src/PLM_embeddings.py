@@ -160,6 +160,7 @@ class plot():
   
   def plot_all(self, embedding_matrix:Tensor, prompt:list, *args, **kwargs, ):
     fig, (ax1, ax2, ) = plt.subplots(1, 2, figsize=(32, 12))
+    plt.suptitle(f"{backbone}_{template}", fontsize=20)
     ax2.grid()
     if device == "cuda":
       embedding_matrix = embedding_matrix.to('cpu')
@@ -179,13 +180,18 @@ class plot():
     vmin = 0
     if np.min(cosine_similarities) < 0:
       vmin = np.min(cosine_similarities)
+      
+    if len(prompt[0]) > 20:
+      # shorten the text for better visualization
+      prompt = ["-".join(text.split(",")[:2]) for text in prompt]
+      
     heatmap = sns.heatmap(cosine_similarities, annot=True, cmap="RdYlBu_r", fmt=".2f",
                           xticklabels=prompt,
                           yticklabels=prompt, vmin=vmin, vmax=1, ax = ax1)
     heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, ha="right")
     heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, ha="right")
-    heatmap.set_xlabel("text1", fontsize=14)
-    heatmap.set_ylabel("text2", fontsize=14)
+    heatmap.set_xlabel("prompt", fontsize=14)
+    heatmap.set_ylabel("prompt", fontsize=14)
     title_text = plt.title(f"cos sim in {backbone} using {template} template", fontsize=16)
     title_text.set_fontweight("bold")
     
@@ -220,6 +226,15 @@ class Prompt():
   def compose_cls():
     return 
   
+  def compose_str_list(self, doc:dict)->list:
+    assert "Atelectasis" in doc
+    assert isinstance(doc["Atelectasis"], dict)  
+    text_list = []
+    for disease, value in doc.items():
+      for diagnose, description in value.items():
+        text_list.append(",".join([disease, diagnose, description]))
+    return text_list
+  
   def get_prompts(self, template:str)->list:
     if template == "basic":
       return C.BASIC_PROMPT
@@ -227,14 +242,20 @@ class Prompt():
       return list(C.DESC_PROMPT.values())
     elif template == "diagnostic":
       return C.DIAGNOSTIC_CHEXPERT_LABELS
+    
+    elif template == "dia_des":
+      return self.compose_str_list(C.CHEXPERT_DESCRIPTIONS)
     elif template == "classification":
-      return 
+      return
+
+    else:
+        raise RuntimeError("have not defined this prompt type")
       
 
 def main():
     parser = argparse.ArgumentParser(description="get text embedding and plot heatmap")
     parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomed', "biovil_t", "CXR_BERT_s","CXR_BERT_g", "bert"], required=True)
-    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic"],help="specify the prompt template(default: basic).")
+    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic", "dia_des"],help="specify the prompt template(default: basic).")
     args = parser.parse_args()
     backbone = args.backbone
     template = args.template
