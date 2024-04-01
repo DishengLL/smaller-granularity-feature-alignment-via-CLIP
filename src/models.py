@@ -98,7 +98,8 @@ class TextBranch(nn.Module):
         return  output
  
 class ImgBranch(nn.Module):
-    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, nntype = None, backbone_v:str = None):
+    def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, 
+                 nntype = None, backbone_v:str = None, trainable_PLM:int = 0):
         super().__init__()
         self.projection_head = nn.Linear(512, 512, bias=False)
         nlabel = len(_constants_.CHEXPERT_LABELS)
@@ -118,9 +119,28 @@ class ImgBranch(nn.Module):
         
         if self.backbone in ["biomedCLIP", "biomed", "biomedclip",]:
           import open_clip
+          """
+          There are 12 attention blocks in Vit module
+          """
           self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
           for param in self.clip_model.parameters():
+            # frozen all of params
             param.requires_grad = False
+          if trainable_PLM > 0:
+            # the last n attention blocks are trainable
+            num_att_block = 12
+            if trainable_PLM == 1:
+              for param in self.clip_model.visual.trunk.blocks[11].parameters():
+                param.requires_grad = True
+            else:  
+              print(f"tune the last {trainable_PLM} attention blocks!!")
+              for param in self.clip_model.visual.trunk.blocks[12-trainable_PLM: 12].parameters():
+                param.requires_grad = True     
+            
+            self.clip_model.visual.trunk.norm.weight.requires_grad = True
+            self.clip_model.visual.trunk.norm.bias.requires_grad = True
+            self.clip_model.visual.head.proj.weight.requires_grad = True
+                 
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           from utils.health_multimodal.image.utils import ImageModelType
           from utils.health_multimodal.image import get_image_inference
@@ -200,12 +220,13 @@ class LGCLIP(nn.Module):
         backbone_v = None, 
         graph_align = "NA",
         no_contrastive = False,
+        trainable_PLM = 0
         ) -> None:
         super().__init__()
         text_proj_bias = False
         assert vision_branch in [ImgBranch, CustomVisEncoder], 'vision_branch should be one of [ImgBranch]'
 
-        self.vision_model = ImgBranch(nntype = nntype, backbone_v = backbone_v)
+        self.vision_model = ImgBranch(nntype = nntype, backbone_v = backbone_v, trainable_PLM = trainable_PLM)
         if not visual_branch_only:
           self.text_model = TextBranch(nntype = nntype)
 
@@ -607,18 +628,22 @@ class Hier_graph_align():
 
 class MultiTaskModel(nn.Module):
     def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", 
-                 no_orthogonize = False, no_contrastive = False, **kwargs):
+                 no_orthogonize = False, no_contrastive = False, eval = False, **kwargs):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
+        if not eval: 
+          self.trainable_PLM = param_dict['trainable_PLM'] 
+        else: 
+          self.trainable_PLM = 0
         # S1 -- binary classification
         if  (nntype not in ["clip", "biomedclip", "custom", "cxr-bert-s", "biovil-t"]):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
-                                        graph_align=high_order, no_contrastive = no_contrastive,).to(device)
+                                        graph_align=high_order, no_contrastive = no_contrastive, trainable_PLM = self.trainable_PLM).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier

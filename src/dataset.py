@@ -34,6 +34,7 @@ class ImageTextContrastiveDataset(Dataset):
         '''
         super().__init__()
         # imgpath, subject_id, report, labels...(14 labels)
+        self.prompt_type = prompt_type
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
         filename = pwd+"/../data/project_using_data/all_train_data_3_11.csv"
@@ -46,9 +47,14 @@ class ImageTextContrastiveDataset(Dataset):
         if backbone_type == "clip" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/clip_basic.pt"
-        elif backbone_type == "biomedclip" and prompt_type == "basic":
-            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+        elif backbone_type == "biomedclip":
+          if prompt_type == "basic":
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
+          elif prompt_type == "dis_diag_des"
+            self.prompts_tensor_path = pwd + r"../constants/text_embeddings/biomed_dia_des_text_embeddings.pt"
+          else:
+            raise NotImplementedError()
+           print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
         elif backbone_type == "cxr-bert-s" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/cxr_bert_s.pt"          
@@ -63,8 +69,14 @@ class ImageTextContrastiveDataset(Dataset):
         self.labeling_strategy = None
         if "labeling_strategy" in kwargs:
           self.labeling_strategy = kwargs["labeling_strategy"]
+        self.prompt_tensor = torch.load(self.prompts_tensor_path)
           
-        
+    def find_corresponding_text_embedding(disease:int = None, diagnose = None):
+      # disease_list = constants.CHEXPERT_LABELS
+      # disease_index = disease_list.index(disease)
+      diagnose_index = 0 if diagnose == 1 else 1
+      return disease * 2 + diagnose_index
+      
     def convert_labels_2_tensor(self, string_representation:str):
       # numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
       # tensor_representation = tensor(numbers_list)
@@ -92,10 +104,20 @@ class ImageTextContrastiveDataset(Dataset):
       else: 
         raise NotImplemented(f"backbone model type error {self.backbone}")
       img_tensor = torch.load(img_tensor_path)
-      prompt_tensor = torch.load(self.prompts_tensor_path)
+
+    
       if self.labeling_strategy == "S1":
-        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.strategy1_14_labels)
-      return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
+        label = self.convert_labels_2_tensor(row.strategy1_14_labels)
+        if self.prompt_type == "dis_diag_des":
+          """
+          this prompt type : template(disease, diagnoses, description)
+          """
+          indices = []
+          for disease, diagnose in enumerate(label):
+            indices.append(find_corresponding_text_embedding(disease, diagnose))
+          return img_tensor, self.prompt_tensor[indices], label
+        return img_tensor, self.prompt_tensor, label
+      return img_tensor, self.prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
 
     def __len__(self):
         return len(self.df)

@@ -159,7 +159,6 @@ class LG_CLIP_LOSS(nn.Module):
           logger.info("I using monotonical increasing function: $e^(x)$")
           
         self.weighting_strategy = weighting_strategy
-          
         if MultiTaskModel is None:
             raise ValueError("input MultiTaskModel is None!!!!")
         self.model = MultiTaskModel

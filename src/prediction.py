@@ -217,7 +217,8 @@ def load_model(path = None, nntype = "biomedclip", visual_branch_only = False, b
                high_order="NA", no_orthogonize = False, no_contrastive = False , labeling_strategy = None):
   if path == None:
     raise ValueError("you should specify the path of model")
-  model = MultiTaskModel(nntype = nntype, visual_branch_only=visual_branch_only,backbone_v = backbone_v,high_order=high_order, 
+  
+  model = MultiTaskModel(eval = True, nntype = nntype, visual_branch_only=visual_branch_only,backbone_v = backbone_v,high_order=high_order, 
                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy )
   if device == "cpu":
     model.load_state_dict(torch.load(path,  map_location=torch.device('cpu')))
@@ -272,8 +273,8 @@ def parse_model_path(path = None):
   path = path_elements[-2]
   items = path.split('_')
   items = weight_parser(items)
-  print(items)
-  item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", "no_contrastive", "weight_strategy"]
+  item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", 
+               "no_contrastive", "weight_strategy", "contrastive_param", "trainable_PLM"]
   assert len(items) == len(item_name)
   config_dict = {}
   converter = {"None": None, "False": False, "True": True}

@@ -142,3 +142,20 @@ Missing (empty element) - No mention of the label was made in the report
 
 for `Support Devices`, this column get 4 kind of values(1, 0, -1, missing), most of them are missing and 1, missing>1>0>>-1
 ```
+
+
+### 2024-4-1
+#### Assumption:
+in the previous experiment, using disease name is text prompts, hoping these textual embeddings can facilitate the performance of classification task in visual branch. 
+
+Indeed, adding auxiliary losses can improve the overall performance.  
+
+1. Good news: the performance in all of disease do not drop in statistic level, and in certain diseases, the classification AUC improve. 
+2. Bad news: contrastive loss can not be reduced around 1.7, which is the bridge between textual and visual branches. Even though, the performance in all of diseases do not drop, the improvements are slight
+
+In my ideally case, visual embeddings should be aligned with textual embeddings. However, the unreduced contrastive loss (1.7) between embeddings with 512 dimensions.
+
+Therefore, regardless, the general disease concepts, I try to induce the diagnostic information (`Positive/Negative` Fracture). 
+
+In order to simplify the experiment, I initial assume all of corresponding textual embeddings should be orthogonal with each other.
+Eg: **Positive Fracture** `Ortho` **Negative Edma** 

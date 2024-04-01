@@ -34,11 +34,11 @@ class tools:
 class parser:
   def __init__(self):
     return
-  
+  "disease_level", "dis_diag_level", "dis_diag_des_level"
   def set_arg_parser(self):
     parser = argparse.ArgumentParser(description='parse input parameter for model configuration')
     parser.add_argument('--backbone', '-b', type=str,choices=["clip", "biomedclip","cxr-bert-s", "biovil-t"], help='the backbone module in the model')
-    parser.add_argument('--prompt', type=str, help='the type of prompt used in the model training')
+    parser.add_argument('--prompt', type=str, choices=["dis_diag", "dis_diag_des", "basic"],default = "basic", help='the type of prompt used in the model training')
     parser.add_argument('--vision_only',"-vo", action='store_true', default=False, help='does the model contain vision branch')
     parser.add_argument('--backbone_v', "-bv", choices=['densenet'], type=str, help="vision encoder in image branch")
     parser.add_argument('--save_dir', type=str, help="the dir to save output")
@@ -50,10 +50,11 @@ class parser:
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
     parser.add_argument('--labeling_strategy', "-LS", type=str,choices=["S1", "Original", "S2"], default="Original", help="specify the labeling strategy(default: Original - 3 labels)")
-    parser.add_argument('--contrastive_param', "-CP", type=int, required=False, default= 1, help="specify the parameter for contrastive loss, which is the bridge between textual and visual branches.")
-    parser.add_argument('--classification_param', "-ClsP", type=int, required=False, default= 1, help="specify the parameter for classification loss.")
-    parser.add_argument('--orthogonal_param', "-OP", type=int, required=False, default= 1, help="specify the parameter for orthogonal loss.")
-    parser.add_argument('--graph_param', "-GP", type=int, required=False, default= 1, help="specify the parameter for high-order loss.")
+    parser.add_argument('--contrastive_param', "-CP", type=float, required=False, default= 1, help="specify the parameter for contrastive loss, which is the bridge between textual and visual branches.")
+    parser.add_argument('--classification_param', "-ClsP", type=float, required=False, default= 1, help="specify the parameter for classification loss.")
+    parser.add_argument('--orthogonal_param', "-OP", type=float, required=False, default= 1, help="specify the parameter for orthogonal loss.")
+    parser.add_argument('--graph_param', "-GP", type=float, required=False, default= 1, help="specify the parameter for high-order loss.")
+    parser.add_argument('--trainable_PLM', "-TP", type=int, required=False, default= 0, help="Specify the number of last few layers to be trainable.")
     args = parser.parse_args() 
     return args
       

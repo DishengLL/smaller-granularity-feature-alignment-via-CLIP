@@ -75,7 +75,11 @@ def main():
   cls_param = args.classification_param
   orthogonal_param = args.orthogonal_param
   graph_param = args.graph_param
-  
+  trainable_PLM = args.trainable_PLM
+  configurations = [
+    "backbone","backbone_v", "visual_branch_only", "learnable_weight", "high_order", "no_orthogonize",
+    "no_contrastive", "weight_strategy", "contrastive_param", "trainable_PLM", "prompt"
+    ]
   
   if contrastive_param != 1:
     print(f"contrastive loss parameter is {constants.RED + str(contrastive_param) + constants.RESET}")
@@ -85,6 +89,10 @@ def main():
     print(f"orthogonal loss parameter is {constants.RED + str(orthogonal_param) + constants.RESET}")
   if graph_param != 1:
     print(f"high-order loss parameter is {constants.RED + str(graph_param) + constants.RESET}")
+  if trainable_PLM != 0:
+    print(f"the number of trainable layers is {constants.RED + str(trainable_PLM) + constants.RESET}")
+  if prompt != "basic":
+    print(f"the text prompt template is {constants.RED + prompt + constants.RESET}")
 
 
   if  weight_strategy != "NA":
@@ -104,7 +112,9 @@ def main():
     print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
     logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
   if  args.save_dir == None:
-    save_model_path = save_model_path + f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}/"
+    save_model_path = (save_model_path +
+               f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}_"
+               f"{contrastive_param}_{trainable_PLM}_{prompt}/")
   else:
     save_model_path = save_model_path + "/" + args.save_dir
   
@@ -123,11 +133,13 @@ def main():
       )
   param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy, 
                 "contrastive_param": contrastive_param, "cls_param": cls_param,
-                "orthogonal_param": orthogonal_param, "graph_param": graph_param}
+                "orthogonal_param": orthogonal_param, "graph_param": graph_param,
+                }
+  train_dict = {"trainable_PLM": trainable_PLM}
   
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
-                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy)
+                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, **train_dict)
   # loss definition
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
 
