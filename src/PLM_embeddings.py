@@ -283,6 +283,8 @@ def main():
     #   print(i)
     # print(type(text_embedding.logits))
     # print((text_embedding.logits).shape)  
+    print(text_embedding.shape)
+    torch.save(text_embedding, f'./output/{backbone}_{template}_text_embeddings.pt')
     painter = plot()
     # painter.plot_heat_map(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
     painter.plot_all(text_embedding, prompt, template = template, backbone=backbone)
