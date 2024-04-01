@@ -1,3 +1,4 @@
+import os
 import constants as C
 import torch 
 from PIL import Image
@@ -32,7 +33,7 @@ class PLM_embedding:
   
   def get_biomedclip_text_embedding(self, text:list):
     from open_clip import create_model_from_pretrained, get_tokenizer 
-    image = r".\imgs\chest.png"
+    image = "./imgs/chest.png"
     model, preprocess = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
     model.to(device)
     tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
@@ -203,7 +204,10 @@ class plot():
     plt.tight_layout()  # 自动调整布局
     plt.legend()
     # plt.show(plt.savefig(f".\output\sim_heatmap\{backbone}_{template}.png"))
-    plt.savefig(f".\output\sim_heatmap\{backbone}_{template}_all.png")
+    if not os.path.exists('./output/sim_heatmap/'):
+        os.makedirs('./output/sim_heatmap/')
+    plt.savefig(f"./output/sim_heatmap/{backbone}_{template}_all.png")
+    print(f"saving in .\output\sim_heatmap\{backbone}_{template}_all.png")
     return 
     
     
@@ -222,6 +226,8 @@ class Prompt():
       return C.BASIC_PROMPT
     elif template == "detailed":
       return list(C.DESC_PROMPT.values())
+    elif template == "diagnostic":
+      return C.DIAGNOSTIC_CHEXPERT_LABELS
     elif template == "classification":
       return 
       
