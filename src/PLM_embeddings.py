@@ -189,8 +189,8 @@ class plot():
                           yticklabels=prompt, vmin=vmin, vmax=1, ax = ax1)
     heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, ha="right")
     heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, ha="right")
-    heatmap.set_xlabel("text1", fontsize=14)
-    heatmap.set_ylabel("text2", fontsize=14)
+    heatmap.set_xlabel("prompt", fontsize=14)
+    heatmap.set_ylabel("prompt", fontsize=14)
     title_text = plt.title(f"cos sim in {backbone} using {template} template", fontsize=16)
     title_text.set_fontweight("bold")
     
@@ -203,7 +203,7 @@ class plot():
     ax2.axvline(mean_value + std_dev, color='green', linestyle='dashed', linewidth=2, label=f'Std: {std_dev:.2f}')
     ax2.axvline(mean_value - std_dev, color='green', linestyle='dashed', linewidth=2)
 
-
+    plt.suptitle(f"{backbone}_{template}", fontsize=20)
 
     plt.tight_layout()  # 自动调整布局
     plt.legend()
@@ -283,6 +283,8 @@ def main():
     #   print(i)
     # print(type(text_embedding.logits))
     # print((text_embedding.logits).shape)  
+    print(text_embedding.shape)
+    torch.save(text_embedding, f'./output/{backbone}_{template}_text_embeddings.pt')
     painter = plot()
     # painter.plot_heat_map(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
     painter.plot_all(text_embedding, prompt, template = template, backbone=backbone)
