@@ -174,8 +174,7 @@ class plot():
     if "backbone" in kwargs:
       backbone = kwargs['backbone']    
   
-    sns.set(font_scale=1.2)  
-    sns.set(font_scale=1.2)  # 调整字体大小
+    sns.set(font_scale=0.7)  # 调整字体大小
     sns.set_style("whitegrid")  # 设置白色背景和网格线
     vmin = 0
     if np.min(cosine_similarities) < 0:
@@ -235,7 +234,7 @@ class Prompt():
 def main():
     parser = argparse.ArgumentParser(description="get text embedding and plot heatmap")
     parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomed', "biovil_t", "CXR_BERT_s","CXR_BERT_g", "bert"], required=True)
-    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic"],help="specify the prompt template(default: basic).")
+    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic"],help="specify the prompt template(default: basic).")
     args = parser.parse_args()
     backbone = args.backbone
     template = args.template
@@ -266,7 +265,7 @@ def main():
     # print((text_embedding.logits).shape)  
     painter = plot()
     # painter.plot_heat_map(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
-    painter.plot_all(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
+    painter.plot_all(text_embedding, template, template = template, backbone=backbone)
 if __name__ == "__main__":
   main()
   print(C.GREEN + "complete!" + C.RESET)
