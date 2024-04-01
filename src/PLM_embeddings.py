@@ -179,6 +179,11 @@ class plot():
     vmin = 0
     if np.min(cosine_similarities) < 0:
       vmin = np.min(cosine_similarities)
+      
+    if len(prompt[0]) > 20:
+      # shorten the text for better visualization
+      prompt = ["-".join(text.split(",")[:2]) for text in prompt]
+      
     heatmap = sns.heatmap(cosine_similarities, annot=True, cmap="RdYlBu_r", fmt=".2f",
                           xticklabels=prompt,
                           yticklabels=prompt, vmin=vmin, vmax=1, ax = ax1)
@@ -220,6 +225,15 @@ class Prompt():
   def compose_cls():
     return 
   
+  def compose_str_list(self, doc:dict)->list:
+    assert "Atelectasis" in doc
+    assert isinstance(doc["Atelectasis"], dict)  
+    text_list = []
+    for disease, value in doc.items():
+      for diagnose, description in value.items():
+        text_list.append(",".join([disease, diagnose, description]))
+    return text_list
+  
   def get_prompts(self, template:str)->list:
     if template == "basic":
       return C.BASIC_PROMPT
@@ -227,6 +241,11 @@ class Prompt():
       return list(C.DESC_PROMPT.values())
     elif template == "diagnostic":
       return C.DIAGNOSTIC_CHEXPERT_LABELS
+    
+    elif template == "dia_des":
+      return compose_str_list(C.CHEXPERT_DESCRIPTIONS)
+    else:
+      raise RuntimeError("have not defined this prompt type")
     elif template == "classification":
       return 
       
@@ -234,7 +253,7 @@ class Prompt():
 def main():
     parser = argparse.ArgumentParser(description="get text embedding and plot heatmap")
     parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomed', "biovil_t", "CXR_BERT_s","CXR_BERT_g", "bert"], required=True)
-    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic"],help="specify the prompt template(default: basic).")
+    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic", "dia_des"],help="specify the prompt template(default: basic).")
     args = parser.parse_args()
     backbone = args.backbone
     template = args.template
@@ -265,7 +284,7 @@ def main():
     # print((text_embedding.logits).shape)  
     painter = plot()
     # painter.plot_heat_map(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
-    painter.plot_all(text_embedding, template, template = template, backbone=backbone)
+    painter.plot_all(text_embedding, prompt, template = template, backbone=backbone)
 if __name__ == "__main__":
   main()
   print(C.GREEN + "complete!" + C.RESET)
