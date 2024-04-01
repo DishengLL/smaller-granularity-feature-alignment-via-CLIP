@@ -265,7 +265,7 @@ def main():
     # print((text_embedding.logits).shape)  
     painter = plot()
     # painter.plot_heat_map(text_embedding, C.CHEXPERT_LABELS, template = template, backbone=backbone)
-    painter.plot_all(text_embedding, template, template = template, backbone=backbone)
+    painter.plot_all(text_embedding, prompt, template = template, backbone=backbone)
 if __name__ == "__main__":
   main()
   print(C.GREEN + "complete!" + C.RESET)
