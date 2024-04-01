@@ -35,6 +35,38 @@ CHEXPERT_LABELS = [
  "Support Devices"
 ]
 
+DIAGNOSTIC_CHEXPERT_LABELS = [
+  'Atelectasis positive', 
+  'Atelectasis negative', 
+  'Cardiomegaly positive', 
+  'Cardiomegaly negative', 
+  'Consolidation positive', 
+  'Consolidation negative', 
+  'Edema positive', 
+  'Edema negative', 
+  'Enlarged Cardiomediastinum positive', 
+  'Enlarged Cardiomediastinum negative', 
+  'Fracture positive', 
+  'Fracture negative', 
+  'Lung Lesion positive', 
+  'Lung Lesion negative', 
+  'Lung Opacity positive',
+  'Lung Opacity negative',
+  'No Finding positive',
+  'No Finding negative',
+  'Pleural Effusion positive',
+  'Pleural Effusion negative',
+  'Pleural Other positive',
+  'Pleural Other negative',
+  'Pneumonia positive',
+  'Pneumonia negative',
+  'Pneumothorax positive',
+  'Pneumothorax negative',
+  'Support Devices positive', 
+  'Support Devices negative'
+  ]
+
+
 BASIC_PROMPT = [
  'images for Atelectasis',
  'images for Cardiomegaly',

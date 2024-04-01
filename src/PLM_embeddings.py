@@ -226,6 +226,8 @@ class Prompt():
       return C.BASIC_PROMPT
     elif template == "detailed":
       return list(C.DESC_PROMPT.values())
+    elif template == "diagnostic":
+      return C.DIAGNOSTIC_CHEXPERT_LABELS
     elif template == "classification":
       return 
       
