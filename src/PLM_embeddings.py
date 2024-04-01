@@ -235,7 +235,7 @@ class Prompt():
 def main():
     parser = argparse.ArgumentParser(description="get text embedding and plot heatmap")
     parser.add_argument("--backbone", '-b',  type=str, help="specify the embedding model.", choices = ["clip", 'biomed', "biovil_t", "CXR_BERT_s","CXR_BERT_g", "bert"], required=True)
-    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic"],help="specify the prompt template(default: basic).")
+    parser.add_argument("--template", '-t',  type=str, default='basic', choices = ["detailed", "basic", "diagnostic"],help="specify the prompt template(default: basic).")
     args = parser.parse_args()
     backbone = args.backbone
     template = args.template
