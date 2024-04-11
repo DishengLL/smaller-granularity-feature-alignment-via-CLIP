@@ -50,11 +50,11 @@ class ImageTextContrastiveDataset(Dataset):
         elif backbone_type == "biomedclip":
           if prompt_type == "basic":
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
-          elif prompt_type == "dis_diag_des"
+          elif prompt_type == "dis_diag_des":
             self.prompts_tensor_path = pwd + r"../constants/text_embeddings/biomed_dia_des_text_embeddings.pt"
           else:
             raise NotImplementedError()
-           print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
         elif backbone_type == "cxr-bert-s" and prompt_type == "basic":
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/cxr_bert_s.pt"          
