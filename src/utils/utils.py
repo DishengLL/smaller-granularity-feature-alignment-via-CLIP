@@ -55,6 +55,7 @@ class parser:
     parser.add_argument('--orthogonal_param', "-OP", type=float, required=False, default= 1, help="specify the parameter for orthogonal loss.")
     parser.add_argument('--graph_param', "-GP", type=float, required=False, default= 1, help="specify the parameter for high-order loss.")
     parser.add_argument('--trainable_PLM', "-TP", type=int, required=False, default= 0, help="Specify the number of last few layers to be trainable.")
+    parser.add_argument('--AP-PA-view', action='store_true', default = False, help="training and testing on AP and PA view position data")
     args = parser.parse_args() 
     return args
       
