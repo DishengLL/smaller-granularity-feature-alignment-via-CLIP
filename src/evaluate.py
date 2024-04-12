@@ -30,7 +30,7 @@ class Evaluator:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.labeling_strategy = labeling_strategy
         self.mode = "binary" if labeling_strategy in ["S1"] else "multiclass"
-        print(f"self.mode : {self.mode}: labeling_strategy: {labeling_strategy}")
+        print(f"self.mode : {self.mode} classification : labeling_strategy: {labeling_strategy}")
     
     def transform_data_for_eval_each_disease(self, predictions_tensor = None, target_tensor = None):
       predict_label_dim = predictions_tensor.shape[-1]

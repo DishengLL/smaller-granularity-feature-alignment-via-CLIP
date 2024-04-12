@@ -15,6 +15,7 @@ import traceback
 import constants as _constants_
 import logging
 from utils import utils
+import json
 
 # set training configurations
 train_config = {
@@ -43,6 +44,39 @@ transform = transforms.Compose([
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 if device == "cuda:0":
   torch.cuda.set_device(device)
+  
+# def print_configuration (merged_dict = merged_dict):
+#   print (merged_dict)
+#   if merged_dict["contrastive_param"] != 1:
+#     print(f"contrastive loss parameter is {constants.RED + str(merged_dict["contrastive_param"]) + constants.RESET}")
+#   if merged_dict['cls_param'] != 1:
+#     print(f"classification loss parameter is {constants.RED + str(merged_dict['cls_param']) + constants.RESET}")
+#   if merged_dict["orthogonal_param"] != 1:
+#     print(f"orthogonal loss parameter is {constants.RED + str(merged_dict["orthogonal_param"]) + constants.RESET}")
+#   if merged_dict["graph_param"] != 1:
+#     print(f"high-order loss parameter is {constants.RED + str(merged_dict["graph_param"]) + constants.RESET}")
+#   if merged_dict["trainable_PLM"] != 0:
+#     print(f"the number of trainable layers is {constants.RED + str(merged_dict["trainable_PLM"]) + constants.RESET}")
+#   if merged_dict["prompt"] != "basic":
+#     print(f"the text prompt template is {constants.RED + merged_dict["prompt"] + constants.RESET}")
+#   if  merged_dict["weight_strategy"] != "NA":
+#     print(f"current weighting strategy is {constants.RED + merged_dict["weight_strategy"] + constants.RESET}")
+#   if merged_dict["uncertain_based_weight"]:
+#     print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
+#   if merged_dict["two_phases"]:
+#     print(constants.RED + "using two phase training scheme" + constants.RESET)
+#   if merged_dict["no_orthogonize"]:
+#     print(constants.RED + "do not implement orthogonization" + constants.RESET)
+#   if merged_dict["no_contrastive"]:
+#     print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
+#   if merged_dict["learnable_weight"]:
+#     print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
+#     logger.info("using learnable weights among sub-loss during training!")
+#   if merged_dict["high_order"] != "NA":
+#     print(constants.RED+f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!"+constants.RESET)
+#     logger.info(f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!")
+#   print(f"label_strategy setting -- {constants.RED} {merged_dict['labeling_strategy']} {constants.RESET}") 
+#   return
   
 
 def main():
@@ -76,52 +110,60 @@ def main():
   orthogonal_param = args.orthogonal_param
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
+  AP_PA_view = args.AP_PA_view
+  
+  tasks_configuration = {"no_contrastive" : args.no_contrastive,
+                         "no_orthogonize" : args.no_orthogonize,
+                         "high_order" : args.high_order, 
+                         "contrastive_param": args.contrastive_param,
+                         "cls_param" : args.classification_param,
+                         "orthogonal_param" : args.orthogonal_param,
+                         "graph_param" : args.graph_param,
+                         
+                          "weight_strategy": weight_strategy,
+                          "uncertain_based_weight": uncertain_based_weight,
+                          "learnable_weight": learnable_weight
+                         }
+  
+  samples_configuration = {"AP_PA_view" : AP_PA_view,
+                        "labeling_strategy": args.labeling_strategy,
+                        "prompt" : "basic" if args.prompt == None else args.prompt
+                        }
+  
+  model_configuration = {"backbone" : "biomedclip" if args.backbone == None else args.backbone,
+                          "backbone_v" : None if args.backbone_v == None else args.backbone_v,
+                          "visual_branch_only" : args.vision_only,
+                          "trainable_PLM" : args.trainable_PLM
+                          }
+  
   configurations = [
     "backbone","backbone_v", "visual_branch_only", "learnable_weight", "high_order", "no_orthogonize",
     "no_contrastive", "weight_strategy", "contrastive_param", "trainable_PLM", "prompt"
     ]
   
-  if contrastive_param != 1:
-    print(f"contrastive loss parameter is {constants.RED + str(contrastive_param) + constants.RESET}")
-  if cls_param != 1:
-    print(f"classification loss parameter is {constants.RED + str(cls_param) + constants.RESET}")
-  if orthogonal_param != 1:
-    print(f"orthogonal loss parameter is {constants.RED + str(orthogonal_param) + constants.RESET}")
-  if graph_param != 1:
-    print(f"high-order loss parameter is {constants.RED + str(graph_param) + constants.RESET}")
-  if trainable_PLM != 0:
-    print(f"the number of trainable layers is {constants.RED + str(trainable_PLM) + constants.RESET}")
-  if prompt != "basic":
-    print(f"the text prompt template is {constants.RED + prompt + constants.RESET}")
+  merged_dict = {**tasks_configuration, **samples_configuration, **model_configuration}
 
-
-  if  weight_strategy != "NA":
-    print(f"current weighting strategy is {constants.RED + weight_strategy + constants.RESET}")
-  if uncertain_based_weight:
-    print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
-  if two_phases:
-    print(constants.RED + "using two phase training scheme" + constants.RESET)
-  if no_orthogonize:
-    print(constants.RED + "do not implement orthogonization" + constants.RESET)
-  if no_contrastive:
-    print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
-  if learnable_weight:
-    print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
-    logger.info("using learnable weights among sub-loss during training!")
-  if high_order != "NA":
-    print(constants.RED+f"integrate graph alignment into the whole loss, using {high_order} graph!"+constants.RESET)
-    logger.info(f"integrate graph alignment into the whole loss, using {high_order} graph!")
   if  args.save_dir == None:
-    save_model_path = (save_model_path +
-               f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}_"
-               f"{contrastive_param}_{trainable_PLM}_{prompt}/")
+    args_keys = [i for i in args.__dict__.keys()]
+    args_values = [str(i) if not isinstance(i, str) else i for i in args.__dict__.values()]
+
+    configuration_concat = '_'.join(args_values)
+    save_model_path = os.path.join(save_model_path , configuration_concat)
+    
+    # save_model_path = (save_model_path +
+    #            f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}_"
+    #            f"{contrastive_param}_{trainable_PLM}_{prompt}/")
   else:
     save_model_path = save_model_path + "/" + args.save_dir
   
   print("saving path: ",save_model_path)
-  print(f"label_strategy setting -- {constants.RED} {labeling_strategy} {constants.RESET}") 
+  if not os.path.exists(save_model_path): os.makedirs(save_model_path)
+  with open(os.path.join(save_model_path, 'args.txt'), 'w') as f:
+    json.dump(args.__dict__, f, indent=4)
   
-  train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, labeling_strategy = labeling_strategy) 
+  train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, 
+                                           labeling_strategy = labeling_strategy,
+                                           AP_PA_view = AP_PA_view) 
   train_collate_fn = ImageTextContrastiveCollator()
   train_loader = DataLoader(train_data,
       batch_size=train_config['batch_size'],
@@ -144,7 +186,9 @@ def main():
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
 
   # build evaluator
-  val_data = TestingDataset(backbone_type=backbone, labeling_strategy = labeling_strategy)
+  val_data = TestingDataset(backbone_type=backbone, 
+                            labeling_strategy = labeling_strategy,
+                            AP_PA_view = AP_PA_view)
   val_collate_fn = TestingCollator()
   eval_dataloader = DataLoader(val_data,
       batch_size=train_config['eval_batch_size'],

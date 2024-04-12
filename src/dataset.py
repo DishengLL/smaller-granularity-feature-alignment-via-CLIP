@@ -19,8 +19,14 @@ import ast
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-# dataset.py provide all the tensor model needs
 pwd = os.getcwd()
+training_data_path = pwd + "/../data/project_using_data/all_train_data_3_11.csv"
+testing_data_path = pwd + r"/../data/project_using_data/all_test_3_11.csv"
+training_AP_PA_data_path = pwd + "/../data/project_using_data/all_train_data_4_12_AP_PA.csv"
+testing_AP_PA_data_path = pwd + r"/../data/project_using_data/all_test_data_4_12_AP_PA.csv"
+
+
+# dataset.py provide all the tensor model needs
 class ImageTextContrastiveDataset(Dataset):
     '''
     using nntype to determine which backbone process text
@@ -37,7 +43,10 @@ class ImageTextContrastiveDataset(Dataset):
         self.prompt_type = prompt_type
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
-        filename = pwd+"/../data/project_using_data/all_train_data_3_11.csv"
+        if kwargs.get("AP_PA_view"):
+          filename = training_AP_PA_data_path
+        else:  
+          filename = training_data_path
         # filename = pwd+"/../data/project_using_data/train_3_15.csv"  # temp small training data 10000
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
@@ -196,10 +205,12 @@ class TestingDataset(Dataset):
         # else:
         #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         self.backbone = backbone_type
-        filename = pwd + r"/../data/project_using_data/all_test_3_11.csv"
+        if kwargs.get("AP_PA_view"):
+          filename = testing_AP_PA_data_path
+        else:
+          filename = testing_data_path
         print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
-        # self.df = self.df.head(300)
         # self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
         if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr-bert-s", "biovil-t"]:
             raise ValueError("backbone type error: {backbone_type}")
