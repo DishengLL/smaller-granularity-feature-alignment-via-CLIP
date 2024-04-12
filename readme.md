@@ -55,7 +55,7 @@ To solve this problem, I need to interface 2 main challenges
 
 ### Model  
 
-<img src=".\imgs\methodology_blank.png" style="zoom:50%;"></img>
+<img src=".\imgs\all_pipeline.png" style="zoom:50%;"></img>  
 Using contrastive learning to align the diseases' representation between textual and visual branches, leveraging the power of LLMs to guide the feature extraction in the visual branch.
 
 ### Pathology correlation:
