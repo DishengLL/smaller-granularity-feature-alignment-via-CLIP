@@ -14,8 +14,8 @@ fi
 
 time=$(date "+%Y_%m_%d_%H-%M")
 echo -e "train model with configuration:\n1. Backbone: biomedclip\n2. Loss: contrastive, orthoginal, graph loss\n\
-3. Labeling strategy: S1 stragety--binary classification.\n4. Prompt: basic prompt\n5. Weghting stragety: learnable\n\
-6. log: <....>/output/log/biomed_all_task_balance_S1_APPA_${time}.log\n\
+3. Labeling strategy: S1 stragety--binary classification.\n4. Prompt: descript + diagnotic prompt\n5. Weghting stragety: task balance\n\
+6. log: <....>/output/log/biomed_all_task_balance_S1_des_diago_prompt_${time}.log\n\
 7. using AP—PA—data"
 
 python ../src/main.py \
@@ -23,7 +23,8 @@ python ../src/main.py \
 -ho binary \
 -ws task_balance  \
 -LS S1 \
---AP-PA-view >> "./log/biomed_all_task_balance_S1_APPA_${time}.log"
+--prompt dis_diag_des \
+--AP-PA-view >> "./log/biomed_all_task_balance_S1_des_diago_prompt_${time}.log"
 
 end_time=$(date +%s)
 

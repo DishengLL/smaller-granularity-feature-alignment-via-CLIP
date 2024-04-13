@@ -13,17 +13,16 @@ else
 fi
 
 time=$(date "+%Y_%m_%d_%H-%M")
-echo -e "train model with configuration:\n1. Backbone: biomedclip\n2. Loss: contrastive, orthoginal, graph loss\n\
-3. Labeling strategy: S1 stragety--binary classification.\n4. Prompt: basic prompt\n5. Weghting stragety: learnable\n\
-6. log: <....>/output/log/biomed_all_task_balance_S1_APPA_${time}.log\n\
+echo -e "train model with configuration:\n1. Backbone: densenet\n2. Loss: classification\n\
+3. Labeling strategy: S1 stragety--binary classification.\n\
+6. log: <....>/output/log/densenet_vo_S1_APPA_${time}.log\n\
 7. using AP—PA—data"
 
 python ../src/main.py \
--b biomedclip \
--ho binary \
--ws task_balance  \
+-bv densenet \
+-vo \
 -LS S1 \
---AP-PA-view >> "./log/biomed_all_task_balance_S1_APPA_${time}.log"
+--AP-PA-view >> "./log/densenet_vo_S1_APPA_${time}.log"
 
 end_time=$(date +%s)
 
