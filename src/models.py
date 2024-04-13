@@ -108,7 +108,9 @@ class ImgBranch(nn.Module):
         if backbone_v == "densenet":
           self.backbone_v_model = self.densenet().to(device)
           self.backbone = "densenet"
-          print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + self.backbone_v)    
+          print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + backbone_v)    
+          self.VisEncoder = SplitVisEncoder(nlabel, d_model = d_model, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
+
           return
         
         if nntype == None:
