@@ -691,4 +691,3 @@ class MultiTaskModel(nn.Module):
         if self.no_orthogonize:  # input parameter, which control orthogonization operation
           c =  {"loss_value": 0}
         return a, b, c
-    
