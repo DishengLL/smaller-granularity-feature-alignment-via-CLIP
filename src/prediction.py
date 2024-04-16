@@ -25,6 +25,9 @@ import constants as _constants_
 import logging
 import os
 from pathlib import Path 
+from utils import utils
+import json
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -267,15 +270,34 @@ def weight_parser(items=None):
     return items
   return items
     
+
+def parse_args_txt(filename):
+    with open(filename, 'r') as file:
+        args_str = file.read()
+        args_dict = json.loads(args_str)
+        return args_dict 
+
 def parse_model_path(path = None):
   path_obj = Path(path)
   path_elements = list(path_obj.parts)
   path = path_elements[-2]
   items = path.split('_')
+  print(len(items))
+  print(os.path.join(os.path.join(*path_elements[:-1]), "args.txt"))
+
+
+  print(os.path.exists(os.path.join(os.path.join(*path_elements[:-1]), "args.txt")))
+  if len(items) > 15 and os.path.exists(os.path.join(os.path.join(*path_elements[:-1]), "args.txt")):
+    params = parse_args_txt(os.path.join(os.path.join(*path_elements[:-1]), "args.txt"))
+    for keys, values in params.items():
+      print(f"{constants.RED} {keys} {constants.RESET}: {values}")
+    return params
   items = weight_parser(items)
   item_name = ["backbone", "backbone_v", "v_only", "learnable_weight", "high_order", "no_orthogonize", 
                "no_contrastive", "weight_strategy", "contrastive_param", "trainable_PLM"]
-  assert len(items) == len(item_name)
+  # item_name
+  assert len(args_values) == len(args_keys)
+  # assert len(items) == len(item_name)
   config_dict = {}
   converter = {"None": None, "False": False, "True": True}
   for i, j in zip(item_name, items):
@@ -285,15 +307,17 @@ def parse_model_path(path = None):
     print(f"{constants.RED} {i} {constants.RESET}: {j}")
   return config_dict
 
-def model_infer_eval(model = None, backbone_type = None, dump_path = None, labeling_strategy = None):
+def model_infer_eval(model = None, backbone_type = None, dump_path = None, labeling_strategy = None,
+                     AP_PA_view = None):
   if model is None:
     raise ValueError("you should specify the model before inference")
-    # build evaluator
   if device == "cuda":
     model.cuda()
-  # config_dict = parse_model_path(model)
   
-  val_data = TestingDataset(backbone_type=backbone_type, labeling_strategy = labeling_strategy)
+  val_data = TestingDataset(backbone_type=backbone_type, 
+                            labeling_strategy = labeling_strategy,
+                            AP_PA_view = AP_PA_view)
+                            
   val_collate_fn = TestingCollator()
   eval_dataloader = DataLoader(val_data,
       batch_size=256,
@@ -357,12 +381,18 @@ if __name__ == "__main__":
   model_path = args.model
   dump = args.dump_path
   ls = args.labeling_strategy
+  print(args)
+  # APPA = args.AP_PA_view
   if dump is None:
     dump = get_auto_dump_file(model_path)
   config_dict = parse_model_path(model_path)
+  APPA = config_dict['AP_PA_view']
   backbone = "biomedclip" if config_dict['backbone'] == None else config_dict['backbone']
   backbone_v = None if config_dict['backbone_v'] == None else config_dict['backbone_v']
-  visual_branch_only = config_dict['v_only']
+  if "v_only" in config_dict:
+    visual_branch_only = config_dict['v_only']
+  else:
+    visual_branch_only = config_dict["vision_only"]
   no_orthogonize = config_dict['no_orthogonize']
   if no_orthogonize:
     print(constants.RED + "do not implement orthogonization" + constants.RESET)
@@ -375,4 +405,4 @@ if __name__ == "__main__":
   print(constants.RED + f"labeling strategy: {ls}" + constants.RESET)
   model = load_model(model_path, nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,
                          high_order=high_order, no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = ls )
-  model_infer_eval(model, backbone_type = backbone, dump_path=dump, labeling_strategy = ls)
+  model_infer_eval(model, backbone_type = backbone, dump_path=dump, labeling_strategy = ls, AP_PA_view = APPA)
