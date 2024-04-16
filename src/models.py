@@ -99,7 +99,8 @@ class TextBranch(nn.Module):
  
 class ImgBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, 
-                 nntype = None, backbone_v:str = None, trainable_PLM:int = 0):
+                 nntype = None, backbone_v:str = None, 
+                 trainable_PLM:int = 0, trainable_VisionEncoder = False):
         super().__init__()
         self.projection_head = nn.Linear(512, 512, bias=False)
         nlabel = len(_constants_.CHEXPERT_LABELS)
@@ -125,9 +126,15 @@ class ImgBranch(nn.Module):
           There are 12 attention blocks in Vit module
           """
           self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
-          for param in self.clip_model.parameters():
-            # frozen all of params
-            param.requires_grad = False
+          
+          if trainable_VisionEncoder: 
+            print("trainable Pretrained model")
+            for param in self.clip_model.parameters():
+              # frozen all of params
+              param.requires_grad = True
+          else:
+            for param in self.clip_model.parameters():
+              param.requires_grad = False
           if trainable_PLM > 0:
             # the last n attention blocks are trainable
             num_att_block = 12
@@ -155,8 +162,13 @@ class ImgBranch(nn.Module):
         elif self.backbone == "clip":
           import clip
           self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B-32.pt", device=device)
-          for param in self.clip_model.parameters():
-            param.requires_grad = False
+          if trainable_VisionEncoder:
+            print("trainable Pretrained model")
+            for param in self.clip_model.parameters():
+              param.requires_grad = True
+          else:
+            for param in self.clip_model.parameters():
+              param.requires_grad = False
         #  in this version, Biomed and CLIP model are been frozen 
         else:
           raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
@@ -222,13 +234,16 @@ class LGCLIP(nn.Module):
         backbone_v = None, 
         graph_align = "NA",
         no_contrastive = False,
-        trainable_PLM = 0
+        trainable_PLM = 0,
+        trainable_VisionEncoder = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
         assert vision_branch in [ImgBranch, CustomVisEncoder], 'vision_branch should be one of [ImgBranch]'
 
-        self.vision_model = ImgBranch(nntype = nntype, backbone_v = backbone_v, trainable_PLM = trainable_PLM)
+        self.vision_model = ImgBranch(nntype = nntype, backbone_v = backbone_v, 
+                                      trainable_PLM = trainable_PLM, 
+                                      trainable_VisionEncoder = trainable_VisionEncoder)
         if not visual_branch_only:
           self.text_model = TextBranch(nntype = nntype)
 
@@ -644,8 +659,14 @@ class MultiTaskModel(nn.Module):
             raise ValueError("currently, only support clip, biomedclip and custom NN")
         if visual_branch_only:
             print(_constants_.CYAN+"current program run in visual branch only version (no contrastive learning between images and text)"+_constants_.RESET)
+        if "trainable_VisionEncoder" in param_dict:
+          trainable_VisionEncoder = param_dict["trainable_VisionEncoder"]
+        else:
+          trainable_VisionEncoder =  False
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
-                                        graph_align=high_order, no_contrastive = no_contrastive, trainable_PLM = self.trainable_PLM).to(device)
+                                        graph_align=high_order, no_contrastive = no_contrastive, 
+                                        trainable_PLM = self.trainable_PLM,
+                                        trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier
@@ -670,4 +691,3 @@ class MultiTaskModel(nn.Module):
         if self.no_orthogonize:  # input parameter, which control orthogonization operation
           c =  {"loss_value": 0}
         return a, b, c
-    

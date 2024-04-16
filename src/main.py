@@ -111,6 +111,7 @@ def main():
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
+  trainable_VisionEncoder = args.trainable_VisionEncoder
   
   tasks_configuration = {"no_contrastive" : args.no_contrastive,
                          "no_orthogonize" : args.no_orthogonize,
@@ -177,11 +178,13 @@ def main():
                 "contrastive_param": contrastive_param, "cls_param": cls_param,
                 "orthogonal_param": orthogonal_param, "graph_param": graph_param,
                 }
-  train_dict = {"trainable_PLM": trainable_PLM}
+  train_dict = {"trainable_PLM": trainable_PLM,
+                "trainable_VisionEncoder" : trainable_VisionEncoder}
   
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
-                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, **train_dict)
+                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, 
+                          **train_dict)
   # loss definition
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
 
