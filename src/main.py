@@ -112,6 +112,7 @@ def main():
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
   trainable_VisionEncoder = args.trainable_VisionEncoder
+  Alignment_Only = args.Alignment_Only
   
   tasks_configuration = {"no_contrastive" : args.no_contrastive,
                          "no_orthogonize" : args.no_orthogonize,
@@ -179,7 +180,8 @@ def main():
                 "orthogonal_param": orthogonal_param, "graph_param": graph_param,
                 }
   train_dict = {"trainable_PLM": trainable_PLM,
-                "trainable_VisionEncoder" : trainable_VisionEncoder}
+                "trainable_VisionEncoder" : trainable_VisionEncoder,
+                "Alignment_Only": Alignment_Only}
   
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 

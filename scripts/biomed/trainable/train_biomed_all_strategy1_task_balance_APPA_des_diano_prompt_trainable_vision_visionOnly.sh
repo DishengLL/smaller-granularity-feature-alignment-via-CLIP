@@ -26,7 +26,7 @@ python ../src/main.py \
 --prompt dis_diag_des \
 --trainable_VisionEncoder \
 --vision_only \
---AP-PA-view >> "../log/biomed_all_task_balance_S1_des_diago_prompt_trainable_vision_vision_only_${time}.log"
+--AP-PA-view >> "./log/biomed_all_task_balance_S1_des_diago_prompt_trainable_vision_vision_only_${time}.log"
 
 end_time=$(date +%s)
 
