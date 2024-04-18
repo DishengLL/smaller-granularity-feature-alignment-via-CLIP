@@ -655,6 +655,7 @@ class MultiTaskModel(nn.Module):
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
+        self.Alignment_Only = param_dict['Alignment_Only'] if "Alignment_Only" in param_dict else False
         if not eval: 
           self.trainable_PLM = param_dict['trainable_PLM'] 
         else: 
@@ -673,7 +674,8 @@ class MultiTaskModel(nn.Module):
                                         trainable_PLM = self.trainable_PLM,
                                         trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
-        self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
+        if not Alignment_Only 
+          self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
@@ -689,7 +691,10 @@ class MultiTaskModel(nn.Module):
         assert img is not None
         assert img_labels is not None
         a = self.Contrastive_Model(prompts, img, eval=eval)
-        b = self.PN_Classifier(a['img_embeds'], img_labels)
+        if not self.Alignment_Only 
+          b = self.PN_Classifier(a['img_embeds'], img_labels)
+        else:
+          b = {"loss_value": 0}
         c = 0
         if not eval:
           c = self.Orthogonal_dif(a['text_embeds']) if ((not self.visual_branch_only)) else {"loss_value": 0}
