@@ -11,6 +11,8 @@ import torch
 from sklearn.metrics import multilabel_confusion_matrix
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
+import constants
+
 
 logging.basicConfig(
     level=logging.DEBUG,  # 设置日志级别为DEBUG，这里你可以根据需要设置不同的级别
@@ -59,6 +61,7 @@ class parser:
     parser.add_argument('--trainable_PLM', "-TP", type=int, required=False, default= 0, help="Specify the number of last few layers to be trainable.")
     parser.add_argument('--AP-PA-view', action='store_true', default = False, help="training and testing on AP and PA view position data")
     parser.add_argument('--trainable_VisionEncoder', action='store_true', default = False, help="all of vision encoder is trainable (initialize from large pretrained models)")
+    parser.add_argument('--Alignment_Only', '-AO', action='store_true', default = False, help="Alignment visual and textual information only, this parameter is used to get the pretrained (evaluate the contrastive loss which could be reduced from 1.7 in the whole pipeline)")
     args = parser.parse_args() 
     return args
       
@@ -101,30 +104,77 @@ def get_confusion_matrix(actual_labels:torch.Tensor, predicted_labels:torch.Tens
   if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
   # 计算多标签分类混淆矩阵
   mcm = multilabel_confusion_matrix(actual_labels, predicted_labels)
-  return
+  return mcm
 
 def get_Specificity_Precision_Recall_F1(actual_labels:torch.Tensor, predicted_labels:torch.Tensor):
   if actual_labels.is_cuda: actual_labels = actual_labels.cpu()
   if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
-  specificity = []
-  for i in range(len(actual_labels[0])):
-      tn = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 0)
-      fp = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 1)
-      specificity.append(tn / (tn + fp))
+  # specificity = []
+  # for i in range(len(actual_labels[0])):
+  #     tn = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 0)
+  #     fp = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 1)
+  #     specificity.append(tn / (tn + fp))
 
-  # 计算精确率
-  precision = precision_score(actual_labels, predicted_labels, average='macro')
+  # # 计算精确率
+  # precision = precision_score(actual_labels, predicted_labels, average='macro')
 
-  # 计算召回率
-  recall = recall_score(actual_labels, predicted_labels, average='macro')
+  # # 计算召回率
+  # recall = recall_score(actual_labels, predicted_labels, average='macro')
 
   # 计算F1分数
-  f1 = f1_score(actual_labels, predicted_labels, average='macro')
-  return (specificity, precision, recall, f1)
+  f1 = f1_score(actual_labels, predicted_labels, average='samples')#, zero_division=1)
+
+  return f1
+  # return (specificity, precision, recall, f1)
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 疾病名称
+import logging
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+def plot_confusion(mcm, suptitle = None):
+  plt.ioff()
+
+  confusion_matrices = mcm
+  disease_names =  constants.CHEXPERT_LABELS
+
+  # 创建子图
+  num_plots = len(confusion_matrices)
+  num_rows = int(np.ceil(num_plots / 3))  # 每行最多3个子图
+  fig, axes = plt.subplots(num_rows, 3, figsize=(15, num_rows * 5))
+
+  # 绘制每个混淆矩阵
+  for i, (matrix, name) in enumerate(zip(confusion_matrices, disease_names)):
+      row = i // 3
+      col = i % 3
+      ax = axes[row, col] if num_rows > 1 else axes[col]
+      
+      # 绘制混淆矩阵
+      im = ax.imshow(matrix, cmap='Blues')
+      
+      # 添加标题和标签
+      ax.set_title(name)
+      ax.set_xticks(np.arange(2))
+      ax.set_yticks(np.arange(2))
+      ax.set_xticklabels(['Predicted Negative', 'Predicted Positive'])
+      ax.set_yticklabels(['Actual Negative', 'Actual Positive'])
+      
+      # 在矩阵中显示数字
+      for i in range(2):
+          for j in range(2):
+              text = ax.text(j, i, str(matrix[i, j]), ha='center', va='center', color='black')
+
+  # 添加颜色条
+  cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+  fig.colorbar(im, cax=cbar_ax)
+
+  # 调整子图间距
+  plt.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9, wspace=0.4, hspace=0.4)
+  if suptitle is not None: 
+    plt.suptitle(suptitle)
+  # 显示图像
+  plt.show()
 
 
-    
-    
-    
-  
  
