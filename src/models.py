@@ -128,16 +128,21 @@ class ImgBranch(nn.Module):
           self.clip_model, preprocess_train, self.clip_processor = open_clip.create_model_and_transforms('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224', device = device)
           
           if trainable_VisionEncoder: 
-            print("trainable Pretrained model")
+            print(_constants_.RED + "\nvit_base_patch16_224 is trainable!!\n" + _constants_.RESET)
+            # in default setting, the pre-trained model is trainable
             for param in self.clip_model.parameters():
-              # frozen all of params
               param.requires_grad = True
           else:
+            print(_constants_.BLUE + "\nvit_base_patch16_224 is fixed!!\n" + _constants_.RESET)
             for param in self.clip_model.parameters():
               param.requires_grad = False
-          if trainable_PLM > 0:
+          if not trainable_VisionEncoder  and trainable_PLM > 0:
             # the last n attention blocks are trainable
+            # just re-train attention blocks
             num_att_block = 12
+            if trainable_PLM > 12:
+              raise RuntimeError("double check the number of attention blocks in this models,\
+                in current setting, the number of attention blocks in the model is 12.")
             if trainable_PLM == 1:
               for param in self.clip_model.visual.trunk.blocks[11].parameters():
                 param.requires_grad = True
@@ -163,10 +168,11 @@ class ImgBranch(nn.Module):
           import clip
           self.clip_model, self.clip_processor  = clip.load("/public_bme/data/lds/model_zoo/ViT-B-32.pt", device=device)
           if trainable_VisionEncoder:
-            print("trainable Pretrained model")
+            print(_constants_.RED + "\nViT-B-32.pt is trainable!!\n" + _constants_.RESET)
             for param in self.clip_model.parameters():
               param.requires_grad = True
           else:
+            print(_constants_.BLUE + "\nViT-B-32.pt is fixed!!\n" + _constants_.RESET)
             for param in self.clip_model.parameters():
               param.requires_grad = False
         #  in this version, Biomed and CLIP model are been frozen 
@@ -202,8 +208,7 @@ class ImgBranch(nn.Module):
         output: b x n x 512
         '''
         if "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
-          with torch.no_grad():
-              image_features = self.clip_model.encode_image(image_input).float()
+          image_features = self.clip_model.encode_image(image_input).float()
         elif self.backbone == "densenet":
           image_features = self.backbone_v_model(image_input).float()
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":

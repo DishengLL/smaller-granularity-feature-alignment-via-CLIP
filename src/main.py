@@ -187,7 +187,8 @@ def main():
                           **train_dict)
   # loss definition
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
-
+  total_trainable_params = utils.count_parameters(model)
+  print(_constants_.RED + f"\nthe amount of trainable parameters is {total_trainable_params}.\n" + _constants_.RESET)
   # build evaluator
   val_data = TestingDataset(backbone_type=backbone, 
                             labeling_strategy = labeling_strategy,
