@@ -8,6 +8,9 @@ import random
 import trace
 import numpy as np
 import torch
+from sklearn.metrics import multilabel_confusion_matrix
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 logging.basicConfig(
     level=logging.DEBUG,  # 设置日志级别为DEBUG，这里你可以根据需要设置不同的级别
@@ -18,7 +21,6 @@ logging.basicConfig(
     ]
 )
 
- 
 class tools:
   def __init__(self):
     logging.info("initialize utils class")
@@ -84,6 +86,43 @@ def set_env_config():
   os.environ['CUDA_VISIBLE_DEVICES']='0'
   os.environ['TOKENIZERS_PARALLELISM']='false'
   return logger
+
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+# # 示例：计算模型中可训练参数的数量
+# total_trainable_params = count_parameters(patch_embed)
+# print("Total trainable parameters:", total_trainable_params)
+
+
+def get_confusion_matrix(actual_labels:torch.Tensor, predicted_labels:torch.Tensor):
+  if actual_labels.is_cuda: actual_labels = actual_labels.cpu()
+  if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
+  # 计算多标签分类混淆矩阵
+  mcm = multilabel_confusion_matrix(actual_labels, predicted_labels)
+  return
+
+def get_Specificity_Precision_Recall_F1(actual_labels:torch.Tensor, predicted_labels:torch.Tensor):
+  if actual_labels.is_cuda: actual_labels = actual_labels.cpu()
+  if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
+  specificity = []
+  for i in range(len(actual_labels[0])):
+      tn = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 0)
+      fp = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 1)
+      specificity.append(tn / (tn + fp))
+
+  # 计算精确率
+  precision = precision_score(actual_labels, predicted_labels, average='macro')
+
+  # 计算召回率
+  recall = recall_score(actual_labels, predicted_labels, average='macro')
+
+  # 计算F1分数
+  f1 = f1_score(actual_labels, predicted_labels, average='macro')
+  return (specificity, precision, recall, f1)
+
+
     
     
     
