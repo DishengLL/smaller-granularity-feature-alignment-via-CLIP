@@ -18,6 +18,25 @@ UNCERTAIN_CLASS = 2
 
 class_name = ["POSITIVE", "NEGATIVE", "UNCERTAIN_CLASS"]
 
+
+class_ratio_in_training = (
+ ('Pleural Other', 0.008568868851511473),
+ ('Fracture', 0.0196761266208119),
+ ('Lung Lesion', 0.02721422653796505),
+ ('Enlarged Cardiomediastinum', 0.03126023543918463),
+ ('Pneumothorax', 0.04637496869159779),
+ ('Consolidation', 0.0473623875305859),
+ ('Pneumonia', 0.07026568791784675),
+ ('Edema', 0.17726335664605128),
+ ('Cardiomegaly', 0.19497427894341368),
+ ('Lung Opacity', 0.22329634125195075),
+ ('Pleural Effusion', 0.23415794848082),
+ ('Atelectasis', 0.24406103693428124),
+ ('Support Devices', 0.2995636090399399),
+ ('No Finding', 0.33638710671830147)
+ )
+
+
 CHEXPERT_LABELS = [
  'Atelectasis',
  'Cardiomegaly',

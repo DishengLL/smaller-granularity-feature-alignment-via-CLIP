@@ -133,12 +133,12 @@ import matplotlib.pyplot as plt
 # 疾病名称
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
-def plot_confusion(mcm, suptitle = None):
+def plot_confusion(mcm, suptitle = None,save = False):
   plt.ioff()
 
   confusion_matrices = mcm
   disease_names =  constants.CHEXPERT_LABELS
-
+  class_ratio_in_training = constants.class_ratio_in_training
   # 创建子图
   num_plots = len(confusion_matrices)
   num_rows = int(np.ceil(num_plots / 3))  # 每行最多3个子图
@@ -146,8 +146,12 @@ def plot_confusion(mcm, suptitle = None):
 
   # 绘制每个混淆矩阵
   for i, (matrix, name) in enumerate(zip(confusion_matrices, disease_names)):
-      row = i // 3
-      col = i % 3
+      for index, (disease, ratio) in enumerate(class_ratio_in_training):
+        if name ==  disease:
+          location = index
+          continue
+      row = location // 3
+      col = location % 3
       ax = axes[row, col] if num_rows > 1 else axes[col]
       
       # 绘制混淆矩阵
@@ -174,6 +178,9 @@ def plot_confusion(mcm, suptitle = None):
   if suptitle is not None: 
     plt.suptitle(suptitle)
   # 显示图像
+  
+  if save:
+    plt.savefig(f"{suptitle}.png")
   plt.show()
 
 
