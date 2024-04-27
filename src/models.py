@@ -674,7 +674,7 @@ class MultiTaskModel(nn.Module):
                                         trainable_PLM = self.trainable_PLM,
                                         trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
-        if not Alignment_Only 
+        if not Alignment_Only:
           self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
@@ -691,7 +691,7 @@ class MultiTaskModel(nn.Module):
         assert img is not None
         assert img_labels is not None
         a = self.Contrastive_Model(prompts, img, eval=eval)
-        if not self.Alignment_Only 
+        if not self.Alignment_Only :
           b = self.PN_Classifier(a['img_embeds'], img_labels)
         else:
           b = {"loss_value": 0}
