@@ -17,6 +17,12 @@ import logging
 from utils import utils
 import json
 
+import datetime
+
+# 获取当前时间
+current_time = datetime.datetime.now()
+
+
 # set training configurations
 train_config = {
     'batch_size': 100,
@@ -145,7 +151,10 @@ def main():
   
   merged_dict = {**tasks_configuration, **samples_configuration, **model_configuration}
 
-  if  args.save_dir == None:
+  if args.Alignment_Only:
+    save_model_path = os.path.join(save_model_path , "pretrained", current_time)
+    
+  elif  args.save_dir == None:
     args_keys = [i for i in args.__dict__.keys()]
     args_values = [str(i) if not isinstance(i, str) else i for i in args.__dict__.values()]
 
@@ -182,7 +191,6 @@ def main():
   train_dict = {"trainable_PLM": trainable_PLM,
                 "trainable_VisionEncoder" : trainable_VisionEncoder,
                 "Alignment_Only": Alignment_Only}
-  
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
                           no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, 
@@ -196,6 +204,7 @@ def main():
                             labeling_strategy = labeling_strategy,
                             AP_PA_view = AP_PA_view)
   val_collate_fn = TestingCollator()
+  
   eval_dataloader = DataLoader(val_data,
       batch_size=train_config['eval_batch_size'],
       collate_fn=val_collate_fn,
