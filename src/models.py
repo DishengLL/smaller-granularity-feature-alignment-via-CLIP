@@ -688,16 +688,24 @@ class MultiTaskModel(nn.Module):
                 img = None,
                 img_labels = None,
                 eval = False):
+        '''
+        a: contrastive loss between text and visual branch
+        b: classification loss 
+        c: orthogonal loss
+        '''
         assert img is not None
         assert img_labels is not None
         a = self.Contrastive_Model(prompts, img, eval=eval)
-        if not self.Alignment_Only :
-          b = self.PN_Classifier(a['img_embeds'], img_labels)
-        else:
+        if self.Alignment_Only :
           b = {"loss_value": 0}
-        c = 0
-        if not eval:
+        else:
+          b = self.PN_Classifier(a['img_embeds'], img_labels)
+        
+        if eval:
+          c = 0
+        else: 
           c = self.Orthogonal_dif(a['text_embeds']) if ((not self.visual_branch_only)) else {"loss_value": 0}
+        
         if self.no_orthogonize:  # input parameter, which control orthogonization operation
           c =  {"loss_value": 0}
         return a, b, c

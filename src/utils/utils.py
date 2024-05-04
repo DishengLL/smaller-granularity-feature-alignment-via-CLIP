@@ -62,9 +62,7 @@ class parser:
     parser.add_argument('--AP-PA-view', action='store_true', default = False, help="training and testing on AP and PA view position data")
     parser.add_argument('--trainable_VisionEncoder', action='store_true', default = False, help="all of vision encoder is trainable (initialize from large pretrained models)")
     parser.add_argument('--Alignment_Only', '-AO', action='store_true', default = False, help="Alignment visual and textual information only, this parameter is used to get the pretrained (evaluate the contrastive loss which could be reduced from 1.7 in the whole pipeline)")
-    
-    parse.add_argument("--pretrained", "-Pre", action='store_true', default = False, 
-                       help="pre-train a CLIP model, before the main classification task")
+    parser.add_argument("--debug", action='store_true', default = False, help="use this parameter to set debug setting")
     args = parser.parse_args() 
     return args
       
