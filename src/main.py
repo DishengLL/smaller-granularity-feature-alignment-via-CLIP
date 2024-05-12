@@ -22,6 +22,12 @@ import datetime
 # 获取当前时间
 current_time = datetime.datetime.now()
 
+# 获取当前日期时间
+now = datetime.datetime.now()
+
+# 将日期时间转换为字符串
+current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+
 
 # set training configurations
 train_config = {
@@ -110,7 +116,7 @@ def main():
   learnable_weight = args.learnable_weight
   high_order = args.high_order
   labeling_strategy = args.labeling_strategy
-  no_orthogonize = args.no_orthogonize
+  no_orthogonal = args.no_orthogonal
   contrastive_param = args.contrastive_param
   cls_param = args.classification_param
   orthogonal_param = args.orthogonal_param
@@ -122,7 +128,7 @@ def main():
   debug = args.debug
   
   tasks_configuration = {"no_contrastive" : args.no_contrastive,
-                         "no_orthogonize" : args.no_orthogonize,
+                         "no_orthogonize" : args.no_orthogonal,
                          "high_order" : args.high_order, 
                          "contrastive_param": args.contrastive_param,
                          "cls_param" : args.classification_param,
@@ -197,7 +203,7 @@ def main():
                 }
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
-                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, 
+                          no_orthogonal = no_orthogonal, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, 
                           **train_dict)
   # loss definition
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
@@ -233,20 +239,14 @@ def main():
     # torch.autograd.set_detect_anomaly(True)
     # with torch.autograd.profiler.profile():     
     trainer.train(
-      model,
-      train_objectives= train_objectives,
-      warmup_ratio=train_config['warmup'],
-      epochs=train_config['num_epochs'],
-      optimizer_params={'lr':train_config['lr']},
-      output_path = save_model_path,
-      evaluation_steps=train_config['eval_steps'],
-      weight_decay=train_config['weight_decay'],
-      save_steps=train_config['save_steps'],
+      model, train_objectives= train_objectives, warmup_ratio=train_config['warmup'],
+      epochs=train_config['num_epochs'], optimizer_params={'lr':train_config['lr']},
+      output_path = save_model_path, evaluation_steps=train_config['eval_steps'],
+      weight_decay=train_config['weight_decay'], save_steps=train_config['save_steps'],
       # steps_per_epoch = 1,
-      evaluator = _evaluator_,
-      eval_dataloader=eval_dataloader,
-      use_amp=True,
-      two_phases=two_phases)
+      evaluator = _evaluator_, eval_dataloader=eval_dataloader,
+      use_amp=True, two_phases=two_phases, Alignment_Only = Alignment_Only, 
+      debug = debug)
     print(_constants_.GREEN + 'done' + _constants_.RESET)
     # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
   except Exception as e:

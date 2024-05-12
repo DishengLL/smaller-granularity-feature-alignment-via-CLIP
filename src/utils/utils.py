@@ -49,7 +49,7 @@ class parser:
     parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
     parser.add_argument('--high_order',  "-ho", type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
     parser.add_argument('--two_phases',action='store_true', default=False, help='implement 2-phases training scheme') 
-    parser.add_argument('--no_orthogonize',"-north", action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
+    parser.add_argument('--no_orthogonal',"-north", action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
     parser.add_argument('--no_contrastive',"-nc",  action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  

@@ -240,7 +240,8 @@ class LGCLIP(nn.Module):
         graph_align = "NA",
         no_contrastive = False,
         trainable_PLM = 0,
-        trainable_VisionEncoder = False
+        trainable_VisionEncoder = False, 
+        no_orthogonal = False
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -263,6 +264,7 @@ class LGCLIP(nn.Module):
         self.visual_branch_only = visual_branch_only
         self.graph_align = graph_align
         self.no_contrastive = no_contrastive
+        self.no_orthogonal = no_orthogonal
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -315,10 +317,9 @@ class LGCLIP(nn.Module):
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
         logit_scale = self.logit_scale.exp()
-        batch = img_emb.shape[0]
         reshaped_text_embedding = text_emb.squeeze()
         reshaped_image_embedding = img_emb.squeeze()
-        if  (len(reshaped_image_embedding.shape) == len(reshaped_text_embedding.shape) == 2):
+        if (len(reshaped_image_embedding.shape) == len(reshaped_text_embedding.shape) == 2):
             reshaped_text_embedding = reshaped_text_embedding.unsqueeze(0)
             reshaped_image_embedding = reshaped_image_embedding.unsqueeze(0)
         sim_matrixes = []
@@ -336,12 +337,11 @@ class LGCLIP(nn.Module):
             similarity = similarities[i]
             caption_loss = caption_loss + self.contrastive_loss(similarity)
             image_loss = image_loss + self.contrastive_loss(similarity.T)
-        caption_loss = caption_loss/batch
-        image_loss = image_loss / batch
-        return (caption_loss + image_loss) / 2.0
+        loss =  (image_loss + image_loss) / batch
+        return loss / 2.0
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        logits =  logits / logits.norm(dim=-1, keepdim=True)
+        # logits = logits / logits.norm(dim=-1, keepdim=True)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -355,13 +355,14 @@ class LGCLIP(nn.Module):
             clip_loss = 0 # "no applicable in visual branch case"
             loss = 0
             graph_align_loss = 0
+            orthogonal_loss = -1
             text_embeds = 0
             logits_per_image = 0
             img_embeds = self.encode_image(img_path).to(device)
             if eval:  # only need image embeddings for following process
-              return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
-                'logits_per_image':logits_per_image, 'loss_value':loss}
-            if not self.visual_branch_only:
+              return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
+                'logits_per_image' : logits_per_image, 'loss_value' : loss}
+            if not self.visual_branch_only:    # text branch included
               text_embeds = self.encode_text(input_text).to(device)
               #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
               logits_per_image = self.compute_logits(img_embeds, text_embeds) 
@@ -374,13 +375,21 @@ class LGCLIP(nn.Module):
                     graph_alignment = Hier_graph_align(logits_per_image)
                     if self.graph_align == "binary":
                       # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
-                      
                       prior_graph_tensor = torch.load(pwd + "/../constants/normalized_cost_matrix.pt")   
                       graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
                       loss = clip_loss + graph_align_loss
-            return {'img_embeds':img_embeds, 'text_embeds':text_embeds,
-                'logits_per_image':logits_per_image, 'loss_value': loss, 
-                "graph_align_loss": graph_align_loss, "clip_loss": clip_loss}
+                    else:
+                      raise NotImplemented()
+                  if self.no_orthogonal:
+                    orthogonal_loss = 0
+                  else:
+                    orth_diff = Orthogonal_dif().to(device)
+                    orth_diff_cal = orth_diff(text_embeds)
+                    orthogonal_loss = orth_diff_cal["loss_value"]
+            return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
+                'logits_per_image' : logits_per_image, 'loss_value' : loss, 
+                "graph_align_loss" : graph_align_loss, "clip_loss" : clip_loss, 
+                "orthogonal_loss" : orthogonal_loss}
 
 class PN_classifier(nn.Module):
     def __init__(self,
@@ -650,7 +659,7 @@ class Hier_graph_align():
 
 class MultiTaskModel(nn.Module):
     def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", 
-                 no_orthogonize = False, no_contrastive = False, eval = False, **kwargs):
+                 no_orthogonal = False, no_contrastive = False, eval = False, **kwargs):
         super().__init__()
         param_dict = kwargs
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
@@ -670,17 +679,17 @@ class MultiTaskModel(nn.Module):
         else:
           trainable_VisionEncoder =  False
         self.Contrastive_Model = LGCLIP(nntype = nntype, visual_branch_only = visual_branch_only, backbone_v= backbone_v, 
-                                        graph_align=high_order, no_contrastive = no_contrastive, 
+                                        graph_align=high_order, no_contrastive = no_contrastive, no_orthogonal = no_orthogonal, 
                                         trainable_PLM = self.trainable_PLM,
                                         trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
-        if not Alignment_Only:
+        if not self.Alignment_Only:
           self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
-        self.no_orthogonize = no_orthogonize
+        self.no_orthogonize = no_orthogonal
 
 
     def forward(self,         
@@ -690,13 +699,16 @@ class MultiTaskModel(nn.Module):
                 eval = False):
         '''
         a: contrastive loss between text and visual branch
+          a-1: contrastive loss
+          a-2: orthogonal loss
+          a-3: graph alignment loss
         b: classification loss 
         c: orthogonal loss
         '''
         assert img is not None
         assert img_labels is not None
         a = self.Contrastive_Model(prompts, img, eval=eval)
-        if self.Alignment_Only :
+        if self.Alignment_Only : # pre-trained configuration
           b = {"loss_value": 0}
         else:
           b = self.PN_Classifier(a['img_embeds'], img_labels)
@@ -708,4 +720,5 @@ class MultiTaskModel(nn.Module):
         
         if self.no_orthogonize:  # input parameter, which control orthogonization operation
           c =  {"loss_value": 0}
+        assert a["orthogonal_loss"] == c["loss_value"]
         return a, b, c

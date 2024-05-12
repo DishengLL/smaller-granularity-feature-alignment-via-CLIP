@@ -51,7 +51,9 @@ class Trainer:
         checkpoint_path: str = None,
         checkpoint_save_total_limit: int = 0,
         load_best_model_at_last: bool = True,
-        two_phases = False
+        two_phases = False,
+        Alignment_Only = False, 
+        debug = False
         ):
         '''
         output_path: model save path
@@ -108,6 +110,11 @@ class Trainer:
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
             for train_iter in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable= not show_progress_bar): # the number of batches
+                if debug: # in debug setting, only run 2 iterations
+                  if training_steps == 2:
+                    print(f"in debug version, only run {training_steps}.")
+                    return
+                  
                 for train_idx in range(num_train_objectives): # calculate for each train objective 
                     loss_model = loss_models[train_idx]
                     loss_model.zero_grad()
@@ -166,7 +173,7 @@ class Trainer:
                     #     if '_build_prompt_sentence' in dir(dataloaders[train_idx].dataset):
                     #         dataloaders[train_idx].dataset._build_prompt_sentence()
 
-                if evaluation_steps > 0 and global_step % evaluation_steps == 0 and self.evaluator is not None:
+                if not Alignment_Only and evaluation_steps > 0 and global_step % evaluation_steps == 0 and self.evaluator is not None:
                     scores = self.evaluator.evaluate()
                     print(f'\n\033[31m######### Eval {global_step} #########\033[0m')
                     for key in scores.keys():
