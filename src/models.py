@@ -342,6 +342,8 @@ class LGCLIP(nn.Module):
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
         # logits = logits / logits.norm(dim=-1, keepdim=True)
+        print("the similarity metric")
+        print(logits)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -469,7 +471,7 @@ class PN_classifier(nn.Module):
       
 class classifier(nn.Module):
     def __init__(self,
-        num_class = len(_constants_.CHEXPERT_LABELS),
+        num_labels = len(_constants_.CHEXPERT_LABELS),
         input_dim=512,
         mode='multiclass',
         num_cat = 3,
@@ -490,18 +492,18 @@ class classifier(nn.Module):
           num_cat = 2  # binary classification --- positive and negative 
         if nntype == "biovil-t" or nntype == "cxr-bert-s":
           input_dim = 128
-        assert mode.lower() in ['multiclass','multilabel','binary']
-        self.mode = mode.lower()
+        if num_labels > 2:
+          self.mode =  "multi_label"
         self.num_cat = num_cat
-        if num_class > 2 and self.num_cat > 2:   # positive, negative and uncertain --- multiple classes 
+        if num_labels > 2 and self.num_cat > 2:   # positive, negative and uncertain --- multiple classes 
             self.loss_fn = nn.CrossEntropyLoss()   # input logits
             self.cls = nn.Linear(input_dim, self.num_cat) 
-        elif num_class > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
+        elif num_labels > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
             self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
-            self.cls = nn.Linear(input_dim, 1)
+            self.cls = nn.Linear(num_labels * input_dim, num_labels)
         else:
           raise NotImplementedError("error happen in classifier class (Initialization)")
-        self.fc = nn.Linear(input_dim, input_dim)
+        self.fc = nn.Linear(num_labels * input_dim, num_labels * input_dim)
         
         
 
@@ -513,6 +515,8 @@ class classifier(nn.Module):
         **kwargs
         ):
         outputs = defaultdict()
+        batch_size = img_embeddings.shape[0]
+        img_embeddings = img_embeddings.view(batch_size, -1)    
         logits = F.relu(self.fc(img_embeddings))
         logits = F.relu(self.fc(logits))
         logits = self.cls(logits)
@@ -520,9 +524,8 @@ class classifier(nn.Module):
 
         nested_list = img_label
         assert img_label is not None
-
-        if multilabel:
-            raise NotImplemented("have not implemented")
+        
+        assert self.mode == "multi_label"
 
         if img_label is not None and return_loss:
             # if type(img_label[0]) is str:
@@ -684,7 +687,7 @@ class MultiTaskModel(nn.Module):
                                         trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         if not self.Alignment_Only:
-          self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy).to(device)
+          self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
         # img_embedding classifier
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
