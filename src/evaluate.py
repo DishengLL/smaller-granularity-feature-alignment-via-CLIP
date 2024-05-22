@@ -11,7 +11,47 @@ from tqdm import tqdm
 import json
 import matplotlib.pyplot as plt
 import constants 
+from sklearn.metrics import f1_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import precision_score
 
+
+def calculate_metrics(pred, target, threshold=0.5):
+    if pred.device.type == "cuda":
+      pred = pred.cpu()
+    if target.device.type == "cuda":
+      target = target.cpu()
+    pred = np.array(pred > threshold, dtype=float)
+    return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/f1': f1_score(y_true=target, y_pred=pred, average='micro'),
+            'macro/precision': precision_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/recall': recall_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/f1': f1_score(y_true=target, y_pred=pred, average='macro'),
+            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
+            }
+
+def calculate_auc(pred, target):
+  assert pred.shape[-1] == len(constants.CHEXPERT_LABELS)
+  if pred.device.type == "cuda":
+    pred = pred.cpu()
+  if target.device.type == "cuda":
+    target = target.cpu()
+  each_auc = {}
+  metric = {
+    'micro/auc': roc_auc_score(y_true=target, y_score=pred, average='micro'),
+    'macro/auc': roc_auc_score(y_true=target, y_score=pred, average='macro'),
+  }
+  for disease in range(len(constants.CHEXPERT_LABELS)):
+    disease_pred = pred[:, disease]
+    disease_target = target[:, disease]
+    auc = roc_auc_score(y_true = disease_target, y_score = disease_pred)
+    each_auc[constants.CHEXPERT_LABELS[disease]] = auc
+  metric["disease_auc"] = each_auc
+  return metric
+    
 class Evaluator:
     '''do evaluation on chexpert5x200 zero-shot classification
     '''
@@ -57,11 +97,12 @@ class Evaluator:
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
                 _, classifier_out, _ = self.clf(**data, eval=True)
-                pred = classifier_out['logits']          
+                pred = classifier_out['logits']  
             pred_tensor = torch.cat((pred_tensor, pred), dim=0)  
             label_tensor = torch.cat((label_tensor, (data["img_labels"])), 0)     
         outputs = {'pred':pred_tensor, 'labels':label_tensor, "loss": classifier_out['loss_value']}
         num_batch = pred_tensor.shape[0]
+        dump = {"dump_path": "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/dump/"}
         if dump != None and "dump_path" in dump:
           tensor_dict = {"predictions": pred_tensor.reshape(num_batch,-1), "labels": label_tensor}
           pwd = os.getcwd()
@@ -69,9 +110,8 @@ class Evaluator:
           if not os.path.exists( pwd + "/" + dump_path): os.makedirs( pwd + "/" + dump_path)
           print(f"save tensor_dict in {pwd + dump_path}")
           torch.save(tensor_dict, pwd + "/" + dump_path + "/tensor.pth")
-
-        # Evaluation metric depends on the labelling strategy used
         
+        # Evaluation metric depends on the labelling strategy used
         if self.mode == 'binary':
             if pred.shape[-1] == 1:    # NN output 1 value for binary classification
               pred_tensor =  torch.sigmoid(pred_tensor)
@@ -80,14 +120,16 @@ class Evaluator:
               for i, disease in enumerate(constants.CHEXPERT_LABELS):
                 auc = roc_auc_score(transform_data[disease]["tar"] , transform_data[disease]["pre"],)
                 each_auc[disease] = auc
-              outputs["auc_dict"] = each_auc
+              outputs["auc_dict"] = each_auc["disease_auc"]
 
             else: # have 2 outputs
-                raise RuntimeError("Have not implement")
-                pred_score = torch.tensor(pred).sigmoid().numpy()
-                pred_label = np.argmax(pred_score, 1)
-                acc = (pred_label == labels).mean()
-                outputs['acc'] = acc
+                if pred.shape[-1] == len(constants.CHEXPERT_LABELS):
+                  print("multi-labels classification.")
+                  pred_tensor =  torch.sigmoid(pred_tensor)
+                  metric = calculate_metrics(pred = pred_tensor, target = label_tensor)
+                  auc_metric = calculate_auc(pred = pred_tensor, target = label_tensor)
+                  outputs["auc_dict"] = auc_metric
+                  outputs.update(metric)
 
                 # cnf_matrix = confusion_matrix(labels, pred_label)
                 # res = self.process_confusion_matrix(cnf_matrix)
@@ -119,19 +161,6 @@ class Evaluator:
             # outputs.update(res)
             ###
         
-        elif self.mode == 'multilabel':    ## focus on multi-labels
-            pred_score = torch.tensor(pred).sigmoid().numpy()
-            auroc_list, auprc_list,mse = [], [],[]
-            for i in range(pred_score.shape[1]):
-                y_cls = labels[:, i]
-                pred_cls = pred_score[:, i]
-                # print("Y_CLS: ",y_cls, "\n")
-                # print("pred_cls: ",pred_cls, "\n")
-                # auprc_list.append(average_precision_score(y_cls, pred_cls, pos_label=1))
-                mse.append(mean_squared_error(y_cls, pred_cls))
-                # auroc_list.append(roc_auc_score(y_cls, pred_cls))
-            outputs['auc/mse'] = np.mean(mse)
-            outputs['auprc'] = -99 #np.mean(auprc_list)
         return outputs
     
     def evaluate_testing(self, eval_dataloader=None):

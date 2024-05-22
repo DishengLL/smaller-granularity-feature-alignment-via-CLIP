@@ -181,13 +181,19 @@ class Trainer:
                         #   print('{}: {:.4f}'.format(key, scores[key]))
                         if key == "auc_dict":
                           for i,j in scores[key].items():
-                            print(i, j)
-                          av_auc = self.get_average_auc_among_disease(scores[key], indicator = "positive")
+                            if i != "disease_auc":
+                              print(i, j)
+                            else:
+                              for dis, auc in j.items():
+                                print(dis, auc)
+                          av_auc = self.get_average_auc_among_disease(scores[key]["disease_auc"], indicator = "positive")
                           if av_auc > self.best_auc:
                             self.best_auc = av_auc
                             print(f"update best avg auc : {self.best_auc}")
                             save_dir = os.path.join(output_path,"")
                             self._save_ckpt(model, save_dir)     #save the best model during the iterations
+                        else: 
+                          print(key, scores[key])
                     print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
 

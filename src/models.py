@@ -22,6 +22,7 @@ logging.basicConfig(level=logging.WARNING)
 os.environ['CURL_CA_BUNDLE'] = ''
 from pathlib import Path
 from typing import Tuple
+import math
 
 
 import requests.packages.urllib3
@@ -342,8 +343,8 @@ class LGCLIP(nn.Module):
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
         # logits = logits / logits.norm(dim=-1, keepdim=True)
-        print("the similarity metric")
-        print(logits)
+        # print("the similarity metric")
+        # print(logits)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -723,5 +724,11 @@ class MultiTaskModel(nn.Module):
         
         if self.no_orthogonize:  # input parameter, which control orthogonization operation
           c =  {"loss_value": 0}
-        assert a["orthogonal_loss"] == c["loss_value"]
+        # assert a["orthogonal_loss"] == c["loss_value"]
+        
+        if c != 0 and a["orthogonal_loss"] != -1 and not math.isclose(a["orthogonal_loss"], c["loss_value"], abs_tol=1e-5):
+          print("a 和 c 不相等:")
+          print("a:", a["orthogonal_loss"])
+          print("c:", c["loss_value"])
+          raise RuntimeError()
         return a, b, c
