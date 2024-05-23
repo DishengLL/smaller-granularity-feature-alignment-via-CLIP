@@ -60,7 +60,7 @@ class ImageTextContrastiveDataset(Dataset):
           if prompt_type == "basic":
             self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
           elif prompt_type == "dis_diag_des":
-            self.prompts_tensor_path = pwd + r"../constants/text_embeddings/biomed_dia_des_text_embeddings.pt"
+            self.prompts_tensor_path = pwd + r"/../constants/text_embeddings/biomed_dia_des_text_embeddings.pt"
           else:
             raise NotImplementedError()
             print( constants.RED + f"{backbone_type} text encoder" + constants.RESET + " processes " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
@@ -80,7 +80,7 @@ class ImageTextContrastiveDataset(Dataset):
           self.labeling_strategy = kwargs["labeling_strategy"]
         self.prompt_tensor = torch.load(self.prompts_tensor_path)
           
-    def find_corresponding_text_embedding(disease:int = None, diagnose = None):
+    def find_corresponding_text_embedding(self, disease:int = None, diagnose = None):
       # disease_list = constants.CHEXPERT_LABELS
       # disease_index = disease_list.index(disease)
       diagnose_index = 0 if diagnose == 1 else 1
@@ -123,7 +123,7 @@ class ImageTextContrastiveDataset(Dataset):
           """
           indices = []
           for disease, diagnose in enumerate(label):
-            indices.append(find_corresponding_text_embedding(disease, diagnose))
+            indices.append(self.find_corresponding_text_embedding(disease, diagnose))
           return img_tensor, self.prompt_tensor[indices], label
         return img_tensor, self.prompt_tensor, label
       return img_tensor, self.prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)

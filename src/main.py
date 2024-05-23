@@ -1,4 +1,4 @@
-import pdb, os
+ import pdb, os
 import random
 import trace
 import numpy as np
@@ -16,6 +16,18 @@ import constants as _constants_
 import logging
 from utils import utils
 import json
+
+import datetime
+
+# 获取当前时间
+current_time = datetime.datetime.now()
+
+# 获取当前日期时间
+now = datetime.datetime.now()
+
+# 将日期时间转换为字符串
+current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+
 
 # set training configurations
 train_config = {
@@ -104,22 +116,24 @@ def main():
   learnable_weight = args.learnable_weight
   high_order = args.high_order
   labeling_strategy = args.labeling_strategy
-  no_orthogonize = args.no_orthogonize
+  no_orthogonal = args.no_orthogonal
   contrastive_param = args.contrastive_param
   cls_param = args.classification_param
   orthogonal_param = args.orthogonal_param
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
+  trainable_VisionEncoder = args.trainable_VisionEncoder
+  Alignment_Only = args.Alignment_Only
+  debug = args.debug
   
   tasks_configuration = {"no_contrastive" : args.no_contrastive,
-                         "no_orthogonize" : args.no_orthogonize,
+                         "no_orthogonize" : args.no_orthogonal,
                          "high_order" : args.high_order, 
                          "contrastive_param": args.contrastive_param,
                          "cls_param" : args.classification_param,
                          "orthogonal_param" : args.orthogonal_param,
                          "graph_param" : args.graph_param,
-                         
                           "weight_strategy": weight_strategy,
                           "uncertain_based_weight": uncertain_based_weight,
                           "learnable_weight": learnable_weight
@@ -143,7 +157,10 @@ def main():
   
   merged_dict = {**tasks_configuration, **samples_configuration, **model_configuration}
 
-  if  args.save_dir == None:
+  if args.Alignment_Only:
+    save_model_path = os.path.join(save_model_path , "pretrained", current_time)
+    
+  elif args.save_dir == None:
     args_keys = [i for i in args.__dict__.keys()]
     args_values = [str(i) if not isinstance(i, str) else i for i in args.__dict__.values()]
 
@@ -153,10 +170,12 @@ def main():
     # save_model_path = (save_model_path +
     #            f"/{backbone}_{backbone_v}_{visual_branch_only}_{learnable_weight}_{high_order}_{no_orthogonize}_{no_contrastive}_{weight_strategy}_"
     #            f"{contrastive_param}_{trainable_PLM}_{prompt}/")
+  
   else:
     save_model_path = save_model_path + "/" + args.save_dir
   
   print("saving path: ",save_model_path)
+  if os.path.exists(save_model_path) : raise RuntimeError(f"{save_model_path} has already existed! Please double check.")
   if not os.path.exists(save_model_path): os.makedirs(save_model_path)
   with open(os.path.join(save_model_path, 'args.txt'), 'w') as f:
     json.dump(args.__dict__, f, indent=4)
@@ -173,23 +192,29 @@ def main():
       num_workers = num_workers,
       prefetch_factor = 5
       )
+  
   param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy, 
                 "contrastive_param": contrastive_param, "cls_param": cls_param,
                 "orthogonal_param": orthogonal_param, "graph_param": graph_param,
                 }
-  train_dict = {"trainable_PLM": trainable_PLM}
-  
+  train_dict = {"trainable_PLM": trainable_PLM,
+                "trainable_VisionEncoder" : trainable_VisionEncoder,
+                "Alignment_Only": Alignment_Only,
+                }
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
-                          no_orthogonize = no_orthogonize, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, **train_dict)
+                          no_orthogonal = no_orthogonal, no_contrastive=no_contrastive,labeling_strategy = labeling_strategy, 
+                          **train_dict)
   # loss definition
   loss_model = LG_CLIP_LOSS(MultiTaskModel = model, learnable_weight=learnable_weight, **param_dict).to(device)
-
+  total_trainable_params = utils.count_parameters(model)
+  print(_constants_.RED + f"\nthe amount of trainable parameters is {total_trainable_params}.\n" + _constants_.RESET)
   # build evaluator
   val_data = TestingDataset(backbone_type=backbone, 
                             labeling_strategy = labeling_strategy,
                             AP_PA_view = AP_PA_view)
   val_collate_fn = TestingCollator()
+  
   eval_dataloader = DataLoader(val_data,
       batch_size=train_config['eval_batch_size'],
       collate_fn=val_collate_fn,
@@ -214,20 +239,14 @@ def main():
     # torch.autograd.set_detect_anomaly(True)
     # with torch.autograd.profiler.profile():     
     trainer.train(
-      model,
-      train_objectives= train_objectives,
-      warmup_ratio=train_config['warmup'],
-      epochs=train_config['num_epochs'],
-      optimizer_params={'lr':train_config['lr']},
-      output_path = save_model_path,
-      evaluation_steps=train_config['eval_steps'],
-      weight_decay=train_config['weight_decay'],
-      save_steps=train_config['save_steps'],
+      model, train_objectives= train_objectives, warmup_ratio=train_config['warmup'],
+      epochs=train_config['num_epochs'], optimizer_params={'lr':train_config['lr']},
+      output_path = save_model_path, evaluation_steps=train_config['eval_steps'],
+      weight_decay=train_config['weight_decay'], save_steps=train_config['save_steps'],
       # steps_per_epoch = 1,
-      evaluator = _evaluator_,
-      eval_dataloader=eval_dataloader,
-      use_amp=True,
-      two_phases=two_phases)
+      evaluator = _evaluator_, eval_dataloader=eval_dataloader,
+      use_amp=True, two_phases=two_phases, Alignment_Only = Alignment_Only, 
+      debug = debug)
     print(_constants_.GREEN + 'done' + _constants_.RESET)
     # email.send_email("1554200903@qq.com", f"train {backbone}-{backbone_v}-vision_only:{visual_branch_only}", "retrain clip version (FG-CLIP_Vision_Branch_Only) done", "Success")
   except Exception as e:

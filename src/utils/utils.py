@@ -8,6 +8,11 @@ import random
 import trace
 import numpy as np
 import torch
+from sklearn.metrics import multilabel_confusion_matrix
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
+import constants
+
 
 logging.basicConfig(
     level=logging.DEBUG,  # 设置日志级别为DEBUG，这里你可以根据需要设置不同的级别
@@ -18,7 +23,6 @@ logging.basicConfig(
     ]
 )
 
- 
 class tools:
   def __init__(self):
     logging.info("initialize utils class")
@@ -45,7 +49,7 @@ class parser:
     parser.add_argument('--learnable_weight',action='store_true', default=False, help='set learnable weights between differetn sub-losses(default: false)')
     parser.add_argument('--high_order',  "-ho", type=str,choices=["binary", "KL_based", "NA"], default="NA", help='using high-order correlation contrastive learning during training(default: false)')
     parser.add_argument('--two_phases',action='store_true', default=False, help='implement 2-phases training scheme') 
-    parser.add_argument('--no_orthogonize',"-north", action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
+    parser.add_argument('--no_orthogonal',"-north", action='store_true', default=False, help='do not implement orthogonization operation in the whole pipeline')
     parser.add_argument('--no_contrastive',"-nc",  action='store_true', default=False, help='do not implement contrastive alignment between text and images')  
     parser.add_argument('--uncertain_based_weight', "-u", action='store_true', default=False, help='using uncertainty strategy to weight different sublosses(defualt: false)')  
     parser.add_argument('--weight_strategy', "-ws", type=str, choices=["uncertain_based_weight", "task_balance", "NA"], default="NA", help='choice different weighting strategies(default: NA)')  
@@ -56,6 +60,9 @@ class parser:
     parser.add_argument('--graph_param', "-GP", type=float, required=False, default= 1, help="specify the parameter for high-order loss.")
     parser.add_argument('--trainable_PLM', "-TP", type=int, required=False, default= 0, help="Specify the number of last few layers to be trainable.")
     parser.add_argument('--AP-PA-view', action='store_true', default = False, help="training and testing on AP and PA view position data")
+    parser.add_argument('--trainable_VisionEncoder', action='store_true', default = False, help="all of vision encoder is trainable (initialize from large pretrained models)")
+    parser.add_argument('--Alignment_Only', '-AO', action='store_true', default = False, help="Alignment visual and textual information only, this parameter is used to get the pretrained (evaluate the contrastive loss which could be reduced from 1.7 in the whole pipeline)")
+    parser.add_argument("--debug", action='store_true', default = False, help="use this parameter to set debug setting")
     args = parser.parse_args() 
     return args
       
@@ -83,8 +90,99 @@ def set_env_config():
   os.environ['CUDA_VISIBLE_DEVICES']='0'
   os.environ['TOKENIZERS_PARALLELISM']='false'
   return logger
-    
-    
-    
+
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+# # 示例：计算模型中可训练参数的数量
+# total_trainable_params = count_parameters(patch_embed)
+# print("Total trainable parameters:", total_trainable_params)
+
+
+def get_confusion_matrix(actual_labels:torch.Tensor, predicted_labels:torch.Tensor):
+  if actual_labels.is_cuda: actual_labels = actual_labels.cpu()
+  if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
+  # 计算多标签分类混淆矩阵
+  mcm = multilabel_confusion_matrix(actual_labels, predicted_labels)
+  return mcm
+
+def get_Specificity_Precision_Recall_F1(actual_labels:torch.Tensor, predicted_labels:torch.Tensor):
+  if actual_labels.is_cuda: actual_labels = actual_labels.cpu()
+  if predicted_labels.is_cuda: predicted_labels = predicted_labels.cpu() 
+  # specificity = []
+  # for i in range(len(actual_labels[0])):
+  #     tn = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 0)
+  #     fp = sum(1 for j in range(len(actual_labels)) if actual_labels[j][i] == 0 and predicted_labels[j][i] == 1)
+  #     specificity.append(tn / (tn + fp))
+
+  # # 计算精确率
+  # precision = precision_score(actual_labels, predicted_labels, average='macro')
+
+  # # 计算召回率
+  # recall = recall_score(actual_labels, predicted_labels, average='macro')
+
+  # 计算F1分数
+  f1 = f1_score(actual_labels, predicted_labels, average='samples')#, zero_division=1)
+
+  return f1
+  # return (specificity, precision, recall, f1)
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 疾病名称
+import logging
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+def plot_confusion(mcm, suptitle = None,save = False):
+  plt.ioff()
+
+  confusion_matrices = mcm
+  disease_names =  constants.CHEXPERT_LABELS
+  class_ratio_in_training = constants.class_ratio_in_training
+  # 创建子图
+  num_plots = len(confusion_matrices)
+  num_rows = int(np.ceil(num_plots / 3))  # 每行最多3个子图
+  fig, axes = plt.subplots(num_rows, 3, figsize=(15, num_rows * 5))
+
+  # 绘制每个混淆矩阵
+  for i, (matrix, name) in enumerate(zip(confusion_matrices, disease_names)):
+      for index, (disease, ratio) in enumerate(class_ratio_in_training):
+        if name ==  disease:
+          location = index
+          continue
+      row = location // 3
+      col = location % 3
+      ax = axes[row, col] if num_rows > 1 else axes[col]
+      
+      # 绘制混淆矩阵
+      im = ax.imshow(matrix, cmap='Blues')
+      
+      # 添加标题和标签
+      ax.set_title(name)
+      ax.set_xticks(np.arange(2))
+      ax.set_yticks(np.arange(2))
+      ax.set_xticklabels(['Predicted Negative', 'Predicted Positive'])
+      ax.set_yticklabels(['Actual Negative', 'Actual Positive'])
+      
+      # 在矩阵中显示数字
+      for i in range(2):
+          for j in range(2):
+              text = ax.text(j, i, str(matrix[i, j]), ha='center', va='center', color='black')
+
+  # 添加颜色条
+  cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+  fig.colorbar(im, cax=cbar_ax)
+
+  # 调整子图间距
+  plt.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9, wspace=0.4, hspace=0.4)
+  if suptitle is not None: 
+    plt.suptitle(suptitle)
+  # 显示图像
   
+  if save:
+    plt.savefig(f"{suptitle}.png")
+  plt.show()
+
+
  

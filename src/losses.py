@@ -217,8 +217,9 @@ class LG_CLIP_LOSS(nn.Module):
           if _clip_['graph_align_loss'] != 0:
             self.delta = torch.nn.Parameter(torch.exp(_clip_['graph_align_loss'].detach()))
             all_loss = all_loss + torch.exp(_clip_['graph_align_loss'].detach()) * _clip_['graph_align_loss']
-          self.beta = torch.nn.Parameter(torch.exp(Cls["loss_value"] .detach()))
-          all_loss = all_loss + torch.exp(Cls["loss_value"] .detach()) * Cls["loss_value"] 
+          if Cls["loss_value"] != 0:
+            self.beta = torch.nn.Parameter(torch.exp(Cls["loss_value"] .detach()))
+            all_loss = all_loss + torch.exp(Cls["loss_value"] .detach()) * Cls["loss_value"] 
         else:
           auxiliary_loss = self.alpha*_clip_["clip_loss"] + self.gamma * Orth["loss_value"] + self.delta * _clip_['graph_align_loss']
           all_loss = self.beta * Cls["loss_value"] + auxiliary_loss
