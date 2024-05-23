@@ -16,10 +16,11 @@
 [1].[Label Semantic Improvement with Graph Convolutional Networks for Multi-Label Chest X-Ray Image Classification](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10505562)
 > 使用图卷积网络来graps不同label之间的correlation，旨在提升多标签分类的准确率。 本质是representation learning
 
-[2]. [Advanced Augmentation and Ensemble Approaches for Classifying Long-Tailed Multi-Label Chest X-Rays](https:/openaccess.thecvf.com/content/ICCV2023W/CVAMD/papers/Nguyen-Mau_Advanced_Augmentation_and_Ensemble_Approaches_for_Classifying_Long-Tailed_Multi-Label_Chest_ICCVW_2023_paper.pdf)
+[2]. [Advanced Augmentation and Ensemble Approaches for Classifying Long-Tailed Multi-Label Chest X-Rays(ICCV2023W)](https:/openaccess.thecvf.com/content/ICCV2023W/CVAMD/papers/Nguyen-Mau_Advanced_Augmentation_and_Ensemble_Approaches_for_Classifying_Long-Tailed_Multi-Label_Chest_ICCVW_2023_paper.pdf)
 > When diagnosing chest X-rays (CXRs), the problem becomes multi-label as patients often show multiple disease findings simultaneously. Intriguingly, only a few studies have included label co-occurrence knowledge in the learning process [5, 4]. Considering the long-tailed class distribution in chest X-ray datasets, incorporating label cooccurrence information may offer valuable insights for addressing imbalanced and infrequent disease categories in this complex medical imaging task.
 
-[3].
+[3].[Multi-Label Image Recognition with Graph Convolutional Networks](https://openaccess.thecvf.com/content_CVPR_2019/papers/Chen_Multi-Label_Image_Recognition_With_Graph_Convolutional_Networks_CVPR_2019_paper.pdf)    
+> 使用GCN提取multi-labels的inter-relationship
 ---
 `FOUNDATION MODEL`  
 [1]. [A visual-language foundation model for computational pathology](https://www.nature.com/articles/s41591-024-02856-4?fromPaywallRec=false)
