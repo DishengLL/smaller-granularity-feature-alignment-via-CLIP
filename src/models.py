@@ -23,11 +23,13 @@ os.environ['CURL_CA_BUNDLE'] = ''
 from pathlib import Path
 from typing import Tuple
 import math
+from utils import TransformerWithLearnableQueries
+from utils import Transformer_classifier
 
 
 import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
-
+num_of_diseases = len(_constants_.CHEXPERT_LABELS)  # Desired number of output embeddings
 pwd = os.getcwd()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -84,8 +86,6 @@ class TextBranch(nn.Module):
        
         # text orthogonal 部分
         self.transformer = OrthogonalTextEncoder(d_model = d_model)
-        self.backbone = nntype
-        self.projection_head = nn.Linear(d_model, d_model, bias=False)
         
     def forward(self, text_features):
         '''
@@ -97,7 +97,7 @@ class TextBranch(nn.Module):
         '''
         output = self.transformer(text_features) 
         return  output
- 
+
 class ImgBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, 
                  nntype = None, backbone_v:str = None, 
@@ -112,7 +112,7 @@ class ImgBranch(nn.Module):
           self.backbone = "densenet"
           print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + backbone_v)    
           self.VisEncoder = SplitVisEncoder(nlabel, d_model = d_model, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
-
+          self.disease_encoder = disease_encoder()
           return
         
         if nntype == None:
@@ -137,16 +137,13 @@ class ImgBranch(nn.Module):
             print(_constants_.BLUE + "\nvit_base_patch16_224 is fixed!!\n" + _constants_.RESET)
             for param in self.clip_model.parameters():
               param.requires_grad = False
+          
           if not trainable_VisionEncoder  and trainable_PLM > 0:
             # the last n attention blocks are trainable
             # just re-train attention blocks
-            num_att_block = 12
-            if trainable_PLM > 12:
+            if trainable_PLM > 12: # this Vit, the number of attention layer block is 12
               raise RuntimeError("double check the number of attention blocks in this models,\
                 in current setting, the number of attention blocks in the model is 12.")
-            if trainable_PLM == 1:
-              for param in self.clip_model.visual.trunk.blocks[11].parameters():
-                param.requires_grad = True
             else:  
               print(f"tune the last {trainable_PLM} attention blocks!!")
               for param in self.clip_model.visual.trunk.blocks[12-trainable_PLM: 12].parameters():
@@ -155,7 +152,18 @@ class ImgBranch(nn.Module):
             self.clip_model.visual.trunk.norm.weight.requires_grad = True
             self.clip_model.visual.trunk.norm.bias.requires_grad = True
             self.clip_model.visual.head.proj.weight.requires_grad = True
-                 
+          
+          
+          # Example usage
+          embedding_dim = 768
+          num_heads = 8
+          num_layers = 6
+          hidden_dim = 2048
+          num_output_tokens = num_of_diseases + 1 # diseases embedding + CLS
+
+          # Initialize the model
+          self.disease_visual_encoder = TransformerWithLearnableQueries(embedding_dim, num_heads, num_layers, hidden_dim, embedding_dim, num_output_tokens)
+          self.linear = nn.Linear(in_features=embedding_dim, out_features=512, bias=False)
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           from utils.health_multimodal.image.utils import ImageModelType
           from utils.health_multimodal.image import get_image_inference
@@ -180,8 +188,30 @@ class ImgBranch(nn.Module):
         else:
           raise NotImplemented("using custom vis backbone which has not be defined!!!!!")
 
-            
         self.VisEncoder = SplitVisEncoder(nlabel, d_model = d_model, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
+
+    def get_biomedVit_inter_embeddings(self, model, inputs):
+      vit_model = model.visual.trunk  # Access the Vision Transformer part of the model
+      
+      # Calculate number of patches
+      # Pass through the patch embedding layer
+      x = vit_model.patch_embed(inputs)
+      
+      # Append class token
+      cls_token = vit_model.cls_token.expand(x.shape[0], -1, -1)
+      x = torch.cat((cls_token, x), dim=1)
+      
+      # Add position embeddings
+      x = vit_model.pos_drop(x + vit_model.pos_embed)
+      
+      # Pass through transformer blocks
+      for blk in vit_model.blocks:
+          x = blk(x)
+      
+      # Layer normalization
+      embeddings = vit_model.norm(x) # [cls, patch1,... patchN] embeddings
+      
+      return embeddings
 
     def densenet(self, n_dim = 512):
         model = models.densenet121(weights=None)
@@ -208,7 +238,15 @@ class ImgBranch(nn.Module):
         imd : b X 512
         output: b x n x 512
         '''
-        if "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
+        
+        if "biomedclip" in self.backbone.lower():
+          embeddings = self.get_biomedVit_inter_embeddings(model = self.clip_model, inputs = image_input)
+          # patch_embeddings = embeddings[:, :1, :]
+          token_embeddings =  self.disease_visual_encoder(embeddings)
+          token_embeddings = self.linear(token_embeddings)
+          return token_embeddings
+          
+        elif "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
           image_features = self.clip_model.encode_image(image_input).float()
         elif self.backbone == "densenet":
           image_features = self.backbone_v_model(image_input).float()
@@ -312,8 +350,9 @@ class LGCLIP(nn.Module):
     def encode_image(self, img_path=None):
         # image encoder
         vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
-        img_embeds = F.normalize(vision_output, dim=-1)
-        return img_embeds
+        tokens_embedding = F.normalize(vision_output, dim=-1)   # extract disease embedding, except CLS
+        img_embeds = tokens_embedding[:, 1:, :]
+        return img_embeds, tokens_embedding
 
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
@@ -361,10 +400,11 @@ class LGCLIP(nn.Module):
             orthogonal_loss = -1
             text_embeds = 0
             logits_per_image = 0
-            img_embeds = self.encode_image(img_path).to(device)
+            img_embeds, tokens_embedding = self.encode_image(img_path)
+            img_embeds.to(device)
             if eval:  # only need image embeddings for following process
               return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
-                'logits_per_image' : logits_per_image, 'loss_value' : loss}
+                'logits_per_image' : logits_per_image, 'loss_value' : loss,  "token_embedding": tokens_embedding}
             if not self.visual_branch_only:    # text branch included
               text_embeds = self.encode_text(input_text).to(device)
               #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
@@ -391,8 +431,8 @@ class LGCLIP(nn.Module):
                     orthogonal_loss = orth_diff_cal["loss_value"]
             return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
                 'logits_per_image' : logits_per_image, 'loss_value' : loss, 
-                "graph_align_loss" : graph_align_loss, "clip_loss" : clip_loss, 
-                "orthogonal_loss" : orthogonal_loss}
+                "graph_align_loss" : graph_align_loss, "contrastive_loss" : clip_loss, 
+                "orthogonal_loss" : orthogonal_loss, "token_embedding": tokens_embedding}
 
 class PN_classifier(nn.Module):
     def __init__(self,
@@ -468,8 +508,72 @@ class PN_classifier(nn.Module):
             if self.mode == 'multiclass': img_label = img_label.flatten().long()
             loss = self.loss_fn(logits, img_label)
             outputs['loss_value'] = loss
-        return outputs
+        return outputs    
       
+class Attention_classifier(nn.Module):
+    def __init__(self,
+        num_labels = len(_constants_.CHEXPERT_LABELS),
+        input_dim=512,
+        mode='multiclass',
+        num_cat = 3,
+        nntype = "clip_fasion",
+        num_layers = 6, 
+        num_heads = 8,
+        dropout = 0.1, 
+        hidden_dim = 256,
+        **kwargs) -> None:
+        '''args:
+        num_class: number of classes to predict (the number of diseases)
+        input_dim: the embedding dim of input
+        mode: multilabel, multiclass, or binary
+        num_cat: the number of output categories
+        '''
+        ## network structure: https://raw.githubusercontent.com/DishengL/ResearchPics/main/classifier_transparenent.png
+
+        super().__init__()
+        param_dict = kwargs
+        labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict  else "3_class"
+        if labeling_strategy == "S1":
+          num_cat = 2  # binary classification --- positive and negative 
+        if num_labels > 2:
+          self.mode =  "multi_label"
+        self.num_cat = num_cat
+        if num_labels > 2 and self.num_cat > 2:   # positive, negative and uncertain --- multiple classes 
+          self.loss_fn = nn.CrossEntropyLoss()   # input logits
+          self.cls = nn.Linear(input_dim, self.num_cat) 
+        elif num_labels > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
+          self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
+          self.model = Transformer_classifier(input_dim, num_layers, hidden_dim, num_heads, dropout, len(_constants_.CHEXPERT_LABELS))
+          
+        else:
+          raise NotImplementedError("error happen in classifier class (Initialization)")
+
+
+    def forward(self,
+        token_embeddings,  ## original image
+        img_label = None,
+        return_loss=True,
+        multilabel = False,
+        **kwargs
+        ):
+        outputs = defaultdict()
+        logits = self.model(token_embeddings)
+        outputs['logits'] = logits
+
+        nested_list = img_label
+        assert img_label is not None
+        
+        assert self.mode == "multi_label"
+
+        if img_label is not None and return_loss:
+          # if logits.shape != img_label.shape:
+          #   batch_size = img_label.shape[0]
+          #   logits = logits.view(batch_size, -1)
+          # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
+          loss = self.loss_fn(logits, img_label)
+          outputs['loss_value'] = loss
+        return outputs       
+
 class classifier(nn.Module):
     def __init__(self,
         num_labels = len(_constants_.CHEXPERT_LABELS),
@@ -529,9 +633,6 @@ class classifier(nn.Module):
         assert self.mode == "multi_label"
 
         if img_label is not None and return_loss:
-            # if type(img_label[0]) is str:
-            #     nested_list = [json.loads(s) for s in img_label]
-            # img_label = torch.tensor(np.stack(nested_list), dtype=torch.long).to(device)
             if logits.shape != img_label.shape:
               batch_size = img_label.shape[0]
               logits = logits.view(batch_size, -1)
@@ -688,8 +789,8 @@ class MultiTaskModel(nn.Module):
                                         trainable_VisionEncoder = trainable_VisionEncoder).to(device)
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         if not self.Alignment_Only:
-          self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
-        # img_embedding classifier
+          # self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
+          self.PN_Classifier = Attention_classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
@@ -711,24 +812,21 @@ class MultiTaskModel(nn.Module):
         '''
         assert img is not None
         assert img_labels is not None
-        a = self.Contrastive_Model(prompts, img, eval=eval)
+        multi_task = self.Contrastive_Model(input_text = prompts, img_path = img, eval = eval)
         if self.Alignment_Only : # pre-trained configuration
-          b = {"loss_value": 0}
+          classification = {"loss_value": 0}
         else:
-          b = self.PN_Classifier(a['img_embeds'], img_labels)
-        
-        if eval:
-          c = 0
-        else: 
-          c = self.Orthogonal_dif(a['text_embeds']) if ((not self.visual_branch_only)) else {"loss_value": 0}
-        
-        if self.no_orthogonize:  # input parameter, which control orthogonization operation
-          c =  {"loss_value": 0}
-        # assert a["orthogonal_loss"] == c["loss_value"]
-        
-        if c != 0 and a["orthogonal_loss"] != -1 and not math.isclose(a["orthogonal_loss"], c["loss_value"], abs_tol=1e-5):
-          print("a 和 c 不相等:")
-          print("a:", a["orthogonal_loss"])
-          print("c:", c["loss_value"])
-          raise RuntimeError()
-        return a, b, c
+          classification = self.PN_Classifier(multi_task["token_embedding"], img_labels)
+      
+        return multi_task, classification
+
+
+
+### TODO
+# baseline model for multi-label classification
+# basic CNN model 
+# Resnet
+# VGG
+# Densent
+# Inception
+
