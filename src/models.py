@@ -670,6 +670,7 @@ class MultiTaskModel(nn.Module):
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
         self.Alignment_Only = param_dict['Alignment_Only'] if "Alignment_Only" in param_dict else False
         if not eval: 
+          print(param_dict)
           self.trainable_PLM = param_dict['trainable_PLM'] 
         else: 
           self.trainable_PLM = 0
@@ -714,16 +715,11 @@ class MultiTaskModel(nn.Module):
         assert img is not None
         assert img_labels is not None
         a = self.Contrastive_Model(prompts, img, eval=eval)
-<<<<<<< HEAD
-        if self.Alignment_Only : # pre-trained configuration
-=======
         if not self.Alignment_Only :
           b = self.PN_Classifier(a['img_embeds'], img_labels)
         else:
->>>>>>> dfba489cda694b66e22b263637b7006ed9d4164e
           b = {"loss_value": 0}
-        else:
-          b = self.PN_Classifier(a['img_embeds'], img_labels)
+
         
         if eval:
           c = 0
