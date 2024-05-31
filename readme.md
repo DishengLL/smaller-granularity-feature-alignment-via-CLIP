@@ -123,6 +123,16 @@ for Parameter-efficient Multi-task Knowledge Sharing](https://homes.cs.washingto
   - train visual-branch-only version --- no contrastive loss between image and text in this version 
   - even though this version get similar performace(acc), the more unstable then the biomed version
   - contrastive loss module improves the generalizability of the model (the preliminary and immature insight)
+- 2023-11-18
+  - complete the training of 4 models
+     - biomed, biomed_vision_only, CLIP, CLIP_version_only
+     - get a phased conclusion
+   
+
+
+### environment
+```
+conda create -n torch_gpu python=3.8
 
 - 2023-11-18:
   - tune code, retrain 4 models(biomed + with(out) vision, clip + with(out) vision)
