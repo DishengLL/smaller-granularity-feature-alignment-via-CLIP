@@ -12,8 +12,8 @@ from sklearn.metrics import multilabel_confusion_matrix
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
 import constants
-
-
+import torch.nn.functional as F
+import torch.nn as nn
 logging.basicConfig(
     level=logging.DEBUG,  # 设置日志级别为DEBUG，这里你可以根据需要设置不同的级别
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -185,4 +185,72 @@ def plot_confusion(mcm, suptitle = None,save = False):
   plt.show()
 
 
- 
+class TransformerWithLearnableQueries(nn.Module):
+  def __init__(self, input_dim, num_heads, num_layers, hidden_dim, output_dim, num_output_tokens):
+      super(TransformerWithLearnableQueries, self).__init__()
+      encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=num_heads, dim_feedforward=hidden_dim)
+      self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+      self.query_embeddings = nn.Parameter(torch.randn(num_output_tokens, input_dim))
+
+  def forward(self, x):
+      # x shape: [batch_size, sequence_length, embedding_dim]
+      x = x.permute(1, 0, 2)  # Change to shape: [sequence_length, batch_size, embedding_dim]
+      transformer_output = self.transformer_encoder(x, src_key_padding_mask=None)
+      
+      # Repeat the learnable queries for each item in the batch
+      batch_size = x.size(1)
+      queries = self.query_embeddings.unsqueeze(1).repeat(1, batch_size, 1)  # Shape: [num_output_tokens, batch_size, embedding_dim]
+      
+      # Use the queries to get the final embeddings
+      final_output = self.transformer_encoder(queries, src_key_padding_mask=None)
+      final_output = final_output.permute(1, 0, 2)  # Change back to shape: [batch_size, num_output_tokens, embedding_dim]
+      
+      return final_output
+    
+
+class Transformer_classifier(nn.Module):
+    def __init__(self, input_dim, num_layers, hidden_dim, num_heads, dropout, num_classes):
+        super(Transformer_classifier, self).__init__()
+        
+        # Transformer Encoder
+        encoder_layers = nn.TransformerEncoderLayer(input_dim, num_heads, hidden_dim, dropout)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers)
+        
+        # Classification layer
+        self.fc = nn.Linear(input_dim, input_dim)
+        self.classifier = nn.Linear(input_dim, num_classes)
+        
+    def forward(self, input_embedding):
+        # Transformer Encoder
+        transformer_output = self.transformer_encoder(input_embedding)  # transformer_output.shape = [batch, token, dim]
+        
+        # Mean pooling to get one fixed-size representation
+        pooled_output = transformer_output.mean(dim=1)  # pooled_output.shape = [batch, dim]  ; average tokens
+        
+        # Classification
+        logits = self.classifier(F.relu(self.fc(pooled_output)))   # logits.shape = [batch, label]
+        
+        return logits
+
+
+
+# if __name__ == "__main__":
+#   # 示例用法
+#   input_dim = 768  # 假设输入 embedding 的维度是 768
+#   num_layers = 6  # TransformerEncoder 层的数量
+#   hidden_dim = 256  # TransformerEncoderLayer 的隐藏单元数量
+#   num_heads = 8  # 注意力头的数量
+#   dropout = 0.1  # Dropout 概率
+#   num_classes = 2  # 分类的类别数量
+
+#   # 创建 Transformer 模型实例
+#   model = TransformerModel(input_dim, num_layers, hidden_dim, num_heads, dropout)
+
+#   # 输入数据，假设是 10 个 token 的 embedding，维度为 [sequence_length, batch_size, input_dim]
+#   input_embedding = torch.randn(10, 1, input_dim)
+
+#   # 模型前向传播
+#   output = model(input_embedding)
+
+#   # 打印输出形状
+#   print("Output shape:", output.shape)
