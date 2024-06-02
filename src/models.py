@@ -780,6 +780,7 @@ class MultiTaskModel(nn.Module):
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
         self.Alignment_Only = param_dict['Alignment_Only'] if "Alignment_Only" in param_dict else False
         if not eval: 
+          print(param_dict)
           self.trainable_PLM = param_dict['trainable_PLM'] 
         else: 
           self.trainable_PLM = 0
