@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 ## Loss optimizes parameters in Text_encoder -- done
 class OrthogonalLoss(nn.Module):
     def __init__(self):
-        super().__init()
+        super(OrthogonalLoss,self).__init__()
 
     def forward(self, vectors):
         # 计算余弦相似度矩阵
