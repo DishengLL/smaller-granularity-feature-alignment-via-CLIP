@@ -99,7 +99,6 @@ class ImageTextContrastiveLoss(nn.Module):
     def _soft_bce_loss(self, input, target):
         return nn.functional.binary_cross_entropy_with_logits(input, target)
 
-
 ## Loss optimizes Parameters in Vis_encoder + Classifier -- done
 class ImageSuperviseLoss(nn.Module):
     def __init__(self,
@@ -228,7 +227,26 @@ class LG_CLIP_LOSS(nn.Module):
         print(f'alpha = {self.alpha} and the clip loss is {FGA["contrastive_loss"]}')
         print(f'delta = {self.delta} and the graph_align loss is {FGA["graph_align_loss"]}')
         print(f'beta = {self.beta} and the classification loss is {Cls["loss_value"]}')
-        print(f'gamma = {self.gamma} and the othogonal loss is {FGA["orthogonal_loss"]}')
+        print(f'gamma = {self.gamma} and the orthogonal loss is {FGA["orthogonal_loss"]}')
         print(f"the total loss is {all_loss}\n")
         return all_loss
         
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        # BCE loss
+        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        pt = torch.exp(-BCE_loss)  # 预测概率
+        F_loss = self.alpha * (1 - pt)**self.gamma * BCE_loss
+
+        if self.reduction == 'mean':
+            return F_loss.mean()
+        elif self.reduction == 'sum':
+            return F_loss.sum()
+        else:
+            return F_loss
