@@ -25,6 +25,7 @@ from typing import Tuple
 import math
 from utils import TransformerWithLearnableQueries
 from utils import Transformer_classifier
+import losses
 
 
 import requests.packages.urllib3
@@ -521,6 +522,7 @@ class Attention_classifier(nn.Module):
         num_heads = 8,
         dropout = 0.1, 
         hidden_dim = 256,
+        focal_loss = True,
         **kwargs) -> None:
         '''args:
         num_class: number of classes to predict (the number of diseases)
@@ -532,6 +534,7 @@ class Attention_classifier(nn.Module):
 
         super().__init__()
         param_dict = kwargs
+        self.focal_loss = focal_loss
         labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict  else "3_class"
         if labeling_strategy == "S1":
           num_cat = 2  # binary classification --- positive and negative 
@@ -544,6 +547,9 @@ class Attention_classifier(nn.Module):
         elif num_labels > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
           self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
           self.model = Transformer_classifier(input_dim, num_layers, hidden_dim, num_heads, dropout, len(_constants_.CHEXPERT_LABELS))
+          if focal_loss:
+            print("training with focal loss handling imbalanced dataset!")
+            self.Focal_loss_fn =  losses.FocalLoss()
           
         else:
           raise NotImplementedError("error happen in classifier class (Initialization)")
@@ -570,7 +576,10 @@ class Attention_classifier(nn.Module):
           #   batch_size = img_label.shape[0]
           #   logits = logits.view(batch_size, -1)
           # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-          loss = self.loss_fn(logits, img_label)
+          if not self.focal_loss:
+            loss = self.loss_fn(logits, img_label)
+          else:
+            loss = self.Focal_loss_fn(logits, img_label)
           outputs['loss_value'] = loss
         return outputs       
 
@@ -811,12 +820,16 @@ class MultiTaskModel(nn.Module):
         c: orthogonal loss
         '''
         assert img is not None
-        assert img_labels is not None
+        if eval is False:
+          assert img_labels is not None
+        print(type(prompts),f" the shape of prompts: {prompts.shape}")
+        print(type(img),f" the shape of prompts: {prompts.shape}")
         multi_task = self.Contrastive_Model(input_text = prompts, img_path = img, eval = eval)
         if self.Alignment_Only : # pre-trained configuration
           classification = {"loss_value": 0}
         else:
-          classification = self.PN_Classifier(multi_task["token_embedding"], img_labels)
+          # classification = self.PN_Classifier(multi_task["token_embedding"], img_labels)
+          classification = self.PN_Classifier(multi_task, img_labels)
       
         return multi_task, classification
 
