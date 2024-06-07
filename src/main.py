@@ -57,39 +57,38 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 if device == "cuda:0":
   torch.cuda.set_device(device)
   
-# def print_configuration (merged_dict = merged_dict):
-#   print (merged_dict)
-#   if merged_dict["contrastive_param"] != 1:
-#     print(f"contrastive loss parameter is {constants.RED + str(merged_dict["contrastive_param"]) + constants.RESET}")
-#   if merged_dict['cls_param'] != 1:
-#     print(f"classification loss parameter is {constants.RED + str(merged_dict['cls_param']) + constants.RESET}")
-#   if merged_dict["orthogonal_param"] != 1:
-#     print(f"orthogonal loss parameter is {constants.RED + str(merged_dict["orthogonal_param"]) + constants.RESET}")
-#   if merged_dict["graph_param"] != 1:
-#     print(f"high-order loss parameter is {constants.RED + str(merged_dict["graph_param"]) + constants.RESET}")
-#   if merged_dict["trainable_PLM"] != 0:
-#     print(f"the number of trainable layers is {constants.RED + str(merged_dict["trainable_PLM"]) + constants.RESET}")
-#   if merged_dict["prompt"] != "basic":
-#     print(f"the text prompt template is {constants.RED + merged_dict["prompt"] + constants.RESET}")
-#   if  merged_dict["weight_strategy"] != "NA":
-#     print(f"current weighting strategy is {constants.RED + merged_dict["weight_strategy"] + constants.RESET}")
-#   if merged_dict["uncertain_based_weight"]:
-#     print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
-#   if merged_dict["two_phases"]:
-#     print(constants.RED + "using two phase training scheme" + constants.RESET)
-#   if merged_dict["no_orthogonize"]:
-#     print(constants.RED + "do not implement orthogonization" + constants.RESET)
-#   if merged_dict["no_contrastive"]:
-#     print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
-#   if merged_dict["learnable_weight"]:
-#     print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
-#     logger.info("using learnable weights among sub-loss during training!")
-#   if merged_dict["high_order"] != "NA":
-#     print(constants.RED+f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!"+constants.RESET)
-#     logger.info(f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!")
-#   print(f"label_strategy setting -- {constants.RED} {merged_dict['labeling_strategy']} {constants.RESET}") 
-#   return
-  
+def print_configuration (merged_dict = merged_dict):
+  print (merged_dict)
+  if merged_dict["contrastive_param"] != 1:
+    print(f"contrastive loss parameter is {constants.RED + str(merged_dict["contrastive_param"]) + constants.RESET}")
+  if merged_dict['cls_param'] != 1:
+    print(f"classification loss parameter is {constants.RED + str(merged_dict['cls_param']) + constants.RESET}")
+  if merged_dict["orthogonal_param"] != 1:
+    print(f"orthogonal loss parameter is {constants.RED + str(merged_dict["orthogonal_param"]) + constants.RESET}")
+  if merged_dict["graph_param"] != 1:
+    print(f"high-order loss parameter is {constants.RED + str(merged_dict["graph_param"]) + constants.RESET}")
+  if merged_dict["trainable_PLM"] != 0:
+    print(f"the number of trainable layers is {constants.RED + str(merged_dict["trainable_PLM"]) + constants.RESET}")
+  if merged_dict["prompt"] != "basic":
+    print(f"the text prompt template is {constants.RED + merged_dict["prompt"] + constants.RESET}")
+  if  merged_dict["weight_strategy"] != "NA":
+    print(f"current weighting strategy is {constants.RED + merged_dict["weight_strategy"] + constants.RESET}")
+  if merged_dict["uncertain_based_weight"]:
+    print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
+  if merged_dict["two_phases"]:
+    print(constants.RED + "using two phase training scheme" + constants.RESET)
+  if merged_dict["no_orthogonize"]:
+    print(constants.RED + "do not implement orthogonization" + constants.RESET)
+  if merged_dict["no_contrastive"]:
+    print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
+  if merged_dict["learnable_weight"]:
+    print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
+    logger.info("using learnable weights among sub-loss during training!")
+  if merged_dict["high_order"] != "NA":
+    print(constants.RED+f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!"+constants.RESET)
+    logger.info(f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!")
+  print(f"label_strategy setting -- {constants.RED} {merged_dict['labeling_strategy']} {constants.RESET}") 
+  return
 
 def main():
   logger = utils.set_env_config()
