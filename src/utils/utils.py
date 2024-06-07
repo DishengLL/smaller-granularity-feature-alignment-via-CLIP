@@ -34,6 +34,8 @@ class tools:
     if not os.path.exists(folder_path):
       os.makedirs(folder_path)
       logging.info(f"Folder '{folder_path}' created.")
+    
+device = "cuda" if torch.cuda.is_available() else "cpu"    
       
 class parser:
   def __init__(self):
@@ -232,7 +234,45 @@ class Transformer_classifier(nn.Module):
         
         return logits
 
-
+# class TransformerWithLearnableQueries(nn.Module):
+#     def __init__(self, input_dim, output_dim, num_heads, num_layers, hidden_dim, num_output_tokens):
+#         super(TransformerWithLearnableQueries, self).__init__()
+        
+#         self.input_dim = input_dim
+#         self.output_dim = output_dim
+#         self.num_heads = num_heads
+#         self.num_layers = num_layers
+#         self.hidden_dim = hidden_dim
+#         self.num_output_tokens = num_output_tokens
+        
+#         # 构建 Transformer 编码器层
+#         encoder_layers = nn.TransformerEncoderLayer(input_dim, num_heads, hidden_dim)
+#         self.encoder = nn.TransformerEncoder(encoder_layers, num_layers)
+        
+#         # 学习的 Query 向量
+#         self.query = nn.Parameter(torch.randn(1, 1, input_dim))
+        
+#         # 线性层将输出映射到所需的输出 token 数量
+#         self.linear = nn.Linear(input_dim, output_dim)
+        
+#     def forward(self, input_tensor):
+#         # 将 Query 向量复制到所有时间步
+#         batch_size = input_tensor.size(0)
+#         query = self.query.expand(batch_size, -1, -1)
+        
+#         # 将 Query 与输入 tensor 连接起来
+#         input_with_query = torch.cat([query, input_tensor], dim=1)
+        
+#         # 使用 Transformer 编码器进行编码
+#         encoder_output = self.encoder(input_with_query)
+        
+#         # 获取 Transformer 编码器的最后一层输出
+#         output = encoder_output[:, 1:, :]  # 忽略 Query 部分
+        
+#         # 使用线性层将输出映射到所需的输出 token 数量
+#         # output = self.linear(output)
+        
+#         return output
 
 # if __name__ == "__main__":
 #   # 示例用法
@@ -254,3 +294,30 @@ class Transformer_classifier(nn.Module):
 
 #   # 打印输出形状
 #   print("Output shape:", output.shape)
+
+
+def EDA(tensor: torch.Tensor):
+  # 将 tensor 转换为 numpy 数组以便进一步处理
+  print(f"the shape of tensor >>>>> {tensor.shape}")
+  if tensor.is_cuda:
+    tensor = tensor.detach().cpu()
+  
+  data = tensor.numpy()
+
+  # 展开 tensor 以便计算统计量
+  flattened_data = data.flatten()
+
+  # 计算基本统计量
+  mean = np.mean(flattened_data)
+  std = np.std(flattened_data)
+  min_val = np.min(flattened_data)
+  max_val = np.max(flattened_data)
+  quantiles = np.percentile(flattened_data, [25, 50, 75])
+
+  print(f"Mean: {mean}")
+  print(f"Standard Deviation: {std}")
+  print(f"Min Value: {min_val}")
+  print(f"Max Value: {max_val}")
+  print(f"25th Percentile: {quantiles[0]}")
+  print(f"50th Percentile (Median): {quantiles[1]}")
+  print(f"75th Percentile: {quantiles[2]}")

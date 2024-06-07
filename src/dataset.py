@@ -24,6 +24,7 @@ training_data_path = pwd + "/../data/project_using_data/all_train_data_3_11.csv"
 testing_data_path = pwd + r"/../data/project_using_data/all_test_3_11.csv"
 training_AP_PA_data_path = pwd + "/../data/project_using_data/all_train_data_4_12_AP_PA.csv"
 testing_AP_PA_data_path = pwd + r"/../data/project_using_data/all_test_data_4_12_AP_PA.csv"
+validation_AP_PA_data_path = pwd + r"/../data/project_using_data/all_validation_data_4_12_AP_PA.csv"
 
 
 # dataset.py provide all the tensor model needs
@@ -276,6 +277,98 @@ class TestingCollator:
         inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
         inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
+
+
+class ValidationDataset(Dataset):
+    def __init__(self,
+        datalist=['testing'],  # specify the df which used in testing 
+        prompt_type="basic",
+        backbone_type = None,
+        **kwargs
+        ) -> None:
+        '''
+        using data in the datalist to be testing data
+        '''
+        super().__init__()
+        # if prompt_type is None:
+        #     self.prompts = constants.BASIC_PROMPT
+        # else:
+        #     raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        self.backbone = backbone_type
+        if kwargs.get("AP_PA_view"):
+          filename = validation_AP_PA_data_path
+        else:
+          filename = testing_data_path
+        print(constants.RED + 'Testing load testing data from' + constants.RESET, filename)
+        self.df = pd.read_csv(filename, index_col=0)
+        # self.df = pd.concat(df_list, axis=0).reset_index(drop=True)
+        if backbone_type not in ["clip", "biomedclip", "custom", "densenet", "cxr-bert-s", "biovil-t"]:
+            raise ValueError("backbone type error: {backbone_type}")
+        if backbone_type == "biomedclip" and prompt_type == "basic":
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt"
+        elif backbone_type == "clip" and prompt_type == "basic":  # CLIP and custom (densenet) using CLIP images preprocess
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/clip_basic.pt"
+        elif backbone_type == "cxr-bert-s" and prompt_type == "basic":
+            print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+            self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/cxr_bert_s.pt"          
+        elif backbone_type == "biovil-t" and prompt_type == "basic":
+           print( "currently using " + constants.RED + f"{backbone_type}" + constants.RESET + " to process " + constants.RED + f"{prompt_type}" + constants.RESET + " prompt")
+           self.prompts_tensor_path = pwd + r"/../data/prompts_tensors/basic/biovil_t.pt"
+        else:
+            print(f"Custom your prompts!! Attention!!!!!! {prompt_type}, {backbone_type}")
+            raise ValueError()
+        self.labeling_strategy = None
+        if "labeling_strategy" in kwargs:
+          self.labeling_strategy = kwargs["labeling_strategy"]
+    
+    def convert_labels_2_tensor(self, string_representation:str):
+      # numbers_list = [int(num) for num in string_representation[1:-1].split(', ')]
+      # tensor_representation = tensor(numbers_list)
+      # return tensor_representation
+      numbers_list = eval(string_representation)
+      return tensor(numbers_list)
+
+
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        if self.backbone == "biomedclip":
+          img_tensor_path =  row.BiomedClip_img_tensor_path
+        elif self.backbone == "clip":
+          img_tensor_path =  row.Clip_img_tensor_path
+        elif self.backbone == "biovil-t" or self.backbone == "cxr-bert-s":
+          img_tensor_path = row.Biovil_img_tensor_path
+        else:  
+          raise NotImplemented(f"backbone model type error {self.backbone}")
+          ## default: using clip image preprocessing
+        img_tensor = torch.load(img_tensor_path)
+        prompt_tensor = torch.load(self.prompts_tensor_path)
+        if self.labeling_strategy == "S1":
+          return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.strategy1_14_labels)
+        return img_tensor, prompt_tensor, self.convert_labels_2_tensor(row.project_3_classes_14_labels)
+
+    def __len__(self):
+        return len(self.df)
+
+class ValidationCollator:
+    def __init__(self, use_eda=True):
+        '''Args:
+        use_EDA: easy data augmentation from textaugment
+        '''
+    def __call__(self, batch):
+        inputs = defaultdict(list)
+        for data in batch:
+            inputs["img"].append(data[0])
+            inputs["prompts"].append(data[1])
+            inputs["img_labels"].append(data[2]) 
+        inputs['img'] = torch.tensor(np.stack(inputs["img"])).to(device)
+        inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
+        inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
+        return inputs
+
+
+
 
 ### the classes below focus on data exploration and raw usable dataset maker
 class data_exploration():

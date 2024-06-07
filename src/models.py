@@ -25,6 +25,8 @@ from typing import Tuple
 import math
 from utils import TransformerWithLearnableQueries
 from utils import Transformer_classifier
+import losses
+from utils import EDA
 
 
 import requests.packages.urllib3
@@ -85,7 +87,7 @@ class TextBranch(nn.Module):
           + _constants_.RESET + self.backbone)            
        
         # text orthogonal 部分
-        self.transformer = OrthogonalTextEncoder(d_model = d_model)
+        self.Orth_transformer = OrthogonalTextEncoder(d_model = d_model)
         
     def forward(self, text_features):
         '''
@@ -95,7 +97,7 @@ class TextBranch(nn.Module):
         输出: b x [n vectors corresponding with prompts]
         直接输入处理后的文字embedding tensor, 不需要进行模型的推理
         '''
-        output = self.transformer(text_features) 
+        output = self.Orth_transformer(text_features) 
         return  output
 
 class ImgBranch(nn.Module):
@@ -156,14 +158,24 @@ class ImgBranch(nn.Module):
           
           # Example usage
           embedding_dim = 768
+          output_dim = 512
           num_heads = 8
           num_layers = 6
           hidden_dim = 2048
           num_output_tokens = num_of_diseases + 1 # diseases embedding + CLS
 
           # Initialize the model
-          self.disease_visual_encoder = TransformerWithLearnableQueries(embedding_dim, num_heads, num_layers, hidden_dim, embedding_dim, num_output_tokens)
+          self.disease_visual_encoder = TransformerWithLearnableQueries(input_dim = embedding_dim, num_heads = num_heads, num_layers = num_layers, hidden_dim = embedding_dim,
+                                                                        output_dim = output_dim, num_output_tokens = num_output_tokens)
           self.linear = nn.Linear(in_features=embedding_dim, out_features=512, bias=False)
+          # input_dim = 768
+          # output_dim = 512
+          # num_heads = 8
+          # num_layers = 6
+          # hidden_dim = 2048
+          # num_output_tokens = 15
+          # self.disease_visual_encoder = TransformerWithLearnableQueries(input_dim, output_dim, num_heads, num_layers, hidden_dim, num_output_tokens)
+
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           from utils.health_multimodal.image.utils import ImageModelType
           from utils.health_multimodal.image import get_image_inference
@@ -241,10 +253,14 @@ class ImgBranch(nn.Module):
         
         if "biomedclip" in self.backbone.lower():
           embeddings = self.get_biomedVit_inter_embeddings(model = self.clip_model, inputs = image_input)
-          # patch_embeddings = embeddings[:, :1, :]
+          # EDA(embeddings)
           token_embeddings =  self.disease_visual_encoder(embeddings)
-          token_embeddings = self.linear(token_embeddings)
-          return token_embeddings
+          # EDA(token_embeddings)
+          patch_embeddings = token_embeddings[:, 1:, :]
+          disease_embeddings = self.linear(patch_embeddings)
+          normalized_disease_embeddings = F.normalize(disease_embeddings, p=2, dim=-1)
+          # EDA(disease_embeddings)
+          return normalized_disease_embeddings
           
         elif "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
           image_features = self.clip_model.encode_image(image_input).float()
@@ -342,17 +358,17 @@ class LGCLIP(nn.Module):
         self.load_state_dict(state_dict)
         print('load model weight from:', input_dir)
 
-    def encode_text(self, inputs_text:list):
-        text_embeds = self.text_model(inputs_text)    # text_feature: backbone generated; text_embedding: processed embeddings
-        text_embeds = F.normalize(text_embeds, dim = -1)
-        return text_embeds
+    def encode_text(self, inputs_text:torch.Tensor):
+      # 在此， text embeddings中的数据分布是（mean=0， std=1）
+      text_embeds = self.text_model(inputs_text)    # text_feature: backbone generated; text_embedding: processed embeddings
+      return text_embeds
 
     def encode_image(self, img_path=None):
         # image encoder
-        vision_output = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
-        tokens_embedding = F.normalize(vision_output, dim=-1)   # extract disease embedding, except CLS
-        img_embeds = tokens_embedding[:, 1:, :]
-        return img_embeds, tokens_embedding
+        nor_diseases_embeddings = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
+        print("EDA encode Images:")
+        EDA(nor_diseases_embeddings)
+        return nor_diseases_embeddings
 
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
@@ -393,47 +409,53 @@ class LGCLIP(nn.Module):
             eval = False,
             graph_align = False,
             **kwargs,
-            ):
-            clip_loss = 0 # "no applicable in visual branch case"
-            loss = 0
-            graph_align_loss = 0
-            orthogonal_loss = -1
-            text_embeds = 0
-            logits_per_image = 0
-            img_embeds, tokens_embedding = self.encode_image(img_path)
-            img_embeds.to(device)
-            if eval:  # only need image embeddings for following process
-              return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
-                'logits_per_image' : logits_per_image, 'loss_value' : loss,  "token_embedding": tokens_embedding}
-            if not self.visual_branch_only:    # text branch included
-              text_embeds = self.encode_text(input_text).to(device)
-              #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
-              logits_per_image = self.compute_logits(img_embeds, text_embeds) 
+            )->torch.Tensor:
+      """
+      forward 函数只负责模型推理的输出， 无其他功能
+      """
+      clip_loss = 0 # "no applicable in visual branch case"
+      loss = 0
+      graph_align_loss = 0
+      orthogonal_loss = -1
+      text_embeds = 0
+      logits_per_image = 0
+      nor_diseases_embeddings = self.encode_image(img_path)
+      nor_diseases_embeddings.to(device)
+      if eval:  # only need image embeddings for following process
+        # return 
+        return {'img_embeds' : nor_diseases_embeddings, 'text_embeds' : text_embeds,
+          'logits_per_image' : logits_per_image, 'loss_value' : loss, }
+      if not self.visual_branch_only:    # text branch included
+        text_embeds = self.encode_text(input_text).to(device)
+        #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
+        logits_per_image = self.compute_logits(nor_diseases_embeddings, text_embeds) 
 
-              if return_loss:
-                  if not self.no_contrastive:
-                    clip_loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
-                    loss = clip_loss
-                  if self.graph_align != "NA":
-                    graph_alignment = Hier_graph_align(logits_per_image)
-                    if self.graph_align == "binary":
-                      # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
-                      prior_graph_tensor = torch.load(pwd + "/../constants/normalized_cost_matrix.pt")   
-                      graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
-                      loss = clip_loss + graph_align_loss
-                    else:
-                      raise NotImplemented()
-                  if self.no_orthogonal:
-                    orthogonal_loss = 0
-                  else:
-                    orth_diff = Orthogonal_dif().to(device)
-                    orth_diff_cal = orth_diff(text_embeds)
-                    orthogonal_loss = orth_diff_cal["loss_value"]
-            return {'img_embeds' : img_embeds, 'text_embeds' : text_embeds,
-                'logits_per_image' : logits_per_image, 'loss_value' : loss, 
-                "graph_align_loss" : graph_align_loss, "contrastive_loss" : clip_loss, 
-                "orthogonal_loss" : orthogonal_loss, "token_embedding": tokens_embedding}
+        if return_loss:
+            if not self.no_contrastive:
+              clip_loss = self.clip_loss(logits_per_image)   ## shape [batch, text_sample, image_sample]
+              loss = clip_loss
+            if self.graph_align != "NA":
+              graph_alignment = Hier_graph_align(logits_per_image)
+              if self.graph_align == "binary":
+                # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
+                prior_graph_tensor = torch.load(pwd + "/../constants/normalized_cost_matrix.pt")   
+                graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
+                loss = clip_loss + graph_align_loss
+              else:
+                raise NotImplemented()
+            if self.no_orthogonal:
+              orthogonal_loss = 0
+            else:
+              orth_diff = Orthogonal_dif().to(device)
+              orth_diff_cal = orth_diff(text_embeds)
+              orthogonal_loss = orth_diff_cal["loss_value"]
+      return {'img_embeds' : nor_diseases_embeddings, 'text_embeds' : text_embeds,
+          'logits_per_image' : logits_per_image, 'loss_value' : loss, 
+          "graph_align_loss" : graph_align_loss, "contrastive_loss" : clip_loss, 
+          "orthogonal_loss" : orthogonal_loss}
 
+    
+    
 class PN_classifier(nn.Module):
     def __init__(self,
         num_class = len(_constants_.CHEXPERT_LABELS),
@@ -521,6 +543,7 @@ class Attention_classifier(nn.Module):
         num_heads = 8,
         dropout = 0.1, 
         hidden_dim = 256,
+        focal_loss = True,
         **kwargs) -> None:
         '''args:
         num_class: number of classes to predict (the number of diseases)
@@ -532,6 +555,7 @@ class Attention_classifier(nn.Module):
 
         super().__init__()
         param_dict = kwargs
+        self.focal_loss = focal_loss
         labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict  else "3_class"
         if labeling_strategy == "S1":
           num_cat = 2  # binary classification --- positive and negative 
@@ -544,6 +568,9 @@ class Attention_classifier(nn.Module):
         elif num_labels > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
           self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
           self.model = Transformer_classifier(input_dim, num_layers, hidden_dim, num_heads, dropout, len(_constants_.CHEXPERT_LABELS))
+          if focal_loss:
+            print("training with focal loss handling imbalanced dataset!")
+            self.Focal_loss_fn =  losses.FocalLoss()
           
         else:
           raise NotImplementedError("error happen in classifier class (Initialization)")
@@ -557,6 +584,7 @@ class Attention_classifier(nn.Module):
         **kwargs
         ):
         outputs = defaultdict()
+        print(f"\nthe shape of token_embeddings is {token_embeddings.shape}\n")
         logits = self.model(token_embeddings)
         outputs['logits'] = logits
 
@@ -570,7 +598,10 @@ class Attention_classifier(nn.Module):
           #   batch_size = img_label.shape[0]
           #   logits = logits.view(batch_size, -1)
           # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-          loss = self.loss_fn(logits, img_label)
+          if not self.focal_loss:
+            loss = self.loss_fn(logits, img_label)
+          else:
+            loss = self.Focal_loss_fn(logits, img_label)
           outputs['loss_value'] = loss
         return outputs       
 
@@ -812,12 +843,14 @@ class MultiTaskModel(nn.Module):
         c: orthogonal loss
         '''
         assert img is not None
-        assert img_labels is not None
+        if eval is False:
+          assert img_labels is not None
         multi_task = self.Contrastive_Model(input_text = prompts, img_path = img, eval = eval)
         if self.Alignment_Only : # pre-trained configuration
           classification = {"loss_value": 0}
         else:
-          classification = self.PN_Classifier(multi_task["token_embedding"], img_labels)
+          classification = self.PN_Classifier(multi_task["img_embeds"], img_labels)
+          # classification = self.PN_Classifier(multi_task, img_labels)
       
         return multi_task, classification
 

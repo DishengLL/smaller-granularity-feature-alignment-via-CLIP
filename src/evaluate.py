@@ -70,7 +70,6 @@ class Evaluator:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.labeling_strategy = labeling_strategy
         self.mode = "binary" if labeling_strategy in ["S1"] else "multiclass"
-        print(f"self.mode : {self.mode} classification : labeling_strategy: {labeling_strategy}")
     
     def transform_data_for_eval_each_disease(self, predictions_tensor = None, target_tensor = None):
       predict_label_dim = predictions_tensor.shape[-1]
@@ -96,7 +95,7 @@ class Evaluator:
         label_tensor =  torch.empty(0).to(self.device)
         for data in tqdm(eval_dataloader, desc='Evaluation'):
             with torch.no_grad():
-                _, classifier_out, _ = self.clf(**data, eval=True)
+                _, classifier_out = self.clf(**data, eval=True)
                 pred = classifier_out['logits']  
             pred_tensor = torch.cat((pred_tensor, pred), dim=0)  
             label_tensor = torch.cat((label_tensor, (data["img_labels"])), 0)     
