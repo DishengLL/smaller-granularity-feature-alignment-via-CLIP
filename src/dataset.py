@@ -25,7 +25,9 @@ testing_data_path = pwd + r"/../data/project_using_data/all_test_3_11.csv"
 training_AP_PA_data_path = pwd + "/../data/project_using_data/all_train_data_4_12_AP_PA.csv"
 testing_AP_PA_data_path = pwd + r"/../data/project_using_data/all_test_data_4_12_AP_PA.csv"
 validation_AP_PA_data_path = pwd + r"/../data/project_using_data/all_validation_data_4_12_AP_PA.csv"
-
+cxr_dataset_stations = "/public_bme/data/lds/CXR_datasets/"
+NIH_CXR14_images = "/public_bme/data/lds/CXR_datasets/NIH_chest14_dataset/images/images/"
+CheXpert_images = "/public_bme/data/lds/CXR_datasets/CheXpert/data/data/"
 
 # dataset.py provide all the tensor model needs
 class ImageTextContrastiveDataset(Dataset):
@@ -368,6 +370,122 @@ class ValidationCollator:
         return inputs
 
 
+
+class NIH_chest14_dataset(Dataset):
+    def __init__(self, dataset_type = None,
+                 image_folder_path=NIH_CXR14_images,
+                 img_transform=None, prompt_type=None) -> None:
+        '''
+        Dataset for NIH chest14 dataset
+        using `dataset_type` to specify the dataset type, which should be either training or testing
+        '''
+        super().__init__()
+        the_whole_dataset="/NIH_chest14_dataset/NIH_CXR14_multi_hot.csv"
+        if dataset_type is None:
+          raise RuntimeError("you have to specify the dataset type, which should be either training or testing")
+        if dataset_type == "training":
+          source_data = "/NIH_chest14_dataset/training_val_dataset.csv"
+        elif dataset_type == "testing":
+          source_data = "/NIH_chest14_dataset/testing_dataset.csv"
+        else:
+          raise ValueError(f"dataset type error: {dataset_type}")
+
+        filename = cxr_dataset_stations + source_data
+        print('Loading training data from', filename)
+        self.df = pd.read_csv(filename)
+        if prompt_type is None or prompt_type == "clip_basic":
+          print(constants.RED + "using basic prompt(default)" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/clip_basic.pt")
+        elif prompt_type == "biomed_basic":
+          print(constants.RED + "using basic biomed_basic prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt")
+        elif prompt_type == "bio_dis_diag_des":
+          print(constants.RED + "using basic bio_dis_diag_des prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
+        else:
+            raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        self.prompts_tensor = torch.tensor([12,34])
+        
+        self.images_path = image_folder_path
+        self.transform = img_transform
+        
+        self.labels = self.df.iloc[:, 1:].values
+        
+        self.images_name = self.df["Image Index"].tolist()
+
+    def __getitem__(self, index):
+        image_name = self.images_name[index]
+        image_path = self.images_path + image_name
+        image = Image.open(image_path).convert("RGB")
+        if self.transform is not None:
+            image = self.transform(image)
+        
+        sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
+        return sample
+
+    def __len__(self):
+        return len(self.df)
+
+
+class CheXpertDataset(Dataset):
+    def __init__(self, dataset_type = None,
+                 image_folder_path=CheXpert_images,
+                 img_transform=None, prompt_type=None) -> None:
+        '''
+        Dataset for NIH CheXpert 14 dataset
+        using `dataset_type` to specify the dataset type, which should be either training or testing
+        '''
+        super().__init__()
+        if dataset_type is None:
+          raise RuntimeError("you have to specify the dataset type, which should be either training or testing")
+        if dataset_type == "training":
+          source_data = "/CheXpert/data/data/CheXpert-v1.0-small/CheXpert_training.csv"
+        elif dataset_type == "testing":
+          source_data = "/CheXpert/data/data/CheXpert-v1.0-small/CheXpert_validation.csv"
+        else:
+          raise ValueError(f"dataset type error: {dataset_type}")
+        number_of_labels = 14
+        filename = cxr_dataset_stations + source_data
+        print('Loading training data from', filename)
+        self.df = pd.read_csv(filename)
+        if prompt_type is None or prompt_type == "clip_basic":
+          print(constants.RED + "using basic prompt(default)" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/clip_basic.pt")
+        elif prompt_type == "biomed_basic":
+          print(constants.RED + "using basic biomed_basic prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt")
+        elif prompt_type == "bio_dis_diag_des":
+          print(constants.RED + "using basic bio_dis_diag_des prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
+        else:
+            raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        self.prompts_tensor = torch.tensor([12,34])
+        
+        self.images_path = image_folder_path
+        self.transform = img_transform
+        
+        self.labels = self.df.iloc[:, 1:number_of_labels + 1].values
+        
+        self.images_name = self.df["Path"].tolist()
+
+    def __getitem__(self, index):
+        image_name = self.images_name[index]
+        image_path = self.images_path + image_name
+        image = Image.open(image_path).convert("RGB")
+        if self.transform is not None:
+            image = self.transform(image)
+        
+        sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
+        return sample
+
+    def __len__(self):
+        return len(self.df)
 
 
 ### the classes below focus on data exploration and raw usable dataset maker
