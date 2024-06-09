@@ -65,6 +65,7 @@ class parser:
     parser.add_argument('--trainable_VisionEncoder', action='store_true', default = False, help="all of vision encoder is trainable (initialize from large pretrained models)")
     parser.add_argument('--Alignment_Only', '-AO', action='store_true', default = False, help="Alignment visual and textual information only, this parameter is used to get the pretrained (evaluate the contrastive loss which could be reduced from 1.7 in the whole pipeline)")
     parser.add_argument("--debug", action='store_true', default = False, help="use this parameter to set debug setting")
+    parser.add_argument("--focal_loss", action='store_true', default = False, help="using focal_loss as the classification loss")
     args = parser.parse_args() 
     return args
       
@@ -190,26 +191,25 @@ def plot_confusion(mcm, suptitle = None,save = False):
 class TransformerWithLearnableQueries(nn.Module):
   def __init__(self, input_dim, num_heads, num_layers, hidden_dim, output_dim, num_output_tokens):
       super(TransformerWithLearnableQueries, self).__init__()
-      encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=num_heads, dim_feedforward=hidden_dim)
-      self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+      
+      decoder_layer = nn.TransformerDecoderLayer(d_model=input_dim, nhead=num_heads, dim_feedforward=hidden_dim)
+      self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
+      
       self.query_embeddings = nn.Parameter(torch.randn(num_output_tokens, input_dim))
-
-  def forward(self, x):
+      self.decoder_layer_norm = nn.LayerNorm(input_dim)
+  def forward(self, context_memory):
       # x shape: [batch_size, sequence_length, embedding_dim]
-      x = x.permute(1, 0, 2)  # Change to shape: [sequence_length, batch_size, embedding_dim]
-      transformer_output = self.transformer_encoder(x, src_key_padding_mask=None)
-      
+      context_memory = context_memory.permute(1, 0, 2)  # Change to shape: [sequence_length, batch_size, embedding_dim]
       # Repeat the learnable queries for each item in the batch
-      batch_size = x.size(1)
+      batch_size = context_memory.size(1)
       queries = self.query_embeddings.unsqueeze(1).repeat(1, batch_size, 1)  # Shape: [num_output_tokens, batch_size, embedding_dim]
-      
       # Use the queries to get the final embeddings
-      final_output = self.transformer_encoder(queries, src_key_padding_mask=None)
+      final_output = self.transformer_decoder(queries, context_memory, memory_key_padding_mask=None)
+      final_output = self.decoder_layer_norm(final_output)
       final_output = final_output.permute(1, 0, 2)  # Change back to shape: [batch_size, num_output_tokens, embedding_dim]
       
       return final_output
     
-
 class Transformer_classifier(nn.Module):
     def __init__(self, input_dim, num_layers, hidden_dim, num_heads, dropout, num_classes):
         super(Transformer_classifier, self).__init__()
@@ -233,68 +233,6 @@ class Transformer_classifier(nn.Module):
         logits = self.classifier(F.relu(self.fc(pooled_output)))   # logits.shape = [batch, label]
         
         return logits
-
-# class TransformerWithLearnableQueries(nn.Module):
-#     def __init__(self, input_dim, output_dim, num_heads, num_layers, hidden_dim, num_output_tokens):
-#         super(TransformerWithLearnableQueries, self).__init__()
-        
-#         self.input_dim = input_dim
-#         self.output_dim = output_dim
-#         self.num_heads = num_heads
-#         self.num_layers = num_layers
-#         self.hidden_dim = hidden_dim
-#         self.num_output_tokens = num_output_tokens
-        
-#         # 构建 Transformer 编码器层
-#         encoder_layers = nn.TransformerEncoderLayer(input_dim, num_heads, hidden_dim)
-#         self.encoder = nn.TransformerEncoder(encoder_layers, num_layers)
-        
-#         # 学习的 Query 向量
-#         self.query = nn.Parameter(torch.randn(1, 1, input_dim))
-        
-#         # 线性层将输出映射到所需的输出 token 数量
-#         self.linear = nn.Linear(input_dim, output_dim)
-        
-#     def forward(self, input_tensor):
-#         # 将 Query 向量复制到所有时间步
-#         batch_size = input_tensor.size(0)
-#         query = self.query.expand(batch_size, -1, -1)
-        
-#         # 将 Query 与输入 tensor 连接起来
-#         input_with_query = torch.cat([query, input_tensor], dim=1)
-        
-#         # 使用 Transformer 编码器进行编码
-#         encoder_output = self.encoder(input_with_query)
-        
-#         # 获取 Transformer 编码器的最后一层输出
-#         output = encoder_output[:, 1:, :]  # 忽略 Query 部分
-        
-#         # 使用线性层将输出映射到所需的输出 token 数量
-#         # output = self.linear(output)
-        
-#         return output
-
-# if __name__ == "__main__":
-#   # 示例用法
-#   input_dim = 768  # 假设输入 embedding 的维度是 768
-#   num_layers = 6  # TransformerEncoder 层的数量
-#   hidden_dim = 256  # TransformerEncoderLayer 的隐藏单元数量
-#   num_heads = 8  # 注意力头的数量
-#   dropout = 0.1  # Dropout 概率
-#   num_classes = 2  # 分类的类别数量
-
-#   # 创建 Transformer 模型实例
-#   model = TransformerModel(input_dim, num_layers, hidden_dim, num_heads, dropout)
-
-#   # 输入数据，假设是 10 个 token 的 embedding，维度为 [sequence_length, batch_size, input_dim]
-#   input_embedding = torch.randn(10, 1, input_dim)
-
-#   # 模型前向传播
-#   output = model(input_embedding)
-
-#   # 打印输出形状
-#   print("Output shape:", output.shape)
-
 
 def EDA(tensor: torch.Tensor):
   # 将 tensor 转换为 numpy 数组以便进一步处理

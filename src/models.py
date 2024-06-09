@@ -73,6 +73,7 @@ class SplitVisEncoder(nn.Module):
         x = self.encoder(x)
 
         return x #.cuda()
+      
 class TextBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bias = False, nntype = None):
         super().__init__()
@@ -166,15 +167,10 @@ class ImgBranch(nn.Module):
 
           # Initialize the model
           self.disease_visual_encoder = TransformerWithLearnableQueries(input_dim = embedding_dim, num_heads = num_heads, num_layers = num_layers, hidden_dim = embedding_dim,
-                                                                        output_dim = output_dim, num_output_tokens = num_output_tokens)
+                                                                        output_dim = output_dim, num_output_tokens = num_of_diseases)
           self.linear = nn.Linear(in_features=embedding_dim, out_features=512, bias=False)
-          # input_dim = 768
-          # output_dim = 512
-          # num_heads = 8
-          # num_layers = 6
-          # hidden_dim = 2048
-          # num_output_tokens = 15
-          # self.disease_visual_encoder = TransformerWithLearnableQueries(input_dim, output_dim, num_heads, num_layers, hidden_dim, num_output_tokens)
+          self.bn = nn.BatchNorm1d(output_dim*num_of_diseases)
+          nn.init.kaiming_uniform_(self.linear.weight, a=math.sqrt(5))
 
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
           from utils.health_multimodal.image.utils import ImageModelType
@@ -253,13 +249,13 @@ class ImgBranch(nn.Module):
         
         if "biomedclip" in self.backbone.lower():
           embeddings = self.get_biomedVit_inter_embeddings(model = self.clip_model, inputs = image_input)
-          # EDA(embeddings)
-          token_embeddings =  self.disease_visual_encoder(embeddings)
-          # EDA(token_embeddings)
-          patch_embeddings = token_embeddings[:, 1:, :]
-          disease_embeddings = self.linear(patch_embeddings)
-          normalized_disease_embeddings = F.normalize(disease_embeddings, p=2, dim=-1)
-          # EDA(disease_embeddings)
+          token_diseases =  self.disease_visual_encoder(embeddings) 
+          disease_embeddings = self.linear(token_diseases)
+          disease_embeddings = F.normalize(disease_embeddings, p=2, dim=-1)
+          batch_size, num_output_tokens, embedding_dim = disease_embeddings.size()
+          disease_embeddings = disease_embeddings.view(batch_size, -1)
+          normalized_disease_embeddings = self.bn(disease_embeddings)
+          normalized_disease_embeddings = normalized_disease_embeddings.view(batch_size, num_output_tokens, embedding_dim)
           return normalized_disease_embeddings
           
         elif "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
@@ -366,13 +362,13 @@ class LGCLIP(nn.Module):
     def encode_image(self, img_path=None):
         # image encoder
         nor_diseases_embeddings = self.vision_model(img_path)   #img_feature: backbone generated; vision_ouput: processed embeddings
-        print("EDA encode Images:")
-        EDA(nor_diseases_embeddings)
         return nor_diseases_embeddings
 
     def compute_logits(self, img_emb, text_emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
         logit_scale = self.logit_scale.exp()
+        dim = img_emb.shape[-1]
+        # dim = 1
         reshaped_text_embedding = text_emb.squeeze()
         reshaped_image_embedding = img_emb.squeeze()
         if (len(reshaped_image_embedding.shape) == len(reshaped_text_embedding.shape) == 2):
@@ -380,7 +376,7 @@ class LGCLIP(nn.Module):
             reshaped_image_embedding = reshaped_image_embedding.unsqueeze(0)
         sim_matrixes = []
         for i, j in zip(reshaped_text_embedding, reshaped_image_embedding):
-            sim_matrixes.append(torch.matmul(i, j.t()) * logit_scale)
+          sim_matrixes.append((torch.matmul(i, j.t())/dim) * logit_scale)
         return torch.stack(sim_matrixes, dim = 0)   ## each matrix means text-image sim
 
     def clip_loss(self, similarities: torch.Tensor) -> torch.Tensor:
@@ -397,9 +393,8 @@ class LGCLIP(nn.Module):
         return loss / 2.0
 
     def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        # logits = logits / logits.norm(dim=-1, keepdim=True)
-        # print("the similarity metric")
-        # print(logits)
+        logits = logits / logits.norm(dim=-1, keepdim=True)
+        # EDA(logits)
         return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
     
     def forward(self,
@@ -416,7 +411,7 @@ class LGCLIP(nn.Module):
       clip_loss = 0 # "no applicable in visual branch case"
       loss = 0
       graph_align_loss = 0
-      orthogonal_loss = -1
+      orthogonal_loss = 0
       text_embeds = 0
       logits_per_image = 0
       nor_diseases_embeddings = self.encode_image(img_path)
@@ -446,16 +441,17 @@ class LGCLIP(nn.Module):
             if self.no_orthogonal:
               orthogonal_loss = 0
             else:
-              orth_diff = Orthogonal_dif().to(device)
-              orth_diff_cal = orth_diff(text_embeds)
-              orthogonal_loss = orth_diff_cal["loss_value"]
+              # orth_diff = Orthogonal_dif().to(device)
+              # orth_diff_cal = orth_diff(text_embeds)
+              # orthogonal_loss = orth_diff_cal["loss_value"]
+              orth_criterion =  GramOrthogonalLoss()
+              orth_loss_cal = orth_criterion(text_embeds)
+              orthogonal_loss = orth_loss_cal["loss_value"]
       return {'img_embeds' : nor_diseases_embeddings, 'text_embeds' : text_embeds,
           'logits_per_image' : logits_per_image, 'loss_value' : loss, 
           "graph_align_loss" : graph_align_loss, "contrastive_loss" : clip_loss, 
           "orthogonal_loss" : orthogonal_loss}
 
-    
-    
 class PN_classifier(nn.Module):
     def __init__(self,
         num_class = len(_constants_.CHEXPERT_LABELS),
@@ -543,7 +539,7 @@ class Attention_classifier(nn.Module):
         num_heads = 8,
         dropout = 0.1, 
         hidden_dim = 256,
-        focal_loss = True,
+        focal_loss = False,
         **kwargs) -> None:
         '''args:
         num_class: number of classes to predict (the number of diseases)
@@ -690,7 +686,6 @@ class Orthogonal_dif(nn.Module):
         loss = 0
         _len_ = len(text_embeds.shape)
         multi_logits_per_text = []
-
         if _len_ == 2:  ## just one sample
           if return_loss:
               logits_per_text =  self.compute_logits(text_embeds)
@@ -700,6 +695,7 @@ class Orthogonal_dif(nn.Module):
                   'multi_logits_per_text':logits_per_text}
         else:   ## multiple samples
           if return_loss:
+              print("in the orthogiinal module, the number of text samples is: ", text_embeds.shape[0])
               n_text_sample = (text_embeds.shape[0])
               for sample in text_embeds:
                 logits_each_sample = self.compute_logits(sample)
@@ -714,6 +710,7 @@ class Orthogonal_dif(nn.Module):
     def compute_logits(self, emb):
         self.logit_scale.data = torch.clamp(self.logit_scale.data, 0, 4.6052)
         logit_scale = self.logit_scale.exp()
+        # print(f"logit_scale: {logit_scale}")
         logits_per_text = torch.matmul(emb, emb.t()) * logit_scale
         return logits_per_text.t()
 
@@ -793,6 +790,25 @@ class Hier_graph_align():
     avg_tot_cos_dis = tot_cos_dis / batch_size
     return avg_tot_cos_dis
 
+
+class GramOrthogonalLoss(nn.Module):
+    def __init__(self):
+        super(GramOrthogonalLoss, self).__init__()
+    
+    def forward(self, text_embeds):
+      batch_number = (text_embeds.shape[0])
+      hidden_dim = (text_embeds.shape[-1])
+      batch_loss = 0
+      for sample in text_embeds:
+        G = sample.t() @ sample
+        loss = ((G - torch.diag(torch.diag(G))).pow(2).sum().sqrt())/hidden_dim
+        batch_loss += loss
+      batch_loss = batch_loss / batch_number
+        
+      return {'text_embeds':text_embeds,
+              'loss_value':batch_loss}  
+
+
 class MultiTaskModel(nn.Module):
     def __init__(self, nntype = "clip", visual_branch_only = False, backbone_v = None, high_order="NA", 
                  no_orthogonal = False, no_contrastive = False, eval = False, **kwargs):
@@ -801,8 +817,8 @@ class MultiTaskModel(nn.Module):
         self.uncertain_based_weight = param_dict['weight_strategy'] if "weight_strategy" in param_dict else False
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
         self.Alignment_Only = param_dict['Alignment_Only'] if "Alignment_Only" in param_dict else False
-        if not eval: 
-          print(param_dict)
+        focal_loss = param_dict['focal_loss'] if "focal_loss" in param_dict else False
+        if not eval:
           self.trainable_PLM = param_dict['trainable_PLM'] 
         else: 
           self.trainable_PLM = 0
@@ -822,7 +838,8 @@ class MultiTaskModel(nn.Module):
         # self.PN_Classifier = PN_classifier(nntype=nntype).to(device)
         if not self.Alignment_Only:
           # self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
-          self.PN_Classifier = Attention_classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
+          self.PN_Classifier = Attention_classifier(nntype=nntype, labeling_strategy = self.labeling_strategy, 
+                                                    focal_loss = focal_loss).to(device)
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only
@@ -853,7 +870,6 @@ class MultiTaskModel(nn.Module):
           # classification = self.PN_Classifier(multi_task, img_labels)
       
         return multi_task, classification
-
 
 
 ### TODO
