@@ -57,38 +57,38 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 if device == "cuda:0":
   torch.cuda.set_device(device)
   
-def print_configuration (merged_dict = merged_dict):
-  print (merged_dict)
-  if merged_dict["contrastive_param"] != 1:
-    print(f"contrastive loss parameter is {constants.RED + str(merged_dict["contrastive_param"]) + constants.RESET}")
-  if merged_dict['cls_param'] != 1:
-    print(f"classification loss parameter is {constants.RED + str(merged_dict['cls_param']) + constants.RESET}")
-  if merged_dict["orthogonal_param"] != 1:
-    print(f"orthogonal loss parameter is {constants.RED + str(merged_dict["orthogonal_param"]) + constants.RESET}")
-  if merged_dict["graph_param"] != 1:
-    print(f"high-order loss parameter is {constants.RED + str(merged_dict["graph_param"]) + constants.RESET}")
-  if merged_dict["trainable_PLM"] != 0:
-    print(f"the number of trainable layers is {constants.RED + str(merged_dict["trainable_PLM"]) + constants.RESET}")
-  if merged_dict["prompt"] != "basic":
-    print(f"the text prompt template is {constants.RED + merged_dict["prompt"] + constants.RESET}")
-  if  merged_dict["weight_strategy"] != "NA":
-    print(f"current weighting strategy is {constants.RED + merged_dict["weight_strategy"] + constants.RESET}")
-  if merged_dict["uncertain_based_weight"]:
-    print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
-  if merged_dict["two_phases"]:
-    print(constants.RED + "using two phase training scheme" + constants.RESET)
-  if merged_dict["no_orthogonize"]:
-    print(constants.RED + "do not implement orthogonization" + constants.RESET)
-  if merged_dict["no_contrastive"]:
-    print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
-  if merged_dict["learnable_weight"]:
-    print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
-    logger.info("using learnable weights among sub-loss during training!")
-  if merged_dict["high_order"] != "NA":
-    print(constants.RED+f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!"+constants.RESET)
-    logger.info(f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!")
-  print(f"label_strategy setting -- {constants.RED} {merged_dict['labeling_strategy']} {constants.RESET}") 
-  return
+# def print_configuration (merged_dict = merged_dict):
+#   print (merged_dict)
+#   if merged_dict["contrastive_param"] != 1:
+#     print(f"contrastive loss parameter is {constants.RED + str(merged_dict["contrastive_param"]) + constants.RESET}")
+#   if merged_dict['cls_param'] != 1:
+#     print(f"classification loss parameter is {constants.RED + str(merged_dict['cls_param']) + constants.RESET}")
+#   if merged_dict["orthogonal_param"] != 1:
+#     print(f"orthogonal loss parameter is {constants.RED + str(merged_dict["orthogonal_param"]) + constants.RESET}")
+#   if merged_dict["graph_param"] != 1:
+#     print(f"high-order loss parameter is {constants.RED + str(merged_dict["graph_param"]) + constants.RESET}")
+#   if merged_dict["trainable_PLM"] != 0:
+#     print(f"the number of trainable layers is {constants.RED + str(merged_dict["trainable_PLM"]) + constants.RESET}")
+#   if merged_dict["prompt"] != "basic":
+#     print(f"the text prompt template is {constants.RED + merged_dict["prompt"] + constants.RESET}")
+#   if  merged_dict["weight_strategy"] != "NA":
+#     print(f"current weighting strategy is {constants.RED + merged_dict["weight_strategy"] + constants.RESET}")
+#   if merged_dict["uncertain_based_weight"]:
+#     print(constants.RED + "uning uncertain based strategy to weight different sublosses"+constants.RESET)
+#   if merged_dict["two_phases"]:
+#     print(constants.RED + "using two phase training scheme" + constants.RESET)
+#   if merged_dict["no_orthogonize"]:
+#     print(constants.RED + "do not implement orthogonization" + constants.RESET)
+#   if merged_dict["no_contrastive"]:
+#     print(constants.RED + "do not implement contrastive learning between text and images" + constants.RESET)
+#   if merged_dict["learnable_weight"]:
+#     print(constants.RED+"using learnable weights among sub-loss during training!"+constants.RESET)
+#     logger.info("using learnable weights among sub-loss during training!")
+#   if merged_dict["high_order"] != "NA":
+#     print(constants.RED+f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!"+constants.RESET)
+#     logger.info(f"integrate graph alignment into the whole loss, using {merged_dict["high_order"]} graph!")
+#   print(f"label_strategy setting -- {constants.RED} {merged_dict['labeling_strategy']} {constants.RESET}") 
+#   # return
 
 def main():
   logger = utils.set_env_config()
@@ -119,6 +119,7 @@ def main():
   contrastive_param = args.contrastive_param
   cls_param = args.classification_param
   orthogonal_param = args.orthogonal_param
+  focal_loss = args.focal_loss
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
@@ -174,7 +175,7 @@ def main():
     save_model_path = save_model_path + "/" + args.save_dir
   
   print("saving path: ",save_model_path)
-  if os.path.exists(save_model_path) : raise RuntimeError(f"{save_model_path} has already existed! Please double check.")
+  if os.path.exists(save_model_path) and not debug: raise RuntimeError(f"{save_model_path} has already existed! Please double check.")
   if not os.path.exists(save_model_path): os.makedirs(save_model_path)
   with open(os.path.join(save_model_path, 'args.txt'), 'w') as f:
     json.dump(args.__dict__, f, indent=4)
@@ -195,10 +196,12 @@ def main():
   param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy, 
                 "contrastive_param": contrastive_param, "cls_param": cls_param,
                 "orthogonal_param": orthogonal_param, "graph_param": graph_param,
+                
                 }
   train_dict = {"trainable_PLM": trainable_PLM,
                 "trainable_VisionEncoder" : trainable_VisionEncoder,
                 "Alignment_Only": Alignment_Only,
+                "focal_loss": focal_loss
                 }
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 
