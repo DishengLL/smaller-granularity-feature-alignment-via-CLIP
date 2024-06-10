@@ -10,7 +10,11 @@
 # python ../src/main.py --backbone biomedclip  --trainable_VisionEncoder  --AP-PA-view  --labeling_strategy S1 --backbone biomedclip  --focal_loss --high_order binary >> ../src/6_10/6.10_aligment_focal_loss.log
 
 
-echo "training with aligment -- binary cross-entropy loss"
-python ../src/main.py --backbone biomedclip  --trainable_VisionEncoder  --AP-PA-view  --labeling_strategy S1 --backbone biomedclip  --high_order binary >> ../src/6_10/6.10_aligment_binary_cross_entropy.log
+# echo "training with aligment -- binary cross-entropy loss"
+# python ../src/main.py --backbone biomedclip  --trainable_VisionEncoder  --AP-PA-view  --labeling_strategy S1 --backbone biomedclip  --high_order binary >> ../src/6_10/6.10_aligment_binary_cross_entropy.log
+
+
+echo "training with aligment -- binary cross-entropy loss + task balanced"
+python ../src/main.py --backbone biomedclip  --trainable_VisionEncoder  --AP-PA-view  --labeling_strategy S1 --backbone biomedclip  --high_order binary --weight_strategy task_balance >> ../src/6_10/6.10_aligment_binary_cross_entropy_taskBalanced.log
 
 
