@@ -29,6 +29,15 @@ cxr_dataset_stations = "/public_bme/data/lds/CXR_datasets/"
 NIH_CXR14_images = "/public_bme/data/lds/CXR_datasets/NIH_chest14_dataset/images/images/"
 CheXpert_images = "/public_bme/data/lds/CXR_datasets/CheXpert/data/data/"
 
+
+Datatsets = {'MIMIC': [pwd + "/../data/project_using_data/all_train_data_4_12_AP_PA.csv",
+                       pwd + r"/../data/project_using_data/all_test_data_4_12_AP_PA.csv"],
+             "NIH": ["/public_bme/data/lds/CXR_datasets/NIH_chest14_dataset/training_val_dataset.csv", 
+                     "/public_bme/data/lds/CXR_datasets/NIH_chest14_dataset/testing_dataset.csv"],
+             "CheXpert": ["/public_bme/data/lds/CXR_datasets/CheXpert/data/data/CheXpert-v1.0-small/CheXpert_training.csv",
+                          "/public_bme/data/lds/CXR_datasets/CheXpert/data/data/CheXpert-v1.0-small/CheXpert_validation.csv"]
+}
+
 # dataset.py provide all the tensor model needs
 class ImageTextContrastiveDataset(Dataset):
     '''
@@ -37,7 +46,7 @@ class ImageTextContrastiveDataset(Dataset):
     '''
     _labels_ = ['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Lesion', 'Lung Opacity', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices']
     def __init__(self, source_data='p10_12_train.csv', imgtransform=None, prompt_type="basic", 
-                 backbone_type = None, binary = False, **kwargs) -> None:
+                 backbone_type = None, binary = False, Dataset = None, **kwargs) -> None:
         '''support data list in mimic-cxr-train, chexpert-train
         filename :  the csv file contains all of training data
         '''
@@ -47,13 +56,16 @@ class ImageTextContrastiveDataset(Dataset):
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
         if kwargs.get("AP_PA_view"):
-          filename = training_AP_PA_data_path
+          filename = Datasets[Dataset][0]
+          # filename = training_AP_PA_data_path
+          
         else:  
+          raise RuntimeError("you should specify the view type")
           filename = training_data_path
         # filename = pwd+"/../data/project_using_data/train_3_15.csv"  # temp small training data 10000
         print(constants.RED + 'load training data from' + constants.RESET, filename)
         self.df = pd.read_csv(filename, index_col=0)
-        self.df = self.df.head(100000)
+        # self.df = self.df.head(100000)
         if backbone_type not in ["clip", "biomedclip", "custom", "biovil-t", "cxr-bert-s"]:
             raise ValueError("backbone type error")
         if backbone_type == "clip" and prompt_type == "basic":
@@ -422,6 +434,8 @@ class NIH_chest14_dataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
+        else:
+          raise NotImplementedError("you should specify the image transform")
         
         sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
         return sample
@@ -465,7 +479,7 @@ class CheXpertDataset(Dataset):
           self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
         else:
             raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
-        self.prompts_tensor = torch.tensor([12,34])
+        # self.prompts_tensor = torch.tensor([12,34])
         
         self.images_path = image_folder_path
         self.transform = img_transform
@@ -480,6 +494,63 @@ class CheXpertDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
+        else:
+          raise NotImplementedError("you should specify the image transform")
+        
+        sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
+        return sample
+
+    def __len__(self):
+        return len(self.df)
+
+class MIMICDataset(Dataset):
+    def __init__(self, dataset_type = None,
+                 img_transform=None, prompt_type=None) -> None:
+        '''
+        Dataset for NIH CheXpert 14 dataset
+        using `dataset_type` to specify the dataset type, which should be either training or testing
+        '''
+        super().__init__()
+        if dataset_type is None:
+          raise RuntimeError("you have to specify the dataset type, which should be either training or testing")
+        if dataset_type == "training":
+          source_data = "/MIMIC/training.csv"
+        elif dataset_type == "testing":
+          source_data = "/MIMIC/testing.csv"
+        else:
+          raise ValueError(f"dataset type error: {dataset_type}")
+        number_of_labels = 14
+        filename = cxr_dataset_stations + source_data
+        print('Loading training data from', filename)
+        self.df = pd.read_csv(filename)
+        if prompt_type is None or prompt_type == "clip_basic":
+          print(constants.RED + "using basic prompt(default)" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/clip_basic.pt")
+        elif prompt_type == "biomed_basic":
+          print(constants.RED + "using basic biomed_basic prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt")
+        elif prompt_type == "bio_dis_diag_des":
+          print(constants.RED + "using basic bio_dis_diag_des prompt" + constants.RESET)
+          # self.prompts = constants.BASIC_PROMPT
+          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
+        else:
+            raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
+        
+        self.transform = img_transform
+        
+        self.labels = self.df.iloc[:, 1:number_of_labels + 1].values
+        
+        self.images_path = self.df["image_file_path"].tolist()
+
+    def __getitem__(self, index):
+        image_path = self.images_path[index]
+        image = Image.open(image_path).convert("RGB")
+        if self.transform is not None:
+            image = self.transform(image)
+        else:
+          raise NotImplementedError("you should specify the image transform")
         
         sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
         return sample

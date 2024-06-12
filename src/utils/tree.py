@@ -149,6 +149,4 @@ def safe_divide(a, b):
   
 # matrix = safe_divide(1, matrix)
 normalized_matrix = F.normalize(matrix, p=2, dim=1)
-print(normalized_matrix)
-
-torch.save(normalized_matrix, './constants/normalized_distance_matrix.pt')
+# torch.save(normalized_matrix, './constants/normalized_distance_matrix.pt')

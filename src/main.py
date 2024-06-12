@@ -123,6 +123,7 @@ def main():
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
+  Dataset = args.Dataset
   trainable_VisionEncoder = args.trainable_VisionEncoder
   Alignment_Only = args.Alignment_Only
   debug = args.debug
@@ -159,11 +160,14 @@ def main():
 
   if args.Alignment_Only:
     save_model_path = os.path.join(save_model_path , "pretrained", current_time)
-    
+  
   elif args.save_dir == None:
     args_keys = [i for i in args.__dict__.keys()]
     args_values = [str(i) if not isinstance(i, str) else i for i in args.__dict__.values()]
-
+    temp_dict = [(k,str(i)) if not isinstance(i, str) else i for k, i in args.__dict__.items()]
+    print("----------")
+    print(temp_dict)
+    print("----------")
     configuration_concat = '_'.join(args_values)
     save_model_path = os.path.join(save_model_path , configuration_concat)
     
@@ -182,7 +186,7 @@ def main():
   
   train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, 
                                            labeling_strategy = labeling_strategy,
-                                           AP_PA_view = AP_PA_view) 
+                                           AP_PA_view = AP_PA_view, Dataset = Dataset) 
   train_collate_fn = ImageTextContrastiveCollator()
   train_loader = DataLoader(train_data,
       batch_size=train_config['batch_size'],
