@@ -33,12 +33,11 @@ class PLM_embedding:
   
   def get_biomedclip_text_embedding(self, text:list):
     from open_clip import create_model_from_pretrained, get_tokenizer 
-    image = "./imgs/chest.png"
     model, preprocess = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
     model.to(device)
     tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
     texts = tokenizer(text, context_length=self.context_length).to(device)
-    dummy_img = torch.stack([preprocess(Image.open(image))]).to(device)
+    dummy_img = torch.randn(1, 3, 224, 224).to(device)
     with torch.no_grad():
         _, text_features, _ = model(dummy_img, texts)
     return text_features
