@@ -135,6 +135,8 @@ class Trainer:
                         data_iterator = iter(dataloaders[train_idx])
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
+                        
+                    data = {key: value.to(self.device) for key, value in data.items()}
                     if use_amp:
                         with autocast():
                             loss_model_return = loss_model(**data)

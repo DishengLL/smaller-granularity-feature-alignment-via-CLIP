@@ -98,6 +98,7 @@ class TextBranch(nn.Module):
         输出: b x [n vectors corresponding with prompts]
         直接输入处理后的文字embedding tensor, 不需要进行模型的推理
         '''
+        print(f"the shape of text_features is {text_features.shape}")
         output = self.Orth_transformer(text_features) 
         return  output
 
@@ -203,6 +204,8 @@ class ImgBranch(nn.Module):
       
       # Calculate number of patches
       # Pass through the patch embedding layer
+      device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+      inputs = inputs.to(device)
       x = vit_model.patch_embed(inputs)
       
       # Append class token

@@ -94,6 +94,7 @@ class Evaluator:
         pred_tensor =  torch.empty(0).to(self.device)
         label_tensor =  torch.empty(0).to(self.device)
         for data in tqdm(eval_dataloader, desc='Evaluation'):
+            data = {key: value.to(self.device) for key, value in data.items()}
             with torch.no_grad():
                 _, classifier_out = self.clf(**data, eval=True)
                 pred = classifier_out['logits']  

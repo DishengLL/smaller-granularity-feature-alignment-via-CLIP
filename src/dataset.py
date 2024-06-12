@@ -56,7 +56,7 @@ class ImageTextContrastiveDataset(Dataset):
         if source_data is None:
             raise ValueError("source_data should be specified, which indicates the path of original data")
         if kwargs.get("AP_PA_view"):
-          filename = Datasets[Dataset][0]
+          filename = Datatsets[Dataset][0]
           # filename = training_AP_PA_data_path
           
         else:  
@@ -396,9 +396,9 @@ class NIH_chest14_dataset(Dataset):
         if dataset_type is None:
           raise RuntimeError("you have to specify the dataset type, which should be either training or testing")
         if dataset_type == "training":
-          source_data = "/NIH_chest14_dataset/training_val_dataset.csv"
+          source_data = "/NIH_chest14_dataset/training_dataset_14.csv"
         elif dataset_type == "testing":
-          source_data = "/NIH_chest14_dataset/testing_dataset.csv"
+          source_data = "/NIH_chest14_dataset/testing_dataset_14.csv"
         else:
           raise ValueError(f"dataset type error: {dataset_type}")
 
@@ -419,12 +419,11 @@ class NIH_chest14_dataset(Dataset):
           self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
         else:
             raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
-        self.prompts_tensor = torch.tensor([12,34])
         
         self.images_path = image_folder_path
         self.transform = img_transform
         
-        self.labels = self.df.iloc[:, 1:].values
+        self.labels = self.df.iloc[:, 1:].values.astype(np.float16)
         
         self.images_name = self.df["Image Index"].tolist()
 
@@ -437,7 +436,7 @@ class NIH_chest14_dataset(Dataset):
         else:
           raise NotImplementedError("you should specify the image transform")
         
-        sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
+        sample = {'img': image, "prompts": self.prompts_tensor, 'img_labels': self.labels[index]}
         return sample
 
     def __len__(self):
@@ -479,7 +478,6 @@ class CheXpertDataset(Dataset):
           self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
         else:
             raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
-        # self.prompts_tensor = torch.tensor([12,34])
         
         self.images_path = image_folder_path
         self.transform = img_transform
@@ -497,7 +495,7 @@ class CheXpertDataset(Dataset):
         else:
           raise NotImplementedError("you should specify the image transform")
         
-        sample = {'image': image, "prompt": self.prompts_tensor, 'label': self.labels[index]}
+        sample = {'img': image, "prompts": self.prompts_tensor, 'img_labels': self.labels[index]}
         return sample
 
     def __len__(self):

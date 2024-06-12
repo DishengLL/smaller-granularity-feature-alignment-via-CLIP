@@ -66,7 +66,7 @@ class parser:
     parser.add_argument('--Alignment_Only', '-AO', action='store_true', default = False, help="Alignment visual and textual information only, this parameter is used to get the pretrained (evaluate the contrastive loss which could be reduced from 1.7 in the whole pipeline)")
     parser.add_argument("--debug", action='store_true', default = False, help="use this parameter to set debug setting")
     parser.add_argument("--focal_loss", action='store_true', default = False, help="using focal_loss as the classification loss")
-    parser.add_argument("--Dataset", choices=['MIMIC', "NIH", "CheXpert"], defualt = "MIMIC", type=str, 
+    parser.add_argument("--Dataset", choices=['MIMIC', "NIH", "CheXpert"], default = "MIMIC", type=str, 
                         help="using with dataset for training['MIMIC', 'NIH', 'CheXpert']")
     args = parser.parse_args() 
     return args

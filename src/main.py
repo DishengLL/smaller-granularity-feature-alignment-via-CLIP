@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from losses import LG_CLIP_LOSS
 import constants
-from dataset import ImageTextContrastiveDataset, ImageTextContrastiveCollator, TestingCollator, TestingDataset
+from dataset import ImageTextContrastiveDataset, ImageTextContrastiveCollator, TestingCollator, TestingDataset, NIH_chest14_dataset, CheXpertDataset
 from models import MultiTaskModel
 from train import Trainer
 from evaluate import  Evaluator
@@ -31,7 +31,7 @@ current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
 # set training configurations
 train_config = {
-    'batch_size': 100,
+    'batch_size': 256,
     'num_epochs': 6,
     'warmup': 0.1, # the first 10% of training steps are used for warm-up
     'lr': 2e-5,
@@ -43,7 +43,7 @@ train_config = {
     "model_zoo": ""   # the path of offline models
 }
 
-transform = transforms.Compose([
+transform_training = transforms.Compose([
               transforms.RandomHorizontalFlip(0.5),
               transforms.ColorJitter(0.2,0.2),
               transforms.RandomAffine(degrees=10, scale=(0.8,1.1), translate=(0.0625,0.0625)),
@@ -52,6 +52,13 @@ transform = transforms.Compose([
               transforms.ToTensor(),
               transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
             )
+
+transform_test = transforms.Compose([
+              transforms.Resize((224, 224)),
+              transforms.ToTensor(),
+              transforms.Normalize(mean=[constants.IMG_MEAN],std=[constants.IMG_STD])],
+            )
+
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 if device == "cuda:0":
@@ -184,18 +191,78 @@ def main():
   with open(os.path.join(save_model_path, 'args.txt'), 'w') as f:
     json.dump(args.__dict__, f, indent=4)
   
-  train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, 
-                                           labeling_strategy = labeling_strategy,
-                                           AP_PA_view = AP_PA_view, Dataset = Dataset) 
-  train_collate_fn = ImageTextContrastiveCollator()
-  train_loader = DataLoader(train_data,
-      batch_size=train_config['batch_size'],
-      collate_fn=train_collate_fn,
-      shuffle=True,
-      # pin_memory=True,
-      num_workers = num_workers,
-      prefetch_factor = 5
-      )
+  if Dataset == "NIH":
+    train_data = NIH_chest14_dataset(dataset_type = "training",
+                 img_transform=transform_training, prompt_type=None)
+    
+    train_loader = DataLoader(train_data,
+        batch_size=train_config['batch_size'],
+        shuffle=True,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5,
+        drop_last=True
+        )
+    
+    val_data = NIH_chest14_dataset(dataset_type = "testing",
+                 img_transform=transform_test, prompt_type=None)
+    eval_dataloader = DataLoader(val_data,
+        batch_size=train_config['eval_batch_size'],
+        shuffle=False,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5
+        )
+    print("training with NIH14 dataset, the size of training is ", len(train_data), "the size of testing is ", len(val_data))
+  elif Dataset == "CheXpert":
+    train_data = CheXpertDataset(dataset_type = "training",
+                 img_transform=transform_training, prompt_type=None)
+    train_loader = DataLoader(train_data,
+        batch_size=train_config['batch_size'],
+        shuffle=True,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5,
+        drop_last=True
+        )
+    
+    val_data = CheXpertDataset(dataset_type = "testing",
+                 img_transform=transform_test, prompt_type=None)
+    eval_dataloader = DataLoader(val_data,
+        batch_size=train_config['eval_batch_size'],
+        shuffle=False,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5
+        )
+  else:  ## MIMIC-CXR
+    train_data = ImageTextContrastiveDataset(backbone_type=backbone, prompt_type = prompt, 
+                                            labeling_strategy = labeling_strategy,
+                                            AP_PA_view = AP_PA_view, Dataset = Dataset) 
+    train_collate_fn = ImageTextContrastiveCollator()
+    train_loader = DataLoader(train_data,
+        batch_size=train_config['batch_size'],
+        collate_fn=train_collate_fn,
+        shuffle=True,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5
+        )
+    
+    val_data = TestingDataset(backbone_type=backbone, 
+                              labeling_strategy = labeling_strategy,
+                              AP_PA_view = AP_PA_view)
+    val_collate_fn = TestingCollator()
+    
+    eval_dataloader = DataLoader(val_data,
+        batch_size=train_config['eval_batch_size'],
+        collate_fn=val_collate_fn,
+        shuffle=False,
+        # pin_memory=True,
+        num_workers = num_workers,
+        prefetch_factor = 5
+        )
+
   
   param_dict = {"weight_strategy": uncertain_based_weight, "weighting_strategy": weight_strategy, 
                 "contrastive_param": contrastive_param, "cls_param": cls_param,
@@ -216,19 +283,6 @@ def main():
   total_trainable_params = utils.count_parameters(model)
   print(_constants_.RED + f"\nthe amount of trainable parameters is {total_trainable_params}.\n" + _constants_.RESET)
   # build evaluator
-  val_data = TestingDataset(backbone_type=backbone, 
-                            labeling_strategy = labeling_strategy,
-                            AP_PA_view = AP_PA_view)
-  val_collate_fn = TestingCollator()
-  
-  eval_dataloader = DataLoader(val_data,
-      batch_size=train_config['eval_batch_size'],
-      collate_fn=val_collate_fn,
-      shuffle=False,
-      # pin_memory=True,
-      num_workers = num_workers,
-      prefetch_factor = 5
-      )
   _evaluator_ = Evaluator(
       FG_model_cls = model,
       eval_dataloader = eval_dataloader,
