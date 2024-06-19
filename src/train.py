@@ -12,6 +12,7 @@ from torch.optim import Optimizer
 from torch import distributed as dist
 import transformers
 import constants as _constants_
+from utils import parse_metric_results
 
 WEIGHTS_NAME = "pytorch_model.bin"
 
@@ -61,6 +62,7 @@ class Trainer:
         '''
         self.best_score = -9999999
         self.best_auc = -9999999
+        self.indicator = "overall_auprc"
         self.accumulation_steps = accumulation_steps
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if use_amp:
@@ -178,24 +180,29 @@ class Trainer:
                 if not Alignment_Only and evaluation_steps > 0 and global_step % evaluation_steps == 0 and self.evaluator is not None:
                     scores = self.evaluator.evaluate()
                     print(f'\n\033[31m######### Eval {global_step} #########\033[0m')
-                    for key in scores.keys():
-                        # if key in ['acc','auc', 'auc/mse', ]:
-                        #   print('{}: {:.4f}'.format(key, scores[key]))
-                        if key == "auc_dict":
-                          for i,j in scores[key].items():
-                            if i != "disease_auc":
-                              print(i, j)
-                            else:
-                              for dis, auc in j.items():
-                                print(dis, auc)
-                          av_auc = self.get_average_auc_among_disease(scores[key]["disease_auc"], indicator = "positive")
-                          if av_auc > self.best_auc:
-                            self.best_auc = av_auc
-                            print(f"update best avg auc : {self.best_auc}")
-                            save_dir = os.path.join(output_path,"")
-                            self._save_ckpt(model, save_dir)     #save the best model during the iterations
-                        else: 
-                          print(key, scores[key])
+                    save, self.best_score = parse_metric_results(outcome = scores, key_indicator = self.indicator, is_save = False, best_value = self.best_score)
+                    if save:
+                      print(f"update best {self.indicator} : {self.best_score}")
+                      save_dir = os.path.join(output_path,"")
+                      self._save_ckpt(model, save_dir)     #save the best model during the iterations
+                    # for key in scores.keys():
+                    #     # if key in ['acc','auc', 'auc/mse', ]:
+                    #     #   print('{}: {:.4f}'.format(key, scores[key]))
+                    #     if key == "auc_dict":
+                    #       for i,j in scores[key].items():
+                    #         if i != "disease_auc":
+                    #           print(i, j)
+                    #         else:
+                    #           for dis, auc in j.items():
+                    #             print(dis, auc)
+                    #       av_auc = self.get_average_auc_among_disease(scores[key]["disease_auc"], indicator = "positive")
+                    #       if av_auc > self.best_auc:
+                    #         self.best_auc = av_auc
+                    #         print(f"update best avg auc : {self.best_auc}")
+                    #         save_dir = os.path.join(output_path,"")
+                    #         self._save_ckpt(model, save_dir)     #save the best model during the iterations
+                    #     else: 
+                    #       print(key, scores[key])
                     print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
 

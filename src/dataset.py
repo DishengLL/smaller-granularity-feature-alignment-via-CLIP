@@ -292,7 +292,6 @@ class TestingCollator:
         inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
 
-
 class ValidationDataset(Dataset):
     def __init__(self,
         datalist=['testing'],  # specify the df which used in testing 
@@ -380,7 +379,6 @@ class ValidationCollator:
         inputs['prompts'] = torch.stack(inputs["prompts"]).to(device)
         inputs['img_labels'] = torch.stack(inputs["img_labels"]).to(device)
         return inputs
-
 
 
 class NIH_chest14_dataset(Dataset):
@@ -495,7 +493,7 @@ class CheXpertDataset(Dataset):
         else:
           raise NotImplementedError("you should specify the image transform")
         
-        sample = {'img': image, "prompts": self.prompts_tensor, 'img_labels': self.labels[index]}
+        sample = {'img': image, "prompts": self.prompts_tensor, 'img_labels': torch.from_numpy(self.labels[index]).float()}
         return sample
 
     def __len__(self):

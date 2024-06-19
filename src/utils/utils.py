@@ -261,3 +261,18 @@ def EDA(tensor: torch.Tensor):
   print(f"25th Percentile: {quantiles[0]}")
   print(f"50th Percentile (Median): {quantiles[1]}")
   print(f"75th Percentile: {quantiles[2]}")
+
+
+def parse_metric_results(outcome:dict, key_indicator = "F1", is_save = False, best_value = 0):
+  for key, value in outcome.items():
+    print(f"{key}: {value}")
+  save = is_save
+  best = best_value
+  if key_indicator in outcome:
+    if outcome[key_indicator] > best:
+      best = outcome[key_indicator]
+      # print(f"Best {key_indicator} is {best_value}")
+      save = True
+  
+  return save, best
+  

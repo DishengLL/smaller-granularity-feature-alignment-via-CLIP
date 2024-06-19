@@ -583,7 +583,7 @@ class Attention_classifier(nn.Module):
         **kwargs
         ):
         outputs = defaultdict()
-        print(f"\nthe shape of token_embeddings is {token_embeddings.shape}\n")
+        # print(f"\nthe shape of token_embeddings is {token_embeddings.shape}\n")
         logits = self.model(token_embeddings)
         outputs['logits'] = logits
 
@@ -792,7 +792,6 @@ class Hier_graph_align():
       tot_cos_dis = tot_cos_dis + (1 - (each_sample_cos_distance/n_disease))
     avg_tot_cos_dis = tot_cos_dis / batch_size
     return avg_tot_cos_dis
-
 
 class GramOrthogonalLoss(nn.Module):
     def __init__(self):

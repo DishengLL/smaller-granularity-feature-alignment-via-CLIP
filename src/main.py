@@ -31,7 +31,7 @@ current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
 # set training configurations
 train_config = {
-    'batch_size': 256,
+    'batch_size': 200,
     'num_epochs': 6,
     'warmup': 0.1, # the first 10% of training steps are used for warm-up
     'lr': 2e-5,
@@ -286,7 +286,8 @@ def main():
   _evaluator_ = Evaluator(
       FG_model_cls = model,
       eval_dataloader = eval_dataloader,
-      labeling_strategy = labeling_strategy
+      labeling_strategy = labeling_strategy,
+      dataset = Dataset,
       )
 
   # loss_model.cuda()

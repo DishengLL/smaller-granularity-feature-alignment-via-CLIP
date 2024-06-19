@@ -393,3 +393,60 @@ PRETRAINED_URL_MEDCLIP_RESNET = 'https://github.com/RyanWangZf/MedCLIP/raw/main/
 PRETRAINED_URL_MEDCLIP_VIT = 'https://github.com/RyanWangZf/MedCLIP/raw/main/medclip/medclip_vit_weight.txt'
 
 class_name = {"positive":0, "negative":1, "uncertain":2}
+
+
+'''
+referencing the experiments results derived from validation dataset in the work of [CheXclusion: Fairness gaps in deep chest X-ray classifiers](https://github.dev/LalehSeyyed/CheXclusion/blob/main/MIMIC/Actual_TPR.py), the thresholds from each labels should be adapted for the best performance.
+'''
+CheXpert_thresholds = {
+  'Atelectasis': 0.1715822160243988,
+  'Cardiomegaly': 0.25941015779972076,
+  'Consolidation': 0.12079081088304515,
+  'Edema': 0.29250548481941224,
+  'Enlarged Cardiomediastinum': 0.11519031822681422,
+  'Fracture': 0.1463069587945938,
+  'Lung Lesion': 0.1433594509959221,
+  'Lung Opacity': 0.3219067692756653,
+  'No Finding': 0.2351817488670349,
+  'Pleural Effusion': 0.32850325107574463,
+  'Pleural Other': 0.13745994269847867,
+  'Pneumonia': 0.08874680846929543,
+  'Pneumothorax': 0.28035772740840914,
+  'Support Devices': 0.43483529686927797}
+
+
+MIMIC_CXR_thresholds = {
+  'Airspace Opacity': 0.2067894160747527,
+  'Atelectasis': 0.2571824133396149,
+  'Cardiomegaly': 0.25030514299869533,
+  'Consolidation': 0.13011438995599744,
+  'Edema': 0.2605415195226669,
+  'Enlarged Cardiomediastinum': 0.08953001797199245,
+  'Fracture': 0.08186926990747445,
+  'Lung Lesion': 0.13840098977088924,
+  'No Finding': 0.36988158226013185,
+  'Pleural Effusion': 0.37177377939224243,
+  'Pleural Other': 0.07955108284950249,
+  'Pneumonia': 0.14167169332504273,
+  'Pneumothorax': 0.20276318490505213,
+  'Support Devices': 0.38156365752220156
+  }
+
+
+NIH_thresholds = {
+  'Atelectasis': 0.21819314062595363,
+  'Cardiomegaly': 0.16013783663511272,
+  'Consolidation': 0.1485404103994369,
+  'Edema': 0.09559662565588946,
+  'Effusion': 0.30975477695465087,
+  'Emphysema': 0.18105267882347104,
+  'Fibrosis': 0.08295522779226297,
+  'Hernia': 0.5549078226089478,
+  'Infiltration': 0.2306660830974579,
+  'Mass': 0.2510164678096771,
+  'Nodule': 0.12614848017692562,
+  'Pleural_Thickening': 0.12851620316505424,
+  'Pneumonia': 0.06241033226251595,
+  'Pneumothorax': 0.17654986083507535
+}
+

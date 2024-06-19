@@ -14,24 +14,8 @@ import constants
 from sklearn.metrics import f1_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
+import torchmetrics
 
-
-def calculate_metrics(pred, target, threshold=0.5):
-    if pred.device.type == "cuda":
-      pred = pred.cpu()
-    if target.device.type == "cuda":
-      target = target.cpu()
-    pred = np.array(pred > threshold, dtype=float)
-    return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
-            'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
-            'micro/f1': f1_score(y_true=target, y_pred=pred, average='micro'),
-            'macro/precision': precision_score(y_true=target, y_pred=pred, average='macro'),
-            'macro/recall': recall_score(y_true=target, y_pred=pred, average='macro'),
-            'macro/f1': f1_score(y_true=target, y_pred=pred, average='macro'),
-            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
-            }
 
 def calculate_auc(pred, target):
   assert pred.shape[-1] == len(constants.CHEXPERT_LABELS)
@@ -59,6 +43,7 @@ class Evaluator:
         FG_model_cls,
         eval_dataloader=None,
         labeling_strategy = None, 
+        dataset = None,
         ) -> None:
         '''specify class_names if doing zero-shot classification.
         mode: `binary`, 'multiclass`, or `multilabel`,
@@ -70,6 +55,102 @@ class Evaluator:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.labeling_strategy = labeling_strategy
         self.mode = "binary" if labeling_strategy in ["S1"] else "multiclass"
+        if dataset:
+          self.dataset = dataset 
+        else:
+          raise RuntimeError("error: dataset is required.")
+        self.dataset_thresholds = {
+          "MIMIC": constants.MIMIC_CXR_thresholds,
+          "CheXpert": constants.CheXpert_thresholds,
+          "NIH": constants.NIH_thresholds,
+        }
+        self.thresholds = torch.tensor(list(self.dataset_thresholds[self.dataset].values())).to(self.device)
+        self.labels = list(self.dataset_thresholds[self.dataset].keys())
+        num_class = len(self.labels )
+        
+        self.precision = torchmetrics.Precision(task = "multilabel", num_labels=num_class, average='macro').to(self.device)
+        self.recall = torchmetrics.Recall(task = "multilabel", num_labels=num_class, average='macro').to(self.device)
+        self.f1_score = torchmetrics.F1Score(task = "multilabel",num_labels=num_class, average='macro').to(self.device)
+        self.precision_micro = torchmetrics.Precision(task = "multilabel", num_labels=num_class, average='micro').to(self.device)
+        self.recall_micro = torchmetrics.Recall(task = "multilabel", num_labels=num_class, average='micro').to(self.device)
+        self.f1_score_micro = torchmetrics.F1Score(task = "multilabel",num_labels=num_class, average='micro').to(self.device)
+        self.precision_weighted = torchmetrics.Precision(task = "multilabel", num_labels=num_class, average='weighted').to(self.device)
+        self.recall_weighted = torchmetrics.Recall(task = "multilabel", num_labels=num_class, average='weighted').to(self.device)
+        self.f1_score_weighted = torchmetrics.F1Score(task = "multilabel",num_labels=num_class, average='weighted').to(self.device)
+
+    def calculate_metrics(self, predict_proba, target):
+        pred = (predict_proba > self.thresholds).to(torch.float32)
+        pred = pred.to(self.device)
+        metrics = self.get_P_R_F1(predictions = pred, true_labels = target)
+        
+        return metrics
+      
+      
+    def get_P_R_F1(self, predictions, true_labels):
+      '''
+      传入的predictions是binary predicted labels
+      '''
+      # For multi-class classification
+
+      # 更新指标，传递概率矩阵和真实标签
+      true_labels = true_labels.to(self.device)
+      self.precision.update(predictions, true_labels)
+      self.recall.update(predictions, true_labels)
+      self.f1_score.update(predictions, true_labels)
+      self.precision_micro.update(predictions, true_labels)
+      self.recall_micro.update(predictions, true_labels)
+      self.f1_score_micro.update(predictions, true_labels)
+      self.precision_weighted.update(predictions, true_labels)
+      self.recall_weighted.update(predictions, true_labels)
+      self.f1_score_weighted.update(predictions, true_labels)
+      # 计算结果
+      precision_result = self.precision.compute()
+      recall_result = self.recall.compute()
+      f1_score_result = self.f1_score.compute()
+      precision_result_micro = self.precision_micro.compute()
+      recall_result_micro = self.recall_micro.compute()
+      f1_score_result_micro = self.f1_score_micro.compute()
+      precision_result_weighted = self.precision_weighted.compute()
+      recall_result_weighted = self.recall_weighted.compute()
+      f1_score_result_weighted = self.f1_score_weighted.compute()
+
+      return {
+        'micro/precision':precision_result_micro,
+        'micro/recall': recall_result_micro,
+        'micro/f1': f1_score_result_micro,
+        'macro/precision': precision_result,
+        'macro/recall': recall_result,
+        'macro/f1': f1_score_result,
+        'weighted/precision': precision_result_weighted,
+        'weighted/recall': recall_result_weighted,
+        'weighted/f1': f1_score_result_weighted,
+        } 
+
+# TODO: add more metrics, and codding
+    def get_average_precision_score(self, pred_probs, labels):
+      true_labels = labels.cpu().numpy()
+      pred_probs = pred_probs.cpu().numpy()
+      # 计算每个标签的 average precision score
+      average_precision_per_label = average_precision_score(true_labels, pred_probs, average=None)
+      average_precision_per_label_micro = average_precision_score(true_labels, pred_probs, average="micro")
+      average_precision_per_label_weighted = average_precision_score(true_labels, pred_probs, average="weighted")
+      average_precision_mean = np.mean(average_precision_per_label)
+      average_precision_mean_micro = np.mean(average_precision_per_label_micro)
+      average_precision_mean_weighted = np.mean(average_precision_per_label_weighted)
+      return (average_precision_per_label, average_precision_mean, average_precision_per_label_micro, average_precision_mean_micro, average_precision_per_label_weighted, average_precision_mean_weighted)
+
+    def get_AUPRC(self, pred_probs, labels):
+      y_true = labels.cpu().numpy()
+      y_score = pred_probs.cpu().numpy()
+      
+      num_labels = y_true.shape[-1]  # Number of labels
+      individual_auprc = []
+
+      for label in range(num_labels):
+          auprc = average_precision_score(y_true[:, label], y_score[:, label])
+          individual_auprc.append(auprc)
+      overall_auprc = np.mean(individual_auprc)
+      return individual_auprc,overall_auprc
     
     def transform_data_for_eval_each_disease(self, predictions_tensor = None, target_tensor = None):
       predict_label_dim = predictions_tensor.shape[-1]
@@ -126,9 +207,15 @@ class Evaluator:
                 if pred.shape[-1] == len(constants.CHEXPERT_LABELS):
                   print("multi-labels classification.")
                   pred_tensor =  torch.sigmoid(pred_tensor)
-                  metric = calculate_metrics(pred = pred_tensor, target = label_tensor)
-                  auc_metric = calculate_auc(pred = pred_tensor, target = label_tensor)
-                  outputs["auc_dict"] = auc_metric
+                  metric = self.calculate_metrics(predict_proba = pred_tensor, target = label_tensor)
+                  individual_auprc,overall_auprc = self.get_AUPRC(pred_probs = pred_tensor, labels = label_tensor)
+                  each_aucprc = {}
+
+                  # 通过循环将 key 和 value 组合为字典
+                  for key, value in zip(self.labels, individual_auprc):
+                      each_aucprc[f"{key}_auprc"] = value
+                  outputs["overall_auprc"] = overall_auprc
+                  outputs.update(each_aucprc)
                   outputs.update(metric)
 
                 # cnf_matrix = confusion_matrix(labels, pred_label)
