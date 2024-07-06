@@ -24,14 +24,26 @@ def calculate_auc(pred, target):
   if target.device.type == "cuda":
     target = target.cpu()
   each_auc = {}
-  metric = {
-    'micro/auc': roc_auc_score(y_true=target, y_score=pred, average='micro'),
-    'macro/auc': roc_auc_score(y_true=target, y_score=pred, average='macro'),
-  }
+  # metric = {
+  #   'micro/auc': roc_auc_score(y_true=target, y_score=pred, average='micro'),
+  #   'macro/auc': roc_auc_score(y_true=target, y_score=pred, average='macro'),
+  try:
+      metric = {
+          'macro/auc': roc_auc_score(y_true=target, y_score=pred, average='macro'),
+          'micro/auc': roc_auc_score(y_true=target, y_score=pred, average='micro')
+      }
+  except ValueError as e:
+      print(f"Error calculating AUC: {e}")
+      metric =  {'macro/auc': None, 'micro/auc': None}
   for disease in range(len(constants.CHEXPERT_LABELS)):
     disease_pred = pred[:, disease]
     disease_target = target[:, disease]
-    auc = roc_auc_score(y_true = disease_target, y_score = disease_pred)
+    unique_classes = torch.unique(disease_target)
+    if len(unique_classes) < 2:
+      print("Warning: Only one class present. AUC score cannot be calculated.")
+      auc = -1
+    else:
+      auc = roc_auc_score(y_true = disease_target, y_score = disease_pred)
     each_auc[constants.CHEXPERT_LABELS[disease]] = auc
   metric["disease_auc"] = each_auc
   return metric
@@ -126,7 +138,7 @@ class Evaluator:
         'weighted/f1': f1_score_result_weighted,
         } 
 
-# TODO: add more metrics, and codding
+    # TODO: add more metrics, and codding
     def get_average_precision_score(self, pred_probs, labels):
       true_labels = labels.cpu().numpy()
       pred_probs = pred_probs.cpu().numpy()
@@ -147,8 +159,19 @@ class Evaluator:
       individual_auprc = []
 
       for label in range(num_labels):
-          auprc = average_precision_score(y_true[:, label], y_score[:, label])
-          individual_auprc.append(auprc)
+          y_true_label = y_true[:, label]
+          y_score_label = y_score[:, label]
+          if np.isnan(y_true_label).any() or np.isnan(y_score_label).any():
+            print(f"Warning: NaN detected in label {label}")
+            if np.isnan(y_true_label).any():
+                print(f"y_true for label {label}: {y_true_label}")
+                raise RuntimeError("Nan in y_true_label")
+            if np.isnan(y_score_label).any():
+                print(f"y_score for label {label}: {y_score_label}") 
+                raise RuntimeError("Nan in y_score_label")
+          else :
+            auprc = average_precision_score(y_true_label, y_score_label)
+            individual_auprc.append(auprc)
       overall_auprc = np.mean(individual_auprc)
       return individual_auprc,overall_auprc
     
@@ -207,9 +230,20 @@ class Evaluator:
                 if pred.shape[-1] == len(constants.CHEXPERT_LABELS):
                   print("multi-labels classification.")
                   pred_tensor =  torch.sigmoid(pred_tensor)
+
+                  # metric = calculate_metrics(pred = pred_tensor, target = label_tensor)
+                  auc_metric = calculate_auc(pred = pred_tensor, target = label_tensor)
+                  outputs["auc_dict"] = auc_metric
+
+                  if torch.isnan(pred_tensor).any():
+                    print("The pred_tensor contains NaN values")
+                    print(f"pred_tensor: {pred_tensor}")
+                    print(f"sigmoid(pred_tensor): {torch.sigmoid(pred_tensor)}")
+                    print (f"the shape of torch.sigmoid(pred_tensor): {torch.sigmoid(pred_tensor).shape}")
                   metric = self.calculate_metrics(predict_proba = pred_tensor, target = label_tensor)
                   individual_auprc,overall_auprc = self.get_AUPRC(pred_probs = pred_tensor, labels = label_tensor)
                   each_aucprc = {}
+        
 
                   # 通过循环将 key 和 value 组合为字典
                   for key, value in zip(self.labels, individual_auprc):

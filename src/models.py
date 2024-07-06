@@ -116,7 +116,7 @@ class ImgBranch(nn.Module):
           self.backbone = "densenet"
           print(_constants_.BOLD + _constants_.BLUE + "in current image branch, the vis backbone for vis embedding is: " + _constants_.RESET + backbone_v)    
           self.VisEncoder = SplitVisEncoder(nlabel, d_model = d_model, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01).to(device)
-          self.disease_encoder = disease_encoder()
+          # self.disease_encoder = disease_encoder()
           return
         
         if nntype == None:
@@ -170,7 +170,10 @@ class ImgBranch(nn.Module):
           self.disease_visual_encoder = TransformerWithLearnableQueries(input_dim = embedding_dim, num_heads = num_heads, num_layers = num_layers, hidden_dim = embedding_dim,
                                                                         output_dim = output_dim, num_output_tokens = num_of_diseases)
           self.linear = nn.Linear(in_features=embedding_dim, out_features=512, bias=False)
-          self.bn = nn.BatchNorm1d(output_dim*num_of_diseases)
+          self.BN = nn.BatchNorm1d(14 * 512)
+          self.act = nn.ReLU()
+          
+          # self.bn = nn.BatchNorm1d(num_of_diseases)
           nn.init.kaiming_uniform_(self.linear.weight, a=math.sqrt(5))
 
         elif self.backbone == "cxr-bert-s" or self.backbone == "biovil-t":
@@ -252,14 +255,39 @@ class ImgBranch(nn.Module):
         
         if "biomedclip" in self.backbone.lower():
           embeddings = self.get_biomedVit_inter_embeddings(model = self.clip_model, inputs = image_input)
+          if torch.isnan(embeddings).any():
+            print("there are nan values in embeddings derived from biimedViT")
+            EDA(embeddings)
           token_diseases =  self.disease_visual_encoder(embeddings) 
+          if torch.isnan(token_diseases).any():
+            print("there are nan values in token_diseases derived from disease_visual_encoder")
+            EDA(token_diseases)
+          # disease_embeddings = self.linear(token_diseases)
           disease_embeddings = self.linear(token_diseases)
-          disease_embeddings = F.normalize(disease_embeddings, p=2, dim=-1)
-          batch_size, num_output_tokens, embedding_dim = disease_embeddings.size()
-          disease_embeddings = disease_embeddings.view(batch_size, -1)
-          normalized_disease_embeddings = self.bn(disease_embeddings)
-          normalized_disease_embeddings = normalized_disease_embeddings.view(batch_size, num_output_tokens, embedding_dim)
-          return normalized_disease_embeddings
+          batch_size, num_classes, num_features = disease_embeddings.shape
+          disease_embeddings_reshaped = disease_embeddings.view(batch_size, -1)
+
+          disease_embeddings_nor_reshaped = self.BN(disease_embeddings_reshaped)
+          disease_embeddings_nor =  disease_embeddings_nor_reshaped.view(batch_size, num_classes, num_features)
+          disease_embeddings_act = self.act(disease_embeddings_nor)
+          if torch.isnan(disease_embeddings_act).any():
+            print("there are nan values")
+            print("embeddings EDA")
+            EDA(embeddings)
+            
+            print("\ndisease token EDA")
+            EDA(token_diseases)
+            
+            print("\ndisease embeddings EDA")
+            EDA(disease_embeddings)
+            
+            print('\nthe eda of BN:')
+            EDA(disease_embeddings_nor_reshaped)
+            
+            print("\nthe eda of act:")
+            EDA(disease_embeddings_act)
+            print()
+          return disease_embeddings
           
         elif "clip" in self.backbone.lower():  ## clip fashion -- biomedclip / clip
           image_features = self.clip_model.encode_image(image_input).float()
@@ -543,6 +571,7 @@ class Attention_classifier(nn.Module):
         dropout = 0.1, 
         hidden_dim = 256,
         focal_loss = False,
+        WCE_loss = True,
         **kwargs) -> None:
         '''args:
         num_class: number of classes to predict (the number of diseases)
@@ -553,8 +582,10 @@ class Attention_classifier(nn.Module):
         ## network structure: https://raw.githubusercontent.com/DishengL/ResearchPics/main/classifier_transparenent.png
 
         super().__init__()
+        assert (WCE_loss and focal_loss) == False
         param_dict = kwargs
         self.focal_loss = focal_loss
+        self.WCE_loss = WCE_loss
         labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict  else "3_class"
         if labeling_strategy == "S1":
           num_cat = 2  # binary classification --- positive and negative 
@@ -565,11 +596,15 @@ class Attention_classifier(nn.Module):
           self.loss_fn = nn.CrossEntropyLoss()   # input logits
           self.cls = nn.Linear(input_dim, self.num_cat) 
         elif num_labels > 2 and self.num_cat == 2:   # positive and dispositive --- binary class
-          self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
           self.model = Transformer_classifier(input_dim, num_layers, hidden_dim, num_heads, dropout, len(_constants_.CHEXPERT_LABELS))
-          if focal_loss:
+          if WCE_loss:
+            print("training with weighted cross entropy loss handling imbalanced dataset!")
+            self.WCE_loss_fn = losses.WCE_Loss()
+          elif focal_loss:
             print("training with focal loss handling imbalanced dataset!")
             self.Focal_loss_fn =  losses.FocalLoss()
+          else:
+            self.loss_fn = nn.BCEWithLogitsLoss()   # input logits 
           
         else:
           raise NotImplementedError("error happen in classifier class (Initialization)")
@@ -597,10 +632,13 @@ class Attention_classifier(nn.Module):
           #   batch_size = img_label.shape[0]
           #   logits = logits.view(batch_size, -1)
           # if self.mode in ['multiclass', 'binaryclass']: img_label = img_label.flatten().long()
-          if not self.focal_loss:
-            loss = self.loss_fn(logits, img_label)
+          if self.focal_loss:
+            loss = self.Focal_loss_fn(logits, img_label)   
+          elif self.WCE_loss:
+            loss = self.WCE_loss_fn(logits, img_label)        
           else:
-            loss = self.Focal_loss_fn(logits, img_label)
+
+            loss = self.loss_fn(logits, img_label)
           outputs['loss_value'] = loss
         return outputs       
 
@@ -820,6 +858,7 @@ class MultiTaskModel(nn.Module):
         self.labeling_strategy = param_dict['labeling_strategy'] if "labeling_strategy" in param_dict else False
         self.Alignment_Only = param_dict['Alignment_Only'] if "Alignment_Only" in param_dict else False
         focal_loss = param_dict['focal_loss'] if "focal_loss" in param_dict else False
+        WCE_loss = param_dict['WCE_loss'] if "WCE_loss" in param_dict else False
         if not eval:
           self.trainable_PLM = param_dict['trainable_PLM'] 
         else: 
@@ -842,6 +881,7 @@ class MultiTaskModel(nn.Module):
           # self.PN_Classifier = classifier(nntype=nntype, labeling_strategy = self.labeling_strategy,).to(device)
           self.PN_Classifier = Attention_classifier(nntype=nntype, labeling_strategy = self.labeling_strategy, 
                                                     focal_loss = focal_loss).to(device)
+          
         if not visual_branch_only:   ## Orthogonal loss is useless in only visual branch case
           self.Orthogonal_dif = Orthogonal_dif().to(device)
         self.visual_branch_only = visual_branch_only

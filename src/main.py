@@ -31,7 +31,7 @@ current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
 # set training configurations
 train_config = {
-    'batch_size': 200,
+    'batch_size': 256,
     'num_epochs': 6,
     'warmup': 0.1, # the first 10% of training steps are used for warm-up
     'lr': 2e-5,
@@ -127,6 +127,7 @@ def main():
   cls_param = args.classification_param
   orthogonal_param = args.orthogonal_param
   focal_loss = args.focal_loss
+  WCE_loss = args.WCE_loss
   graph_param = args.graph_param
   trainable_PLM = args.trainable_PLM
   AP_PA_view = args.AP_PA_view
@@ -272,7 +273,8 @@ def main():
   train_dict = {"trainable_PLM": trainable_PLM,
                 "trainable_VisionEncoder" : trainable_VisionEncoder,
                 "Alignment_Only": Alignment_Only,
-                "focal_loss": focal_loss
+                "focal_loss": focal_loss,
+                "WCE_loss": WCE_loss,
                 }
   # model definition
   model = MultiTaskModel(nntype = backbone, visual_branch_only = visual_branch_only, backbone_v = backbone_v,high_order=high_order, 

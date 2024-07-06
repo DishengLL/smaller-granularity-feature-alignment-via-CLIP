@@ -100,39 +100,38 @@ class ImageTextContrastiveLoss(nn.Module):
         return nn.functional.binary_cross_entropy_with_logits(input, target)
 
 ## Loss optimizes Parameters in Vis_encoder + Classifier -- done
-class ImageSuperviseLoss(nn.Module):
-    def __init__(self,
-        model,
-        loss_fn=None,
-        ):
+class WCE_Loss(nn.Module):
+    def __init__(self, model=None, loss_fn=None):
         super().__init__()
-        self.model = model  # Vis_encoder + Classifier
-        self.custom = True if loss_fn == None else False
-        if model.mode is None:
-            raise NotImplementedError(f"take care model mode setting, if it has not been set, the default is multi-label\nCurrent, the program will raise ERROR!!!")
-        self.mode = model.mode
-        if loss_fn is None:
-            if self.mode in ['multilabel','binary']:
-                self.loss_fn = nn.BCEWithLogitsLoss()
-            else:
-                self.loss_fn = nn.CrossEntropyLoss()
-        else:
-            self.loss_fn = loss_fn
+        # self.model = model  # Vis_encoder + Classifier
+        # self.custom = True if loss_fn == None else False
+        # if model.mode is None:
+        #     raise NotImplementedError(f"take care model mode setting, if it has not been set, the default is multi-label\nCurrent, the program will raise ERROR!!!")
+        # self.mode = model.mode
+        print('in this function, we define Weighted cross entropy loss')
 
     def forward(self,
-        img_embedding,
+        logits = None,
         labels=None,
         **kwargs):
-
         # compute soft-labels, -1: negative, 0: uncertain, 1: positive
         # in the original data: 1: positive, 0: negative, -1: uncertain, NA: not mentioned
-        if self.custom == True:
-            outputs = self.model(img_embedding = img_embedding, labels=labels, return_loss=False)
-            loss = self.loss_fn(outputs['logits'], labels)
-            outputs['loss_value'] = loss
-        else:
-            outputs = self.model(img_embedding = img_embedding, labels=labels, return_loss=True)
-        return outputs
+        #apply weighted BCE loss in each batch
+        if isinstance(labels, torch.Tensor):
+          p_n = labels.sum(axis=0)  # positive number
+          n_n = labels.shape[0] - p_n
+          p_w = (p_n + n_n + 1) / (p_n + 1)
+          n_w = (p_n + n_n + 1) / (n_n + 1)
+          print(f"the shape of label: {labels.shape}")
+          print(f"the shape of p_w: {p_w.shape}")
+          assert p_w.shape[0] == n_w.shape[0] == labels.shape[0], f"the shape of weights is not consistent with the shape of labels"
+          self.loss_fn = nn.BCEWithLogitsLoss(pos_weight = p_w)
+          print("training with weighted cross-entropy loss in image classification")
+      
+        print(f"the shape of labels : {labels.shape}")
+        print(labels)
+        loss = self.loss_fn(logits, labels)
+        return loss
 
 class LG_CLIP_LOSS(nn.Module):
     def __init__(self,  alpha = 1, beta = 1, gamma = 1, delta = 1, MultiTaskModel=None, 

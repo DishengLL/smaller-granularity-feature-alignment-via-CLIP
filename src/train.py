@@ -170,6 +170,14 @@ class Trainer:
                     print('\n######### Train Loss #########')
                     for key in train_loss_dict.keys():
                         print('{}: {:.4f} \n'.format(key, np.mean(train_loss_dict[key])))
+                        if np.isnan(np.mean(train_loss_dict[key])):
+                          print("Nan value detected, stop training.")
+                          print(f"the input of data is {data}")
+                          print(f"the length of train_loss_dict: {len(train_loss_dict[key])}")
+                          print(f"the training_loss_dict: {train_loss_dict[key]}")
+                          print(f"the number of nan in the training_loss_dict: {np.isnan(train_loss_dict[key]).sum()}")
+                          print(f"the index of nan in the training_loss_dict: {np.argwhere(np.isnan(train_loss_dict[key]))} ")
+                          #print(f"issue input: {data[int(np.argwhere(np.isnan(train_loss_dict[key][0][0])))]}")
                     train_loss_dict = defaultdict(list)
 
                     #TODO: update prompt sentences
@@ -185,24 +193,24 @@ class Trainer:
                       print(f"update best {self.indicator} : {self.best_score}")
                       save_dir = os.path.join(output_path,"")
                       self._save_ckpt(model, save_dir)     #save the best model during the iterations
-                    # for key in scores.keys():
-                    #     # if key in ['acc','auc', 'auc/mse', ]:
-                    #     #   print('{}: {:.4f}'.format(key, scores[key]))
-                    #     if key == "auc_dict":
-                    #       for i,j in scores[key].items():
-                    #         if i != "disease_auc":
-                    #           print(i, j)
-                    #         else:
-                    #           for dis, auc in j.items():
-                    #             print(dis, auc)
-                    #       av_auc = self.get_average_auc_among_disease(scores[key]["disease_auc"], indicator = "positive")
-                    #       if av_auc > self.best_auc:
-                    #         self.best_auc = av_auc
-                    #         print(f"update best avg auc : {self.best_auc}")
-                    #         save_dir = os.path.join(output_path,"")
-                    #         self._save_ckpt(model, save_dir)     #save the best model during the iterations
-                    #     else: 
-                    #       print(key, scores[key])
+                    for key in scores.keys():
+                        # if key in ['acc','auc', 'auc/mse', ]:
+                        #   print('{}: {:.4f}'.format(key, scores[key]))
+                        if key == "auc_dict":
+                          for i,j in scores[key].items():
+                            if i != "disease_auc":
+                              print(i, j)
+                            else:
+                              for dis, auc in j.items():
+                                print(dis, auc)
+                          av_auc = self.get_average_auc_among_disease(scores[key]["disease_auc"], indicator = "positive")
+                          if av_auc > self.best_auc:
+                            self.best_auc = av_auc
+                            print(f"update best avg auc : {self.best_auc}")
+                            # save_dir = os.path.join(output_path,"")
+                            # self._save_ckpt(model, save_dir)     #save the best model during the iterations
+                        else: 
+                          print(key, scores[key])
                     print(_constants_.GREEN + f"the classifier loss: {scores['loss']}" + _constants_.RESET)
                     print(f'\n\033[31m#######################################\033[0m')
 
