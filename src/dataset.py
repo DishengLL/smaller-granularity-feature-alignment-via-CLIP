@@ -38,6 +38,10 @@ Datatsets = {'MIMIC': [pwd + "/../data/project_using_data/all_train_data_4_12_AP
                           "/public_bme/data/lds/CXR_datasets/CheXpert/data/data/CheXpert-v1.0-small/CheXpert_validation.csv"]
 }
 
+
+prompt_tensor = torch.load(pwd + r"/../data/prompts_tensors/prompt_embeddings.pt")
+
+
 # dataset.py provide all the tensor model needs
 class ImageTextContrastiveDataset(Dataset):
     '''
@@ -406,15 +410,20 @@ class NIH_chest14_dataset(Dataset):
         if prompt_type is None or prompt_type == "clip_basic":
           print(constants.RED + "using basic prompt(default)" + constants.RESET)
           # self.prompts = constants.BASIC_PROMPT
-          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/clip_basic.pt")
+          # self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/clip_basic.pt")
+          self.prompts_tensor = prompt_tensor['NIH_CLIP'] 
+          
         elif prompt_type == "biomed_basic":
           print(constants.RED + "using basic biomed_basic prompt" + constants.RESET)
           # self.prompts = constants.BASIC_PROMPT
           self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt")
+          self.prompts_tensor = prompt_tensor['NIH_BiomedCLIP '] 
         elif prompt_type == "bio_dis_diag_des":
           print(constants.RED + "using basic bio_dis_diag_des prompt" + constants.RESET)
           # self.prompts = constants.BASIC_PROMPT
           self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/bio_dis_diag_des.pt")
+        elif prompt_type == "CXR_specific_basic":
+          raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         else:
             raise NotImplementedError("Custom your prompts!! Attention!!!!!! ToDo: define new prompt in constants.py file")
         
@@ -469,7 +478,7 @@ class CheXpertDataset(Dataset):
         elif prompt_type == "biomed_basic":
           print(constants.RED + "using basic biomed_basic prompt" + constants.RESET)
           # self.prompts = constants.BASIC_PROMPT
-          self.prompts_tensor = torch.load(pwd + r"/../data/prompts_tensors/basic/biomedclip_basic.pt")
+          self.prompts_tensor = prompt_tensor['CheXpert_BiomedCLIP'] 
         elif prompt_type == "bio_dis_diag_des":
           print(constants.RED + "using basic bio_dis_diag_des prompt" + constants.RESET)
           # self.prompts = constants.BASIC_PROMPT

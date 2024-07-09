@@ -50,11 +50,11 @@ class OrthogonalTextEncoder(nn.Module):
         return x
 
 class SplitVisEncoder(nn.Module):
-    def __init__(self, n, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01):
+    def __init__(self, n_labels, d_model=512, nhead = 8, layers = 6, hid_dim=2048, drop = 0.01):
         super(SplitVisEncoder, self).__init__()
-        self.n = n
-        self.input_splits = nn.Linear(d_model, d_model * n)
-        self.fc = nn.Linear(d_model * n, d_model * n)
+        self.n = n_labels
+        self.input_splits = nn.Linear(d_model, d_model * self.n)
+        self.fc = nn.Linear(d_model * self.n, d_model * self.n)
         self.sequential = nn.Sequential(
             self.input_splits,
             self.fc
@@ -105,10 +105,13 @@ class TextBranch(nn.Module):
 class ImgBranch(nn.Module):
     def __init__(self, text_embedding_dim = 512, num_transformer_heads = 8, num_transformer_layers = 6, proj_bia = False, 
                  nntype = None, backbone_v:str = None, 
-                 trainable_PLM:int = 0, trainable_VisionEncoder = False):
+                 trainable_PLM:int = 0, trainable_VisionEncoder = False, dataset = "CheXpert"):
         super().__init__()
         self.projection_head = nn.Linear(512, 512, bias=False)
-        nlabel = len(_constants_.CHEXPERT_LABELS)
+        if dataset == "CheXpert" or dataset == "MIMIC":
+          nlabel = len(_constants_.CHEXPERT_LABELS) - 1 # do not consider No Found --  which could be represented by all zeros of disease labels
+        elif dataset == "NIH":
+          nlabel = len(_constants_.NIH_LABELS)
         d_model=512
         self.device = device
         if backbone_v == "densenet":
@@ -453,6 +456,7 @@ class LGCLIP(nn.Module):
           'logits_per_image' : logits_per_image, 'loss_value' : loss, }
       if not self.visual_branch_only:    # text branch included
         text_embeds = self.encode_text(input_text).to(device)
+        print(f">>>>> the shape of text_embeds : {text_embeds.shape}")
         #similarity matrix img2text [0, 1] in multibatch case: the outer matrix contain several inner matrix text-image
         logits_per_image = self.compute_logits(nor_diseases_embeddings, text_embeds) 
 

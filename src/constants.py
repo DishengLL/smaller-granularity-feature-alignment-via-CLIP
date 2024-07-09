@@ -53,6 +53,11 @@ CHEXPERT_LABELS = [
  'Pneumothorax',
  "Support Devices"
 ]
+NIH_LABELS = [  
+              'Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
+              'Effusion', 'Emphysema', 'Fibrosis', 'Hernia', 'Infiltration', 'Mass',
+              'Nodule', 'Pleural_Thickening', 'Pneumonia', 'Pneumothorax' 
+              ]
 
 DIAGNOSTIC_CHEXPERT_LABELS = [
   'Atelectasis positive', 

@@ -246,3 +246,23 @@ class FocalLoss(nn.Module):
             return F_loss.sum()
         else:
             return F_loss
+          
+class Pearson_correlation_loss(nn.Module):
+    '''
+    Pearson correlation loss is aiming to measure the correlation between two tensor x and y with shape of [N-diseases, N-diseases]
+    
+    def forward(self, x, y): input tensor x and tensor y and return the final loss between these two tensor
+    
+    the value range of Pearson correlation is [-1, 1], and in the loss function, I use loss = 1 - cost, so the range of loss is [0, 2]
+    '''
+    def __init__(self):
+        super(Pearson_correlation_loss, self).__init__()
+
+    def forward(self, x, y):
+      """
+      
+      """
+        # vx = x - torch.mean(x)
+        # vy = y - torch.mean(y)
+        # cost = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+        # return 1 - cost

@@ -194,7 +194,7 @@ def main():
   
   if Dataset == "NIH":
     train_data = NIH_chest14_dataset(dataset_type = "training",
-                 img_transform=transform_training, prompt_type=None)
+                 img_transform=transform_training, prompt_type=prompt)
     
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
@@ -206,7 +206,7 @@ def main():
         )
     
     val_data = NIH_chest14_dataset(dataset_type = "testing",
-                 img_transform=transform_test, prompt_type=None)
+                 img_transform=transform_test, prompt_type=prompt)
     eval_dataloader = DataLoader(val_data,
         batch_size=train_config['eval_batch_size'],
         shuffle=False,
@@ -217,7 +217,7 @@ def main():
     print("training with NIH14 dataset, the size of training is ", len(train_data), "the size of testing is ", len(val_data))
   elif Dataset == "CheXpert":
     train_data = CheXpertDataset(dataset_type = "training",
-                 img_transform=transform_training, prompt_type=None)
+                 img_transform=transform_training, prompt_type=prompt)
     train_loader = DataLoader(train_data,
         batch_size=train_config['batch_size'],
         shuffle=True,
@@ -228,7 +228,7 @@ def main():
         )
     
     val_data = CheXpertDataset(dataset_type = "testing",
-                 img_transform=transform_test, prompt_type=None)
+                 img_transform=transform_test, prompt_type=prompt)
     eval_dataloader = DataLoader(val_data,
         batch_size=train_config['eval_batch_size'],
         shuffle=False,
