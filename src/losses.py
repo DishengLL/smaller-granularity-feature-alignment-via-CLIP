@@ -122,14 +122,11 @@ class WCE_Loss(nn.Module):
           n_n = labels.shape[0] - p_n
           p_w = (p_n + n_n + 1) / (p_n + 1)
           n_w = (p_n + n_n + 1) / (n_n + 1)
-          print(f"the shape of label: {labels.shape}")
-          print(f"the shape of p_w: {p_w.shape}")
-          assert p_w.shape[0] == n_w.shape[0] == labels.shape[0], f"the shape of weights is not consistent with the shape of labels"
+
+          assert p_w.shape[0] == n_w.shape[0] == labels.shape[-1], f"the shape of weights is not consistent with the shape of labels"
           self.loss_fn = nn.BCEWithLogitsLoss(pos_weight = p_w)
           print("training with weighted cross-entropy loss in image classification")
       
-        print(f"the shape of labels : {labels.shape}")
-        print(labels)
         loss = self.loss_fn(logits, labels)
         return loss
 
