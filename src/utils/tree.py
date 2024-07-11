@@ -4,8 +4,7 @@ class TreeNode:
         self.children = children or []
 
 def build_tree():
-    
-    no_finding = TreeNode("No Finding")
+    # no_finding = TreeNode("No Finding")
     heart_related = TreeNode("Heart Related Issues", 
                              [
                               TreeNode("Enlarged Cardiomediastinum"),
@@ -33,7 +32,8 @@ def build_tree():
                                               TreeNode("Fracture"),
                                               TreeNode("Support Devices")
                                               ])
-    root = TreeNode("Chest X-ray Findings", [no_finding, heart_related, lung_issues, pleural_issues, other_issues])
+    # root = TreeNode("Chest X-ray Findings", [no_finding, heart_related, lung_issues, pleural_issues, other_issues])
+    root = TreeNode("Chest X-ray Findings", [heart_related, lung_issues, pleural_issues, other_issues])
     return root
 
 # 寻找最低公共祖先和计算节点到祖先的距离等函数保持不变
