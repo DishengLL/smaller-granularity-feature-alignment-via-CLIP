@@ -34,6 +34,7 @@ requests.packages.urllib3.disable_warnings()
 num_of_diseases = len(_constants_.CHEXPERT_LABELS)  # Desired number of output embeddings
 pwd = os.getcwd()
 
+cwd = "/home_data/home/v-liudsh/coding/constrastive_P/diagnosisP/exchange/Fine-Grained_Features_Alignment_via_Constrastive_Learning/"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 class OrthogonalTextEncoder(nn.Module):
     def __init__(self, d_model=512):
@@ -326,7 +327,8 @@ class LGCLIP(nn.Module):
         no_contrastive = False,
         trainable_PLM = 0,
         trainable_VisionEncoder = False, 
-        no_orthogonal = False
+        no_orthogonal = False,
+        dataset = "CheXpert"
         ) -> None:
         super().__init__()
         text_proj_bias = False
@@ -350,6 +352,7 @@ class LGCLIP(nn.Module):
         self.graph_align = graph_align
         self.no_contrastive = no_contrastive
         self.no_orthogonal = no_orthogonal
+        self.dataset = dataset
 
     def from_pretrained(self, input_dir=None):
         '''
@@ -468,7 +471,12 @@ class LGCLIP(nn.Module):
               graph_alignment = Hier_graph_align(logits_per_image)
               if self.graph_align == "binary":
                 # using cost to represent correlation between different diseases (ps: in cost matrix, diagonal elements are 0)
-                prior_graph_tensor = torch.load(pwd + "/../constants/normalized_cost_matrix.pt")   
+                assert self.dataset in ["CheXpert", "MIMIC", "NIH"], "wrong dataset result in wrong correlation matrix"
+                if self.dataset in ["CheXpert", "MIMIC"]:
+                  prior_graph_tensor = torch.load(cwd + "/constants/CHEXPERT/normalized_corr_matrix.pt")
+                  # prior_graph_tensor = torch.load(pwd + "/../constants/CHEXPERT/normalized_corr_matrix.pt.pt")
+                elif self.dataset == "NIH": 
+                  prior_graph_tensor = torch.load(cwd + "/constants/NIH/normalized_corr_matrix.pt.pt")  
                 graph_align_loss = graph_alignment.get_loss(prior_graph_tensor)
                 loss = clip_loss + graph_align_loss
               else:
